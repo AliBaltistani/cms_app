@@ -448,7 +448,8 @@
 										<div class="d-flex align-items-start gap-3">
 											<div class="lh-1">
 												<span class="avatar avatar-sm avatar-rounded bg-primary-transparent fs-5">
-													<img src="{{asset('build/assets/images/faces/12.jpg')}}" alt="">
+													{{-- <img src="{{asset('build/assets/images/faces/12.jpg')}}" alt=""> --}}
+													 {{ strtoupper(substr($user->name, 0, 1)) }}
 												</span>
 											</div>
 											<div class="flex-fill">
@@ -526,8 +527,9 @@
 						<li class="header-element dropdown">
 							<!-- Start::header-link|dropdown-toggle -->
 							<a href="javascript:void(0);" class="header-link dropdown-toggle" id="mainHeaderProfile" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-								<div>
-									<img src="{{asset('build/assets/images/faces/12.jpg')}}" alt="img" class="header-link-icon">
+								<div class="header-link-icon avatar bg-primary-transparent avatar-rounded">
+									{{-- <img src="{{asset('build/assets/images/faces/12.jpg')}}" alt="img" class="header-link-icon"> --}}
+									 {{ strtoupper(substr($user->name, 0, 1)) }}
 								</div>
 							</a>
 							<!-- End::header-link|dropdown-toggle -->
@@ -543,12 +545,13 @@
 									<div class="d-flex align-items-start gap-2">
 										<div class="lh-1">
 											<span class="avatar avatar-sm bg-primary-transparent avatar-rounded">
-												<img src="{{asset('build/assets/images/faces/12.jpg')}}" alt="">
+                                                {{ strtoupper(substr($user->name, 0, 1)) }}
+												{{-- <img src="{{asset('build/assets/images/faces/12.jpg')}}" alt=""> --}}
 											</span>
 										</div>
 										<div>
-											<span class="d-block fw-semibold lh-1">Tom Phillip</span>
-											<span class="text-muted fs-12">tomphillip32@gmail.com</span>
+											<span class="d-block fw-semibold lh-1">{{ $user->name }}</span>
+											<span class="text-muted fs-12">{{ $user->email }}</span>
 										</div>
 									</div>
 								</div>
@@ -577,7 +580,7 @@
 											</li>
 										</ul>        
 									</li>
-									<li><a class="dropdown-item d-flex align-items-center" href="javascript:void(0);"><i class="ti ti-logout me-2 fs-18"></i>Log Out</a></li>
+									<li><a class="dropdown-item d-flex align-items-center" href="{{ route('logout') }}"><i class="ti ti-logout me-2 fs-18"></i>Log Out</a></li>
 								</ul>
 							</div>
 						</li>  

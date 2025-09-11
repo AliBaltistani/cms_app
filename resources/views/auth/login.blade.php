@@ -1,107 +1,37 @@
-<!DOCTYPE html>
-<html lang="en" dir="ltr" data-nav-layout="vertical" data-theme-mode="light" data-header-styles="transparent" data-width="fullwidth" data-menu-styles="transparent" data-page-style="flat">
 
-<head>
-    <!-- Meta Data -->
-    <meta charset="UTF-8">
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="Description" content="Laravel Bootstrap Responsive Admin Web Dashboard Template">
-    <meta name="Author" content="Go Globe CMS Team">
-    <meta name="keywords" content="laravel, laravel admin panel, laravel dashboard, bootstrap dashboard, bootstrap admin panel, vite laravel, admin dashboard, admin panel in laravel, admin dashboard ui, laravel admin, admin panel template, laravel framework, dashboard, admin dashboard template, laravel template.">
+@extends('layouts.custom-master')
 
-    <!-- Title-->
-    <title>Login - Go Globe CMS</title>
-    
-    <!-- Favicon -->
-    <link rel="icon" href="{{asset('build/assets/images/brand-logos/favicon.ico')}}" type="image/x-icon">
+@php
+// Passing the bodyClass variable from the view to the layout
+$bodyClass = 'bg-white';
+@endphp
 
-    <!-- Main Theme Js -->
-    <script src="{{asset('build/assets/main.js')}}"></script>
+@section('styles')
 
-    <!-- ICONS CSS -->
-    <link href="{{asset('build/assets/icon-fonts/icons.css')}}" rel="stylesheet">
 
-    @include('layouts.components.styles')
-  
-    <!-- APP CSS & APP SCSS -->
-    @vite(['resources/sass/app.scss'])
 
-    <!-- Authentication Styles -->
-    @vite('resources/assets/js/authentication-main.js')
+@endsection
 
-    <style>
-        .auth-container {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        .auth-card {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            max-width: 400px;
-            width: 100%;
-            margin: 20px;
-        }
-        .auth-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-        .auth-body {
-            padding: 40px 30px;
-        }
-        .form-control {
-            border-radius: 8px;
-            border: 2px solid #e9ecef;
-            padding: 12px 15px;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-        .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 8px;
-            padding: 12px 30px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-        .alert {
-            border-radius: 8px;
-            border: none;
-        }
-        .form-check-input:checked {
-            background-color: #667eea;
-            border-color: #667eea;
-        }
-    </style>
-</head>
+@section('content')
+	
+        <div class="row authentication authentication-cover-main mx-0">
+            <div class="col-xxl-9 col-xl-9">
+                <div class="row justify-content-center align-items-center h-100">
+                    <div class="col-xxl-4 col-xl-5 col-lg-6 col-md-6 col-sm-8 col-12">
+                        <div class="card custom-card border-0 shadow-none my-4">
+                            <div class="card-body ">
+                                <div>
 
-<body class="">
-    <div class="auth-container">
-        <div class="auth-card">
-            <!-- Header -->
-            <div class="auth-header">
-                <h2 class="mb-1">Welcome Back!</h2>
-                <p class="mb-0 opacity-75">Sign in to your account</p>
-            </div>
+                                    <div class="d-flex justify-content-center align-items-bottom mb-4">
+                                        <img src="{{ asset('build/assets/images/light-logo.svg') }}" alt="Logo" class="img-fluid" width="50">
+                                       <div class="ms-3">
+                                         <h4 class="mb-1 fw-semibold"> Hi,Welcome back!</h4>
+                                         <p class=" mb-0  text-muted fw-normal">Please enter your credentials</p>
+                                       </div>
+                                    </div>
+                                    
 
-            <!-- Body -->
-            <div class="auth-body">
-                <!-- Display Validation Errors -->
+                                      <!-- Display Validation Errors -->
                 @if ($errors->any())
                     <div class="alert alert-danger mb-4">
                         <ul class="mb-0">
@@ -125,83 +55,101 @@
                         {{ session('status') }}
                     </div>
                 @endif
-
-                <!-- Login Form -->
-                <form method="POST" action="{{ route('login') }}">
+                                </div>
+                                 <form method="POST" action="{{ route('login') }}">
                     @csrf
-
-                    <!-- Email Field -->
-                    <div class="mb-3">
-                        <label for="email" class="form-label fw-semibold">Email Address</label>
-                        <input id="email" type="email" 
-                               class="form-control @error('email') is-invalid @enderror" 
-                               name="email" 
-                               value="{{ old('email') }}" 
-                               required 
-                               autocomplete="email" 
-                               autofocus
-                               placeholder="Enter your email address">
-                        @error('email')
-                            <div class="invalid-feedback">
-                                {{ $message }}
+                                <div class="row gy-3">
+                                    <div class="col-xl-12">
+                                        <label for="signin-email" class="form-label text-default">Email</label>
+                                        <input type="text" class="form-control form-control @error('email') is-invalid @enderror" id="signin-email" placeholder="Enter Email" name="email" value="{{ old('email') }}" required autofocus>
+                                     @error('email')
+                                        <div class="invalid-feedback">
+                                            {{ $message }}
+                                        </div>
+                                    @enderror
+                                    </div>
+                                    
+                                    <div class="col-xl-12 mb-2">
+                                        <label for="signin-password" class="form-label text-default d-block">Password</label>
+                                        <div class="position-relative">
+                                            <input type="password" class="form-control form-control @error('password') is-invalid @enderror" id="signin-password" placeholder="Enter Password" name="password" required autofocus>
+                                            <a href="javascript:void(0);" class="show-password-button text-muted" onclick="createpassword('signin-password',this)" id="button-addon2"><i class="ri-eye-off-line align-middle"></i></a>
+                                            @error('password')
+                                                <div class="invalid-feedback">
+                                                    {{ $message }}
+                                                </div>
+                                            @enderror
+                                        </div>
+                                        <div class="mt-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox"  name="remember" id="remember" {{ old('remember') ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="defaultCheck1">
+                                                    Remember me
+                                                </label>
+                                                <a href="#" class="float-end link-danger fw-medium fs-12">Forget password ?</a>
+                                                {{-- <a href="{{url('reset-password-basic')}}" class="float-end link-danger fw-medium fs-12">Forget password ?</a> --}}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-grid mt-3">
+                                    <button type="submit" class="btn btn-primary">Sign In</button>
+                                </div>
+                            </form>
+                                <div class="text-center my-3 authentication-barrier">
+                                    <span class="op-4 fs-13">OR</span>
+                                </div>
+                                <div class="d-grid mb-3">
+                                    <button class="btn btn-white btn-w-lg border d-flex align-items-center justify-content-center flex-fill mb-3">
+                                        <span class="avatar avatar-xs">
+                                            <img src="{{asset('build/assets/images/media/apps/google.png')}}" alt="">
+                                        </span>
+                                        <span class="lh-1 ms-2 fs-13 text-default fw-medium">Signup with Google</span>
+                                    </button>
+                                    <button class="btn btn-white btn-w-lg border d-flex align-items-center justify-content-center flex-fill">
+                                        <span class="avatar avatar-xs flex-shrink-0">
+                                            <img src="{{asset('build/assets/images/media/apps/facebook.png')}}" alt="">
+                                        </span>
+                                        <span class="lh-1 ms-2 fs-13 text-default fw-medium">Signup with Facebook</span>
+                                    </button>
+                                </div>
+                                <div class="text-center mt-3 fw-medium">
+                                    Dont have an account? <a href="{{ route('register') }}" class="text-primary">Register Here</a>
+                                </div>
                             </div>
-                        @enderror
-                    </div>
-
-                    <!-- Password Field -->
-                    <div class="mb-3">
-                        <label for="password" class="form-label fw-semibold">Password</label>
-                        <input id="password" type="password" 
-                               class="form-control @error('password') is-invalid @enderror" 
-                               name="password" 
-                               required 
-                               autocomplete="current-password"
-                               placeholder="Enter your password">
-                        @error('password')
-                            <div class="invalid-feedback">
-                                {{ $message }}
-                            </div>
-                        @enderror
-                    </div>
-
-                    <!-- Remember Me Checkbox -->
-                    <div class="mb-4">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="remember" id="remember" {{ old('remember') ? 'checked' : '' }}>
-                            <label class="form-check-label" for="remember">
-                                Remember Me
-                            </label>
                         </div>
                     </div>
-
-                    <!-- Submit Button -->
-                    <div class="d-grid mb-4">
-                        <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="ri-login-box-line me-2"></i>Sign In
-                        </button>
+                </div>
+            </div>
+            <div class="col-xxl-3 col-xl-3 col-lg-12 d-xl-block d-none px-0">
+                <div class="authentication-cover overflow-hidden">
+                    <div class="authentication-cover-logo">
+                        <a href="{{url('index')}}">
+                        <img src="{{asset('build/assets/images/brand-logos/toggle-logo.png')}}" alt="logo" class="desktop-dark"> 
+                        </a>
                     </div>
-
-                    <!-- Additional Links -->
-                    <div class="text-center">
-                        <p class="mb-2">
-                            <a href="#" class="text-decoration-none">Forgot Your Password?</a>
-                        </p>
-                        <p class="mb-0">
-                            Don't have an account? 
-                            <a href="{{ route('register') }}" class="text-decoration-none fw-semibold">Sign Up</a>
-                        </p>
+                    <div class="authentication-cover-background">
+                        <img src="{{asset('build/assets/images/media/backgrounds/9.png')}}" alt="">
                     </div>
-                </form>
+                    <div class="authentication-cover-content">
+                        <div class="p-5">
+                            <h3 class="fw-semibold lh-base">Welcome to Dashboard</h3>
+                            <p class="mb-0 text-muted fw-medium">Manage your website and content with ease using our powerful admin tools.</p>
+                        </div>
+                        <div>
+                            <img src="{{asset('build/assets/images/media/media-72.png')}}" alt="" class="img-fluid">
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Scripts -->
-    @include('layouts.components.scripts')
+@endsection
 
-    <!-- App JS-->
-    @vite('resources/js/app.js')
+@section('scripts')
+	
+        <!-- Show Password JS -->
+        <script src="{{asset('build/assets/show-password.js')}}"></script>
 
-</body>
-
-</html>
+@endsection

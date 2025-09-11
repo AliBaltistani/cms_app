@@ -33,7 +33,7 @@
                     <!-- Start::app-content -->
                     <div class="row row-sm mt-lg-4">
                         <!-- Welcome Card -->
-                        <div class="col-sm-12 col-lg-8 col-xl-8">
+                        <div class="col-sm-12 col-lg-12 col-xl-12">
                             <div class="card bg-primary custom-card card-box">
                                 <div class="card-body p-4">
                                     <div class="d-flex align-items-center">
@@ -50,7 +50,7 @@
                                         </div>
                                         <div class="text-end">
                                             <div class="avatar avatar-xl">
-                                                <div class="avatar-initial bg-white text-primary rounded-circle fs-24 fw-bold">
+                                                <div class="avatar-initial bg-white text-primary avatar  avatar-rounded rounded-circle fs-24 fw-bold">
                                                     {{ strtoupper(substr($user->name, 0, 1)) }}
                                                 </div>
                                             </div>
@@ -60,36 +60,7 @@
                             </div>
                         </div>
                         
-                        <!-- User Stats Card -->
-                        <div class="col-sm-12 col-lg-4 col-xl-4">
-                            <div class="card custom-card">
-                                <div class="card-body">
-                                    <div class="text-center">
-                                        <div class="avatar avatar-xxl mx-auto mb-3">
-                                            <div class="avatar-initial bg-primary-gradient rounded-circle fs-28 fw-bold">
-                                                {{ strtoupper(substr($user->name, 0, 2)) }}
-                                            </div>
-                                        </div>
-                                        <h5 class="mb-1">{{ $user->name }}</h5>
-                                        <p class="text-muted mb-3">{{ $user->email }}</p>
-                                        <div class="row">
-                                            <div class="col-6">
-                                                <div class="text-center">
-                                                    <h6 class="mb-1">{{ $total_users }}</h6>
-                                                    <small class="text-muted">Total Users</small>
-                                                </div>
-                                            </div>
-                                            <div class="col-6">
-                                                <div class="text-center">
-                                                    <h6 class="mb-1">{{ $user_since }}</h6>
-                                                    <small class="text-muted">Member Since</small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        
                     </div>
                     
                     <!-- Quick Actions Row -->
