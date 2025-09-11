@@ -4625,3 +4625,22 @@ ul.search-results-list {
 .tagify--select .tagify__tag{
   margin-inline-end: 7px !important;
 }
+
+.btn-primary{
+  background-color: #FF6A00 !important;
+  border-color: #ff6a00e4 !important;
+}
+.btn-primary:hover{
+    background-color: #ff8229 !important;
+  border-color: #ff6a00e4 !important;
+}
+.btn-outline-primary{
+  color: #FF6A00 !important;
+  border-color: #ff6a00e4 !important;
+}
+
+.btn-outline-primary:hover{
+    background-color: rgb(255, 166, 78) !important;
+    color: #fff !important;
+    border-color: rgb(255, 175, 94) !important;
+}
