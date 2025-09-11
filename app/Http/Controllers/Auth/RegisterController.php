@@ -97,7 +97,8 @@ class RegisterController extends Controller
         return Validator::make($data, [
             'name' => ['required', 'string', 'max:255', 'min:2'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'phone' => ['required', 'numeric', 'min:10', 'unique:users'],
+            'password' => ['required', 'string', 'min:8'],
         ], [
             // Custom error messages
             'name.required' => 'Please enter your full name.',
@@ -123,7 +124,9 @@ class RegisterController extends Controller
             $user = User::create([
                 'name' => trim($data['name']),
                 'email' => strtolower(trim($data['email'])),
+                'phone' => strtolower(trim($data['phone'])),
                 'password' => Hash::make($data['password']),
+                'role' => $data['role'] ?? 'client', // Default role is 'client'
                 'email_verified_at' => now(), // Auto-verify for simplicity
             ]);
 
