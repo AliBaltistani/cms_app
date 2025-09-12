@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Facades\Auth;
 
 class User extends Authenticatable
 {
@@ -48,6 +49,25 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public static function isAdmin(): bool
+    {
+        return Auth::user() && Auth::user()->role === 'admin';
+    }
+
+
+    public static function isClient(): bool
+    {
+        return Auth::user() && Auth::user()->role === 'client';
+    }
+
+
+    public static function isTrainer(): bool
+    {
+        return Auth::user() && Auth::user()->role === 'trainer';
+    }
+    
+
 
    
 }

@@ -61,60 +61,14 @@
 										<a href="javascript:void(0)">Nested Menu</a>
 									</li>
 									<li class="slide">
-										<a href="javascript:void(0);" class="side-menu__item">
+										<a href="{{route('goals.index')}}" class="side-menu__item">
 											<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><rect x="32" y="80" width="160" height="128" rx="8" opacity="0.2"/><rect x="32" y="80" width="160" height="128" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M64,48H216a8,8,0,0,1,8,8V176" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
-											Nested-1
+											Goals
 										</a>
-									</li>
-									<li class="slide has-sub">
-										<a href="javascript:void(0);" class="side-menu__item">
-											<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><rect x="40" y="96" width="176" height="112" rx="8" opacity="0.2"/><rect x="40" y="96" width="176" height="112" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="56" y1="64" x2="200" y2="64" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="72" y1="32" x2="184" y2="32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
-											Nested-2
-											<i class="ri-arrow-right-s-line side-menu__angle"></i></a>
-										<ul class="slide-menu child2">
-											<li class="slide">
-												<a href="javascript:void(0);" class="side-menu__item">Nested-2.1</a>
-											</li>
-											<li class="slide has-sub">
-												<a href="javascript:void(0);" class="side-menu__item">Nested-2.2
-													<i class="ri-arrow-right-s-line side-menu__angle"></i></a>
-												<ul class="slide-menu child3">
-													<li class="slide">
-														<a href="javascript:void(0);" class="side-menu__item">Nested-2.2.1</a>
-													</li>
-													<li class="slide">
-														<a href="javascript:void(0);" class="side-menu__item">Nested-2.2.2</a>
-													</li>
-												</ul>
-											</li>
-										</ul>
 									</li>
 								</ul>
 							</li>
 							<!-- End::slide -->
-
-						<li>
-							<ul class="slide-menu child1 doublemenu_slide-menu">
-								<li class="text-center p-3 text-fixed-white">
-									<div class="doublemenu_slide-menu-background">
-										<img src="{{asset('build/assets/images/media/backgrounds/13.png')}}" alt="">
-									</div>
-									<div class="d-flex flex-column align-items-center justify-content-between h-100">
-										<div class="fs-15 fw-medium">Dashboard AI Helper</div>
-										<div>
-											<span class="avatar avatar-lg p-1">
-												<img src="{{asset('build/assets/images/media/media-80.png')}}" alt="">
-												<span class="top-right"></span>
-												<span class="bottom-right"></span>
-											</span>
-										</div>
-										<div class="d-grid w-100">
-											<button class="btn btn-light border-0">Try Now</button>
-										</div>
-									</div>
-								</li>
-							</ul>
-						</li>
 
 
 						</ul>
