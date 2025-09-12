@@ -10,6 +10,8 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\GoalsController;
+use App\Http\Controllers\WorkoutController;
+use App\Http\Controllers\WorkoutVideoController;
 
 /**
  * Public Routes
@@ -68,6 +70,7 @@ Route::middleware('auth')->group(function () {
     // Admin Routes
     Route::prefix('admin')->group(function () {
         Route::get('/', [DashboardsController::class, 'index']);
+
         // Add more admin-specific routes here
           Route::prefix('goals')->group(function () {
              Route::get('/index', [GoalsController::class, 'index'])->name('goals.index');
@@ -79,5 +82,39 @@ Route::middleware('auth')->group(function () {
              Route::delete('/destroy/{id}', [GoalsController::class, 'delete'])->name('goals.destroy');
           });
 
+          // Add more admin-specific routes here
+          Route::prefix('workouts')->group(function () {
+             Route::get('/index', [WorkoutController::class, 'index'])->name('workouts.index');
+             Route::get('/create', [WorkoutController::class, 'create'])->name('workouts.create');
+             Route::post('/store', [WorkoutController::class, 'store'])->name('workouts.store');
+             Route::post('/show{id}', [WorkoutController::class, 'show'])->name('workouts.show');
+             Route::get('/edit/{id}', [WorkoutController::class, 'edit'])->name('workouts.edit');
+             Route::post('/update/{id}', [WorkoutController::class, 'update'])->name('workouts.update');
+             Route::delete('/destroy/{id}', [WorkoutController::class, 'delete'])->name('workouts.destroy');
+          });
+
+
+          // Web routes for admin panel or frontend
+            Route::resource('workouts', WorkoutController::class);
+            Route::resource('workouts.videos', WorkoutVideoController::class)
+                ->except(['index'])
+                ->names([
+                    'create' => 'workout-videos.create',
+                    'store' => 'workout-videos.store',
+                    'show' => 'workout-videos.show',
+                    'edit' => 'workout-videos.edit',
+                    'update' => 'workout-videos.update',
+                    'destroy' => 'workout-videos.destroy',
+                ]);
+                
+            // Additional routes
+            Route::post('workouts/{workout}/duplicate', [WorkoutController::class, 'duplicate'])->name('workouts.duplicate');
+            Route::patch('workouts/{workout}/toggle-status', [WorkoutController::class, 'toggleStatus'])->name('workouts.toggle-status');
+            Route::patch('workouts/{workout}/videos/reorder', [WorkoutVideoController::class, 'reorder'])->name('workout-videos.reorder');
+        
+
     });
 });
+
+
+
