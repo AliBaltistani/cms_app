@@ -1,14 +1,15 @@
 @extends('layouts.master')
 
 @section('content')
-<form method="POST" action="{{ route('workout-videos.store', $workout->id) }}" enctype="multipart/form-data">
+<form method="POST" action="{{ route('workout-videos.update', [$workout->id, $video->id]) }}" enctype="multipart/form-data">
                     @csrf
+                    @method('PUT')
   <div class="row">
                         <div class="col-xl-12">
                             <div class="card custom-card">
                                 <div class="card-header justify-content-between">
                                     <div class="card-title">
-                                        Add Video to "{{ $workout->name }}"
+                                        Edit Video "{{ $video->title }}" in "{{ $workout->name }}"
                                     </div>
                                     <div class="prism-toggle">
                                         <a href="{{route('workouts.show', $workout->id)}}" class="btn btn-sm btn-primary-light">Back to Workout</a>
@@ -18,7 +19,7 @@
                                     <div class="row">
                                         <div class="col-md-6 mb-3">
                                             <label class="form-label">Video Title</label>
-                                            <input type="text" class="form-control @error('title') is-invalid @enderror" name="title" placeholder="Enter video title" value="{{ old('title') }}" required>
+                                            <input type="text" class="form-control @error('title') is-invalid @enderror" name="title" placeholder="Enter video title" value="{{ old('title', $video->title) }}" required>
                                             @error('title')
                                                 <div class="invalid-feedback">
                                                     {{ $message }}
@@ -30,10 +31,10 @@
                                             <label class="form-label">Video Type</label>
                                             <select class="form-select @error('video_type') is-invalid @enderror" name="video_type" id="videoType" required>
                                                 <option value="">Select video type</option>
-                                                <option value="youtube" {{ old('video_type') == 'youtube' ? 'selected' : '' }}>YouTube</option>
-                                                <option value="vimeo" {{ old('video_type') == 'vimeo' ? 'selected' : '' }}>Vimeo</option>
-                                                <option value="url" {{ old('video_type') == 'url' ? 'selected' : '' }}>Direct URL</option>
-                                                <option value="file" {{ old('video_type') == 'file' ? 'selected' : '' }}>Upload File</option>
+                                                <option value="youtube" {{ old('video_type', $video->video_type) == 'youtube' ? 'selected' : '' }}>YouTube</option>
+                                                <option value="vimeo" {{ old('video_type', $video->video_type) == 'vimeo' ? 'selected' : '' }}>Vimeo</option>
+                                                <option value="url" {{ old('video_type', $video->video_type) == 'url' ? 'selected' : '' }}>Direct URL</option>
+                                                <option value="file" {{ old('video_type', $video->video_type) == 'file' ? 'selected' : '' }}>Upload File</option>
                                             </select>
                                             @error('video_type')
                                                 <div class="invalid-feedback">
@@ -44,7 +45,7 @@
                                         
                                         <div class="col-md-3 mb-3">
                                             <label class="form-label">Order</label>
-                                            <input type="number" class="form-control @error('order') is-invalid @enderror" name="order" placeholder="Video order" min="0" value="{{ old('order', $workout->videos->count() + 1) }}">
+                                            <input type="number" class="form-control @error('order') is-invalid @enderror" name="order" placeholder="Video order" min="0" value="{{ old('order', $video->order) }}">
                                             <small class="text-muted">Leave blank for auto-order</small>
                                             @error('order')
                                                 <div class="invalid-feedback">
@@ -56,7 +57,12 @@
                                         <!-- Video URL Field -->
                         <div class="col-md-12 mb-3" id="videoUrlField">
                             <label class="form-label">Video URL</label>
-                            <input type="url" class="form-control @error('video_url') is-invalid @enderror" name="video_url" id="videoUrl" placeholder="Enter video URL" value="{{ old('video_url') }}" required>
+                            @if($video->video_type === 'file')
+                                <input type="text" class="form-control @error('video_url') is-invalid @enderror" name="video_url" id="videoUrl" placeholder="Enter video URL" value="{{ old('video_url', $video->video_file_url) }}" readonly>
+                                <small class="text-muted">Current file URL (read-only). Upload a new file below to change.</small>
+                            @else
+                                <input type="url" class="form-control @error('video_url') is-invalid @enderror" name="video_url" id="videoUrl" placeholder="Enter video URL" value="{{ old('video_url', $video->video_url) }}" required>
+                            @endif
                             <small class="text-muted" id="urlHelp">
                                 <span id="youtubeHelp" style="display: none;">Enter YouTube URL (e.g., https://www.youtube.com/watch?v=VIDEO_ID)</span>
                                 <span id="vimeoHelp" style="display: none;">Enter Vimeo URL (e.g., https://vimeo.com/VIDEO_ID)</span>
@@ -72,9 +78,18 @@
                         
                         <!-- Video File Upload Field -->
                         <div class="col-md-12 mb-3" id="videoFileField" style="display: none;">
-                            <label class="form-label">Upload Video File</label>
+                            <label class="form-label">Upload New Video File</label>
                             <input type="file" class="form-control @error('video_file') is-invalid @enderror" name="video_file" id="videoFile" accept="video/*">
-                            <small class="text-muted">Supported formats: MP4, AVI, MOV, WMV, FLV, WebM, MKV (Max: 100MB)</small>
+                            <small class="text-muted">Supported formats: MP4, AVI, MOV, WMV, FLV, WebM, MKV (Max: 100MB). Leave empty to keep current file.</small>
+                            @if($video->video_type === 'file' && $video->video_url)
+                                <div class="mt-2">
+                                    <small class="text-muted">Current file:</small>
+                                    <a href="{{ $video->video_file_url }}" target="_blank" class="text-decoration-none">
+                                        {{ basename($video->video_url) }}
+                                        <i class="ri-external-link-line ms-1"></i>
+                                    </a>
+                                </div>
+                            @endif
                             @error('video_file')
                                 <div class="invalid-feedback">
                                     {{ $message }}
@@ -84,7 +99,7 @@
                                         
                                         <div class="col-md-12 mb-3">
                                             <label class="form-label">Description</label>
-                                            <textarea class="form-control @error('description') is-invalid @enderror" name="description" rows="3" placeholder="Enter video description">{{ old('description') }}</textarea>
+                                            <textarea class="form-control @error('description') is-invalid @enderror" name="description" rows="3" placeholder="Enter video description">{{ old('description', $video->description) }}</textarea>
                                             @error('description')
                                                 <div class="invalid-feedback">
                                                     {{ $message }}
@@ -94,7 +109,7 @@
                                         
                                         <div class="col-md-4 mb-3">
                                             <label class="form-label">Duration (seconds)</label>
-                                            <input type="number" class="form-control @error('duration') is-invalid @enderror" name="duration" placeholder="Duration in seconds" min="1" value="{{ old('duration') }}">
+                                            <input type="number" class="form-control @error('duration') is-invalid @enderror" name="duration" placeholder="Duration in seconds" min="1" value="{{ old('duration', $video->duration) }}">
                                             <small class="text-muted">Optional - leave blank if unknown</small>
                                             @error('duration')
                                                 <div class="invalid-feedback">
@@ -106,7 +121,13 @@
                                         <div class="col-md-4 mb-3">
                                             <label class="form-label">Thumbnail</label>
                                             <input type="file" class="form-control @error('thumbnail') is-invalid @enderror" name="thumbnail" accept="image/*">
-                                            <small class="text-muted">Upload video thumbnail (jpeg, png, jpg, gif, webp - max 2MB)</small>
+                                            <small class="text-muted">Upload video thumbnail (jpeg, png, jpg, gif, webp - max 2MB). Leave empty to keep current thumbnail.</small>
+                                            @if($video->thumbnail)
+                                                <div class="mt-2">
+                                                    <small class="text-muted">Current thumbnail:</small><br>
+                                                    <img src="{{ $video->thumbnail_url }}" alt="Current thumbnail" class="img-thumbnail" style="max-width: 100px; max-height: 60px;">
+                                                </div>
+                                            @endif
                                             @error('thumbnail')
                                                 <div class="invalid-feedback">
                                                     {{ $message }}
@@ -117,7 +138,7 @@
                                         <div class="col-md-4 mb-3">
                                             <label class="form-label">Video Options</label>
                                             <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="is_preview" value="1" id="isPreview" {{ old('is_preview') ? 'checked' : '' }}>
+                                                <input class="form-check-input" type="checkbox" name="is_preview" value="1" id="isPreview" {{ old('is_preview', $video->is_preview) ? 'checked' : '' }}>
                                                 <label class="form-check-label" for="isPreview">
                                                     This is a preview video
                                                 </label>
@@ -126,7 +147,7 @@
                                         </div>
                                         
                                         <div class="col-md-12">
-                                            <button type="submit" class="btn btn-primary">Add Video</button>
+                                            <button type="submit" class="btn btn-primary">Update Video</button>
                                             <a href="{{ route('workouts.show', $workout->id) }}" class="btn btn-secondary">Cancel</a>
                                         </div>
                                     </div>
@@ -154,9 +175,9 @@ document.getElementById('videoType').addEventListener('change', function() {
         urlFieldContainer.style.display = 'none';
         fileFieldContainer.style.display = 'block';
         
-        // Remove required from URL field, add to file field
+        // Remove required from URL field, remove from file field (optional for updates)
         urlField.removeAttribute('required');
-        fileField.setAttribute('required', 'required');
+        fileField.removeAttribute('required');
         
         // Show file help text
         const fileHelpElement = document.getElementById('fileHelp');
@@ -170,6 +191,8 @@ document.getElementById('videoType').addEventListener('change', function() {
         
         // Add required to URL field, remove from file field
         urlField.setAttribute('required', 'required');
+        urlField.removeAttribute('readonly');
+        urlField.type = 'url';
         fileField.removeAttribute('required');
         
         // Show relevant help text and update placeholder

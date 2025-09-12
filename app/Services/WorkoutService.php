@@ -71,10 +71,21 @@ class WorkoutService
 
     /**
      * Add a video to a workout
+     *
+     * @param Workout $workout The workout to add video to
+     * @param array $data Video data including file uploads
+     * @return WorkoutVideo
+     * @throws \Exception
      */
     public function addVideoToWorkout(Workout $workout, array $data): WorkoutVideo
     {
         return DB::transaction(function () use ($workout, $data) {
+            // Handle video file upload
+            if (isset($data['video_file']) && $data['video_file'] instanceof UploadedFile) {
+                $data['video_url'] = $this->uploadVideoFile($data['video_file'], 'workout-videos');
+                unset($data['video_file']); // Remove file from data array
+            }
+
             // Handle thumbnail upload
             if (isset($data['thumbnail']) && $data['thumbnail'] instanceof UploadedFile) {
                 $data['thumbnail'] = $this->uploadThumbnail($data['thumbnail'], 'workout-videos');
@@ -82,11 +93,11 @@ class WorkoutService
 
             // Auto-detect video type if not provided
             if (!isset($data['video_type']) || empty($data['video_type'])) {
-                $data['video_type'] = $this->detectVideoType($data['video_url']);
+                $data['video_type'] = $this->detectVideoType($data['video_url'] ?? '');
             }
 
             // Set order if not provided
-            if (!isset($data['order'])) {
+            if (!isset($data['order']) || $data['order'] === null) {
                 $data['order'] = $workout->videos()->max('order') + 1;
             }
 
@@ -96,10 +107,27 @@ class WorkoutService
 
     /**
      * Update a workout video
+     *
+     * @param WorkoutVideo $video The video to update
+     * @param array $data Video data including file uploads
+     * @return WorkoutVideo
+     * @throws \Exception
      */
     public function updateWorkoutVideo(WorkoutVideo $video, array $data): WorkoutVideo
     {
         return DB::transaction(function () use ($video, $data) {
+            // Handle video file upload
+            if (isset($data['video_file']) && $data['video_file'] instanceof UploadedFile) {
+                // Delete old video file if it exists and is a local file
+                if ($video->video_type === 'file' && $video->video_url && Storage::disk('public')->exists($video->video_url)) {
+                    Storage::disk('public')->delete($video->video_url);
+                }
+                
+                $data['video_url'] = $this->uploadVideoFile($data['video_file'], 'workout-videos');
+                $data['video_type'] = 'file';
+                unset($data['video_file']); // Remove file from data array
+            }
+
             // Handle thumbnail upload
             if (isset($data['thumbnail']) && $data['thumbnail'] instanceof UploadedFile) {
                 // Delete old thumbnail
@@ -110,8 +138,8 @@ class WorkoutService
                 $data['thumbnail'] = $this->uploadThumbnail($data['thumbnail'], 'workout-videos');
             }
 
-            // Auto-detect video type if URL changed
-            if (isset($data['video_url']) && $data['video_url'] !== $video->video_url) {
+            // Auto-detect video type if URL changed and no file was uploaded
+            if (isset($data['video_url']) && $data['video_url'] !== $video->video_url && !isset($data['video_file'])) {
                 $data['video_type'] = $this->detectVideoType($data['video_url']);
             }
 
@@ -122,10 +150,18 @@ class WorkoutService
 
     /**
      * Delete a workout video
+     *
+     * @param WorkoutVideo $video The video to delete
+     * @return bool
      */
     public function deleteWorkoutVideo(WorkoutVideo $video): bool
     {
         return DB::transaction(function () use ($video) {
+            // Delete video file if it's a local upload
+            if ($video->video_type === 'file' && $video->video_url && Storage::disk('public')->exists($video->video_url)) {
+                Storage::disk('public')->delete($video->video_url);
+            }
+
             // Delete thumbnail
             if ($video->thumbnail && Storage::disk('public')->exists($video->thumbnail)) {
                 Storage::disk('public')->delete($video->thumbnail);
@@ -174,11 +210,52 @@ class WorkoutService
 
     /**
      * Upload thumbnail image
+     *
+     * @param UploadedFile $file The thumbnail file to upload
+     * @param string $folder The folder to store the file in
+     * @return string The stored file path
      */
     private function uploadThumbnail(UploadedFile $file, string $folder): string
     {
         $filename = Str::random(40) . '.' . $file->getClientOriginalExtension();
         return $file->storeAs($folder, $filename, 'public');
+    }
+
+    /**
+     * Upload video file
+     *
+     * @param UploadedFile $file The video file to upload
+     * @param string $folder The folder to store the file in
+     * @return string The stored file path
+     * @throws \Exception
+     */
+    private function uploadVideoFile(UploadedFile $file, string $folder): string
+    {
+        // Validate file size (100MB max)
+        $maxSize = 100 * 1024 * 1024; // 100MB in bytes
+        if ($file->getSize() > $maxSize) {
+            throw new \Exception('Video file size exceeds 100MB limit.');
+        }
+
+        // Validate file type
+        $allowedMimes = ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv'];
+        $extension = strtolower($file->getClientOriginalExtension());
+        
+        if (!in_array($extension, $allowedMimes)) {
+            throw new \Exception('Invalid video file format. Allowed formats: ' . implode(', ', $allowedMimes));
+        }
+
+        // Generate unique filename
+        $filename = Str::random(40) . '.' . $extension;
+        
+        // Store the file
+        $path = $file->storeAs($folder, $filename, 'public');
+        
+        if (!$path) {
+            throw new \Exception('Failed to upload video file.');
+        }
+
+        return $path;
     }
 
     /**

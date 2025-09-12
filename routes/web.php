@@ -62,7 +62,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/update', [UserProfileController::class, 'update'])->name('profile.update');
         Route::get('/change-password', [UserProfileController::class, 'showChangePasswordForm'])->name('profile.change-password');
         Route::post('/change-password', [UserProfileController::class, 'changePassword'])->name('profile.password.update');
-        Route::delete('/delete-image', [UserProfileController::class, 'deleteProfileImage'])->name('profile.delete-image');
+        Route::post('/delete-image', [UserProfileController::class, 'deleteProfileImage'])->name('profile.delete-image');
         Route::get('/settings', [UserProfileController::class, 'settings'])->name('profile.settings');
         Route::get('/activity-log', [UserProfileController::class, 'activityLog'])->name('profile.activity-log');
     });

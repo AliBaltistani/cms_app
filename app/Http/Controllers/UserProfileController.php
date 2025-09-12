@@ -125,7 +125,8 @@ class UserProfileController extends Controller
      */
     public function showChangePasswordForm()
     {
-        return view('profile.change-password');
+        $user = Auth::user();
+        return view('profile.change-password', compact('user'));
     }
 
     /**
@@ -137,6 +138,11 @@ class UserProfileController extends Controller
     public function changePassword(Request $request)
     {
         $user = Auth::user();
+        
+        // Log the password change request for debugging
+        Log::info('Password change request received', [
+            'user_id' => $user->id
+        ]);
         
         // Validate password input
         $validator = Validator::make($request->all(), [
@@ -152,8 +158,14 @@ class UserProfileController extends Controller
         ]);
 
         if ($validator->fails()) {
+            Log::warning('Password change validation failed', [
+                'user_id' => $user->id,
+                'errors' => $validator->errors()->toArray()
+            ]);
             return back()->withErrors($validator);
         }
+
+        Log::info('Password change validation passed', ['user_id' => $user->id]);
 
         // Check if current password is correct
         if (!Hash::check($request->current_password, $user->password)) {

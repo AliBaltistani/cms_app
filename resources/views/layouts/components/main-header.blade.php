@@ -560,10 +560,10 @@
 									<li>
 										<ul class="list-unstyled mb-0 sub-list">
 											<li>
-												<a class="dropdown-item d-flex align-items-center" href="javascript:void(0);"><i class="ti ti-user-circle me-2 fs-18"></i>View Profile</a>
+												<a class="dropdown-item d-flex align-items-center" href="{{ route('profile.index') }}"><i class="ti ti-user-circle me-2 fs-18"></i>View Profile</a>
 											</li>
 											<li>
-												<a class="dropdown-item d-flex align-items-center" href="javascript:void(0);"><i class="ti ti-settings-cog me-2 fs-18"></i>Account Settings</a>
+												<a class="dropdown-item d-flex align-items-center" href="{{ route('profile.edit') }}"><i class="ti ti-settings-cog me-2 fs-18"></i>Account Settings</a>
 											</li>
 										</ul>        
 									</li>
@@ -580,7 +580,18 @@
 											</li>
 										</ul>        
 									</li>
-									<li><a class="dropdown-item d-flex align-items-center" href="{{ route('logout') }}"><i class="ti ti-logout me-2 fs-18"></i>Log Out</a></li>
+									<li>
+										<form method="POST" action="{{ route('logout') }}" class="d-inline">
+                                                    @csrf
+                                                    <button type="submit" class="dropdown-item d-flex align-items-center" 
+                                                            onclick="return confirm('Are you sure you want to logout?')">
+                                                        <i class="ti ti-logout me-2 fs-18"></i>
+                                                        Logout
+                                                    </button>
+                                                </form>
+
+										{{-- <a class="" href="{{ route('logout') }}"></i>Log Out</a> --}}
+									</li>
 								</ul>
 							</div>
 						</li>  

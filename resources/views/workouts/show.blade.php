@@ -103,13 +103,59 @@
                                             </div>
                                         </div>
                                         
-                                        <!-- Video Thumbnail/Preview -->
+                                        <!-- Video Player -->
                                         <div class="mb-3">
-                                            @if($video->thumbnail)
-                                                <img src="{{ $video->thumbnail_url }}" alt="{{ $video->title }}" class="img-fluid rounded" style="width: 100%; height: 150px; object-fit: cover;">
+                                            @if($video->video_type === 'youtube')
+                                                <!-- YouTube Video -->
+                                                <div class="ratio ratio-16x9">
+                                                    <iframe src="{{ $video->embed_url }}" 
+                                                            title="{{ $video->title }}" 
+                                                            frameborder="0" 
+                                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                                            allowfullscreen
+                                                            class="rounded">
+                                                    </iframe>
+                                                </div>
+                                            @elseif($video->video_type === 'vimeo')
+                                                <!-- Vimeo Video -->
+                                                <div class="ratio ratio-16x9">
+                                                    <iframe src="{{ $video->embed_url }}" 
+                                                            title="{{ $video->title }}" 
+                                                            frameborder="0" 
+                                                            allow="autoplay; fullscreen; picture-in-picture" 
+                                                            allowfullscreen
+                                                            class="rounded">
+                                                    </iframe>
+                                                </div>
+                                            @elseif($video->video_type === 'file' || $video->video_type === 'url')
+                                                <!-- Local File or Direct URL Video -->
+                                                <video controls class="w-100 rounded" style="max-height: 300px;">
+                                                    <source src="{{ $video->video_file_url }}" type="video/mp4">
+                                                    <source src="{{ $video->video_file_url }}" type="video/webm">
+                                                    <source src="{{ $video->video_file_url }}" type="video/ogg">
+                                                    Your browser does not support the video tag.
+                                                    <p>Your browser doesn't support HTML5 video. 
+                                                       <a href="{{ $video->video_file_url }}">Download the video</a> instead.
+                                                    </p>
+                                                </video>
                                             @else
-                                                <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 150px;">
-                                                    <i class="ri-video-line" style="font-size: 2rem; color: #ccc;"></i>
+                                                <!-- Fallback for unknown video types -->
+                                                <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 200px;">
+                                                    <div class="text-center">
+                                                        <i class="ri-video-line" style="font-size: 2rem; color: #ccc;"></i>
+                                                        <div class="mt-2 text-muted">Video Preview Not Available</div>
+                                                        <a href="{{ $video->video_url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                                                            <i class="ri-external-link-line"></i> Open Video
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            @endif
+                                            
+                                            <!-- Video Thumbnail Overlay (Optional) -->
+                                            @if($video->thumbnail && ($video->video_type === 'file' || $video->video_type === 'url'))
+                                                <div class="mt-2">
+                                                    <small class="text-muted">Thumbnail:</small>
+                                                    <img src="{{ $video->thumbnail_url }}" alt="{{ $video->title }}" class="img-thumbnail" style="max-width: 100px; max-height: 60px;">
                                                 </div>
                                             @endif
                                         </div>
@@ -118,11 +164,16 @@
                                         <div class="mb-3">
                                             <small class="text-muted">Video URL:</small>
                                             <div class="small">
-                                                <a href="{{ $video->video_url }}" target="_blank" rel="noopener" class="text-decoration-none">
-                                                    {{ Str::limit($video->video_url, 40) }}
+                                                <a href="{{ $video->video_file_url }}" target="_blank" rel="noopener" class="text-decoration-none">
+                                                    {{ Str::limit($video->video_file_url, 40) }}
                                                     <i class="ri-external-link-line ms-1"></i>
                                                 </a>
                                             </div>
+                                            @if($video->video_type === 'file')
+                                                <div class="mt-1">
+                                                    <span class="badge bg-success-transparent">Local File</span>
+                                                </div>
+                                            @endif
                                         </div>
                                         
                                         <!-- Actions -->

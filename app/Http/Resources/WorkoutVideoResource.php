@@ -14,7 +14,8 @@ class WorkoutVideoResource extends JsonResource
             'workout_id' => $this->workout_id,
             'title' => $this->title,
             'description' => $this->description,
-            'video_url' => $this->video_url,
+            'video_url' => $this->video_url, // Raw stored path
+            'video_file_url' => $this->video_file_url, // Public accessible URL
             'video_type' => $this->video_type,
             'embed_url' => $this->embed_url,
             'thumbnail' => $this->thumbnail,

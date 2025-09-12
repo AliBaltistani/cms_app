@@ -32,7 +32,8 @@ class WorkoutVideo extends Model
     protected $appends = [
         'formatted_duration',
         'thumbnail_url',
-        'embed_url'
+        'embed_url',
+        'video_file_url'
     ];
 
     // Relationships
@@ -63,11 +64,35 @@ class WorkoutVideo extends Model
         return Storage::url($this->thumbnail);
     }
 
+    /**
+     * Get the public URL for video files
+     *
+     * @return string|null
+     */
+    public function getVideoFileUrlAttribute(): ?string
+    {
+        if (!$this->video_url) return null;
+
+        // If it's already a full URL (external), return as is
+        if (filter_var($this->video_url, FILTER_VALIDATE_URL)) {
+            return $this->video_url;
+        }
+
+        // If it's a local file upload, generate the public URL
+        if ($this->video_type === 'file') {
+            return Storage::url($this->video_url);
+        }
+
+        // For other types, return the original URL
+        return $this->video_url;
+    }
+
     public function getEmbedUrlAttribute(): string
     {
         return match($this->video_type) {
             'youtube' => $this->getYouTubeEmbedUrl(),
             'vimeo' => $this->getVimeoEmbedUrl(),
+            'file' => $this->video_file_url, // Use public URL for local files
             default => $this->video_url
         };
     }

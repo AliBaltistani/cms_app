@@ -60,14 +60,15 @@ class WorkoutVideoController extends Controller
     /**
      * Display the specified video
      */
-    public function show(Workout $workout, WorkoutVideo $video): View
+    public function show(Workout $workout, WorkoutVideo $video): RedirectResponse
     {
         // Ensure video belongs to workout
         if ($video->workout_id !== $workout->id) {
             abort(404, 'Video not found in this workout');
         }
 
-        return view('workouts.videos.show', compact('workout', 'video'));
+        // Redirect to workout show page since we don't have a separate video show view
+        return redirect()->route('workouts.show', $workout->id);
     }
 
     /**
@@ -79,8 +80,9 @@ class WorkoutVideoController extends Controller
         if ($video->workout_id !== $workout->id) {
             abort(404, 'Video not found in this workout');
         }
+        $user = Auth::user();
 
-        return view('workouts.videos.edit', compact('workout', 'video'));
+        return view('workouts.videos.edit', compact('workout', 'video', 'user'));
     }
 
     /**
@@ -97,7 +99,7 @@ class WorkoutVideoController extends Controller
             $updatedVideo = $this->workoutService->updateWorkoutVideo($video, $request->validated());
             
             return redirect()
-                ->route('workouts.videos.show', [$workout, $updatedVideo])
+                ->route('workouts.show', $workout->id)
                 ->with('success', 'Video updated successfully');
         } catch (\Exception $e) {
             return back()
@@ -120,7 +122,7 @@ class WorkoutVideoController extends Controller
             $this->workoutService->deleteWorkoutVideo($video);
             
             return redirect()
-                ->route('workouts.videos.index', $workout)
+                ->route('workouts.show', $workout->id)
                 ->with('success', 'Video deleted successfully');
         } catch (\Exception $e) {
             return back()
@@ -163,7 +165,7 @@ class WorkoutVideoController extends Controller
             $workout->reorderVideos($videoIds);
             
             return redirect()
-                ->route('workouts.videos.index', $workout)
+                ->route('workouts.show', $workout->id)
                 ->with('success', 'Videos reordered successfully');
         } catch (\Exception $e) {
             return back()
