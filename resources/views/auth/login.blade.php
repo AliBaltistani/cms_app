@@ -86,8 +86,7 @@ $bodyClass = 'bg-white';
                                                 <label class="form-check-label" for="defaultCheck1">
                                                     Remember me
                                                 </label>
-                                                <a href="#" class="float-end link-danger fw-medium fs-12">Forget password ?</a>
-                                                {{-- <a href="{{url('reset-password-basic')}}" class="float-end link-danger fw-medium fs-12">Forget password ?</a> --}}
+                                                <a href="{{ route('password.request') }}" class="float-end link-danger fw-medium fs-12">Forget password ?</a>
                                             </div>
                                         </div>
                                     </div>
