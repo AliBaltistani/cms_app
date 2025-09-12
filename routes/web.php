@@ -84,13 +84,13 @@ Route::middleware('auth')->group(function () {
 
           // Add more admin-specific routes here
           Route::prefix('workouts')->group(function () {
-             Route::get('/index', [WorkoutController::class, 'index'])->name('workouts.index');
+             Route::get('/', [WorkoutController::class, 'index'])->name('workouts.index');
              Route::get('/create', [WorkoutController::class, 'create'])->name('workouts.create');
-             Route::post('/store', [WorkoutController::class, 'store'])->name('workouts.store');
-             Route::post('/show{id}', [WorkoutController::class, 'show'])->name('workouts.show');
-             Route::get('/edit/{id}', [WorkoutController::class, 'edit'])->name('workouts.edit');
-             Route::post('/update/{id}', [WorkoutController::class, 'update'])->name('workouts.update');
-             Route::delete('/destroy/{id}', [WorkoutController::class, 'delete'])->name('workouts.destroy');
+            //  Route::post('/store', [WorkoutController::class, 'store'])->name('workouts.store');
+            //  Route::post('/show{id}', [WorkoutController::class, 'show'])->name('workouts.show');
+            //  Route::get('/edit/{id}', [WorkoutController::class, 'edit'])->name('workouts.edit');
+            //  Route::post('/update/{id}', [WorkoutController::class, 'update'])->name('workouts.update');
+            //  Route::delete('/destroy/{id}', [WorkoutController::class, 'delete'])->name('workouts.destroy');
           });
 
 

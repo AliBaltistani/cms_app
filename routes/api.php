@@ -21,7 +21,7 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Workout routes
     Route::prefix('workouts')->group(function () {
-        Route::get('/', [WorkoutController::class, 'index'])->name('api.workouts.index');
+        // Route::get('/', [WorkoutController::class, 'index'])->name('api.workouts.index');
         Route::post('/', [WorkoutController::class, 'store'])->name('api.workouts.store');
         Route::get('/statistics', [WorkoutController::class, 'statistics'])->name('api.workouts.statistics');
         
