@@ -30,7 +30,7 @@ class ApiAuthController extends ApiBaseController
             'name' => 'required',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|min:6',
-            'c_password' => 'required|same:password',
+            'phone' => 'required|numeric|min:10|unique:users,phone',
 
         ]);
         if ($validator->fails()) {
@@ -40,6 +40,7 @@ class ApiAuthController extends ApiBaseController
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
+            'phone' => $request->phone,
             'password' => bcrypt($request->password),
         ]);
 
