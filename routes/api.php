@@ -23,6 +23,7 @@ use App\Http\Controllers\ApiUserController;
 use App\Http\Controllers\ApiGoalController;
 use App\Http\Controllers\WorkoutController;
 use App\Http\Controllers\WorkoutVideoController;
+use App\Http\Controllers\Api\TrainerController;
 
 /**
  * =============================================================================
@@ -163,6 +164,34 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     
     /**
+     * Trainer Profile Management Routes
+     * Handle trainer profiles, certifications, and testimonials
+     */
+    Route::prefix('trainers')->group(function () {
+        // Public trainer listing and profile viewing
+        Route::get('/', [TrainerController::class, 'index'])->name('api.trainers.index');
+        Route::get('/{id}', [TrainerController::class, 'show'])->name('api.trainers.show');
+        
+        // Trainer profile management (only trainers can update their own profile)
+        Route::put('/{id}', [TrainerController::class, 'update'])->name('api.trainers.update');
+        
+        // Certification management (only trainers can add certifications to their profile)
+        Route::post('/{id}/certifications', [TrainerController::class, 'addCertification'])->name('api.trainers.add-certification');
+        
+        // Testimonial management (only clients can add testimonials for trainers)
+        Route::post('/{id}/testimonials', [TrainerController::class, 'addTestimonial'])->name('api.trainers.add-testimonial');
+    });
+    
+    /**
+     * Testimonial Reaction Routes
+     * Handle likes and dislikes for testimonials
+     */
+    Route::prefix('testimonials')->group(function () {
+        Route::post('/{id}/like', [TrainerController::class, 'likeTestimonial'])->name('api.testimonials.like');
+        Route::post('/{id}/dislike', [TrainerController::class, 'dislikeTestimonial'])->name('api.testimonials.dislike');
+    });
+    
+    /**
      * System Information Routes
      * Provide system status and configuration information
      */
@@ -214,6 +243,8 @@ Route::fallback(function () {
                 'goals' => '/api/goals/*',
                 'workouts' => '/api/workouts/*',
                 'videos' => '/api/videos/*',
+                'trainers' => '/api/trainers/*',
+                'testimonials' => '/api/testimonials/*',
                 'system' => '/api/system/*'
             ]
         ]

@@ -12,6 +12,7 @@ use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\GoalsController;
 use App\Http\Controllers\WorkoutController;
 use App\Http\Controllers\WorkoutVideoController;
+use App\Http\Controllers\TrainerWebController;
 
 /**
  * Public Routes
@@ -113,6 +114,29 @@ Route::middleware('auth')->group(function () {
             Route::patch('workouts/{workout}/videos/reorder', [WorkoutVideoController::class, 'reorder'])->name('workout-videos.reorder');
         
 
+    });
+    
+    /**
+     * Trainer Profile Routes
+     * Handle trainer profiles, certifications, and testimonials
+     */
+    Route::prefix('trainers')->group(function () {
+        // Public trainer listing and profile viewing
+        Route::get('/', [TrainerWebController::class, 'index'])->name('trainers.index');
+        Route::get('/{id}', [TrainerWebController::class, 'show'])->name('trainers.show');
+        
+        // Trainer profile management (only trainers can update their own profile)
+        Route::get('/{id}/edit', [TrainerWebController::class, 'edit'])->name('trainers.edit');
+        Route::put('/{id}', [TrainerWebController::class, 'update'])->name('trainers.update');
+        Route::delete('/{id}/image', [TrainerWebController::class, 'deleteImage'])->name('trainers.delete-image');
+        
+        // Certification management (only trainers can add certifications to their profile)
+        Route::get('/{id}/certifications/create', [TrainerWebController::class, 'createCertification'])->name('trainers.certifications.create');
+        Route::post('/{id}/certifications', [TrainerWebController::class, 'storeCertification'])->name('trainers.certifications.store');
+        
+        // Testimonial management (only clients can add testimonials for trainers)
+        Route::get('/{id}/testimonials/create', [TrainerWebController::class, 'createTestimonial'])->name('trainers.testimonials.create');
+        Route::post('/{id}/testimonials', [TrainerWebController::class, 'storeTestimonial'])->name('trainers.testimonials.store');
     });
 });
 

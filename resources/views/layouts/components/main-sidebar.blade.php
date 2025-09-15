@@ -1,5 +1,5 @@
 
-			<aside class="app-sidebar sticky" id="sidebar">
+<aside class="app-sidebar sticky" id="sidebar">
 
 				<!-- Start::main-sidebar-header -->
 				<div class="main-sidebar-header">
@@ -70,6 +70,12 @@
 										<a href="{{route('workouts.index')}}" class="side-menu__item">
 											<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><rect x="32" y="80" width="160" height="128" rx="8" opacity="0.2"/><rect x="32" y="80" width="160" height="128" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M64,48H216a8,8,0,0,1,8,8V176" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
 											Workouts
+										</a>
+									</li>
+									<li class="slide {{ request()->is('trainers*') ? 'active' : '' }}">
+										<a href="{{route('trainers.index')}}" class="side-menu__item">
+											<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><circle cx="128" cy="120" r="40" opacity="0.2"/><circle cx="128" cy="120" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M63.8,199.37a72,72,0,0,1,128.4,0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M198.1,197.85A96,96,0,1,0,57.9,58.15" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="200" cy="56" r="16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+											Trainers
 										</a>
 									</li>
 								</ul>
