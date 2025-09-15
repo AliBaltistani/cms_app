@@ -21,7 +21,7 @@
 			</div>
 			<ul class="main-menu">
 				<!-- Start::slide__category -->
-				<li class="slide__category"><span class="category-name">Trainer Dashboard</span></li>
+				<li class="slide__category"><span class="category-name">Main</span></li>
 				<!-- End::slide__category -->
 
 				<!-- Start::slide -->
@@ -33,79 +33,65 @@
 				</li>
 				<!-- End::slide -->
 
-				<!-- Start::slide__category -->
-				<li class="slide__category"><span class="category-name">Profile Management</span></li>
-				<!-- End::slide__category -->
-
 				<!-- Start::slide -->
-				<li class="slide {{ request()->is('trainer/profile*') || request()->is('trainers/'.Auth::id().'*') ? 'active' : '' }}">
-					<a href="{{route('trainer.profile')}}" class="side-menu__item">
+				<li class="slide has-sub">
+					<a href="javascript:void(0);" class="side-menu__item">
 						<svg xmlns="http://www.w3.org/2000/svg" class="side-menu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><circle cx="128" cy="120" r="40" opacity="0.2"/><circle cx="128" cy="120" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M63.8,199.37a72,72,0,0,1,128.4,0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M198.1,197.85A96,96,0,1,0,57.9,58.15" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="200" cy="56" r="16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
-						<span class="side-menu__label">My Profile</span>
+						<span class="side-menu__label">Profile Management</span>
+						<i class="ri-arrow-right-s-line side-menu__angle"></i>
 					</a>
+					<ul class="slide-menu child1">
+						<li class="slide side-menu__label1">
+							<a href="javascript:void(0)">Profile Management</a>
+						</li>
+						<li class="slide {{ request()->is('trainer/profile*') || request()->is('trainers/'.Auth::id().'*') ? 'active' : '' }}">
+							<a href="{{route('trainer.profile')}}" class="side-menu__item">
+								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><circle cx="128" cy="120" r="40" opacity="0.2"/><circle cx="128" cy="120" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M63.8,199.37a72,72,0,0,1,128.4,0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M198.1,197.85A96,96,0,1,0,57.9,58.15" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="200" cy="56" r="16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+								My Profile</a>
+						</li>
+						<li class="slide {{ request()->is('trainer/certifications*') ? 'active' : '' }}">
+							<a href="{{route('trainer.certifications')}}" class="side-menu__item">
+								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M128,80a48,48,0,1,1,48-48A48,48,0,0,1,128,80Z" opacity="0.2"/><circle cx="128" cy="32" r="48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M128,80c40,0,88,24,88,120v16H40V200C40,104,88,80,128,80Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M176,160a32,32,0,1,1-32-32A32,32,0,0,1,176,160Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="m164,148-12,12-8-8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+								My Certifications</a>
+						</li>
+						<li class="slide {{ request()->is('trainer/testimonials*') ? 'active' : '' }}">
+							<a href="{{route('trainer.testimonials')}}" class="side-menu__item">
+								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M225.86,110.61l-168,95.88A16,16,0,0,1,32,192V64a16,16,0,0,1,25.86-12.61l168,95.88A16,16,0,0,1,225.86,110.61Z" opacity="0.2"/><path d="M225.86,110.61l-168,95.88A16,16,0,0,1,32,192V64a16,16,0,0,1,25.86-12.61l168,95.88A16,16,0,0,1,225.86,110.61Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+								Client Reviews</a>
+						</li>
+					</ul>
 				</li>
 				<!-- End::slide -->
 
 				<!-- Start::slide -->
-				<li class="slide {{ request()->is('trainer/certifications*') ? 'active' : '' }}">
-					<a href="{{route('trainer.certifications')}}" class="side-menu__item">
-						<svg xmlns="http://www.w3.org/2000/svg" class="side-menu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M128,80a48,48,0,1,1,48-48A48,48,0,0,1,128,80Z" opacity="0.2"/><circle cx="128" cy="32" r="48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M128,80c40,0,88,24,88,120v16H40V200C40,104,88,80,128,80Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M176,160a32,32,0,1,1-32-32A32,32,0,0,1,176,160Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="m164,148-12,12-8-8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
-						<span class="side-menu__label">My Certifications</span>
-					</a>
-				</li>
-				<!-- End::slide -->
-
-				<!-- Start::slide -->
-				<li class="slide {{ request()->is('trainer/testimonials*') ? 'active' : '' }}">
-					<a href="{{route('trainer.testimonials')}}" class="side-menu__item">
-						<svg xmlns="http://www.w3.org/2000/svg" class="side-menu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M225.86,110.61l-168,95.88A16,16,0,0,1,32,192V64a16,16,0,0,1,25.86-12.61l168,95.88A16,16,0,0,1,225.86,110.61Z" opacity="0.2"/><path d="M225.86,110.61l-168,95.88A16,16,0,0,1,32,192V64a16,16,0,0,1,25.86-12.61l168,95.88A16,16,0,0,1,225.86,110.61Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
-						<span class="side-menu__label">Client Reviews</span>
-					</a>
-				</li>
-				<!-- End::slide -->
-
-				<!-- Start::slide__category -->
-				<li class="slide__category"><span class="category-name">Quick Actions</span></li>
-				<!-- End::slide__category -->
-
-				<!-- Start::slide -->
-				<li class="slide">
-					<a href="{{route('trainers.edit', Auth::id())}}" class="side-menu__item">
+				<li class="slide has-sub">
+					<a href="javascript:void(0);" class="side-menu__item">
 						<svg xmlns="http://www.w3.org/2000/svg" class="side-menu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M92.69,216H48a8,8,0,0,1-8-8V163.31a8,8,0,0,1,2.34-5.65L165.66,34.34a8,8,0,0,1,11.31,0L221.66,79a8,8,0,0,1,0,11.31L98.34,213.66A8,8,0,0,1,92.69,216Z" opacity="0.2"/><path d="M92.69,216H48a8,8,0,0,1-8-8V163.31a8,8,0,0,1,2.34-5.65L165.66,34.34a8,8,0,0,1,11.31,0L221.66,79a8,8,0,0,1,0,11.31L98.34,213.66A8,8,0,0,1,92.69,216Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="136" y1="64" x2="192" y2="120" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
-						<span class="side-menu__label">Edit Profile</span>
+						<span class="side-menu__label">Quick Actions</span>
+						<i class="ri-arrow-right-s-line side-menu__angle"></i>
 					</a>
+					<ul class="slide-menu child1">
+						<li class="slide side-menu__label1">
+							<a href="javascript:void(0)">Quick Actions</a>
+						</li>
+						<li class="slide">
+							<a href="{{route('trainer.profile.edit')}}" class="side-menu__item">
+								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M92.69,216H48a8,8,0,0,1-8-8V163.31a8,8,0,0,1,2.34-5.65L165.66,34.34a8,8,0,0,1,11.31,0L221.66,79a8,8,0,0,1,0,11.31L98.34,213.66A8,8,0,0,1,92.69,216Z" opacity="0.2"/><path d="M92.69,216H48a8,8,0,0,1-8-8V163.31a8,8,0,0,1,2.34-5.65L165.66,34.34a8,8,0,0,1,11.31,0L221.66,79a8,8,0,0,1,0,11.31L98.34,213.66A8,8,0,0,1,92.69,216Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="136" y1="64" x2="192" y2="120" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+								Edit Profile</a>
+						</li>
+						
+						
+					</ul>
 				</li>
 				<!-- End::slide -->
 
 				<!-- Start::slide -->
-				<li class="slide">
-					<a href="{{route('trainers.certifications.create', Auth::id())}}" class="side-menu__item">
-						<svg xmlns="http://www.w3.org/2000/svg" class="side-menu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><circle cx="128" cy="128" r="96" opacity="0.2"/><circle cx="128" cy="128" r="96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="88" y1="128" x2="168" y2="128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="88" x2="128" y2="168" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
-						<span class="side-menu__label">Add Certification</span>
-					</a>
-				</li>
-				<!-- End::slide -->
-
-				<!-- Start::slide -->
-				<li class="slide">
-					<a href="{{route('trainers.show', Auth::id())}}" class="side-menu__item">
-						<svg xmlns="http://www.w3.org/2000/svg" class="side-menu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M128,56C48,56,16,128,16,128s32,72,112,72,112-72,112-72S208,56,128,56Z" opacity="0.2"/><path d="M128,56C48,56,16,128,16,128s32,72,112,72,112-72,112-72S208,56,128,56Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="128" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
-						<span class="side-menu__label">View Public Profile</span>
-					</a>
-				</li>
-				<!-- End::slide -->
-
-				<!-- Start::slide__category -->
-				<li class="slide__category"><span class="category-name">Browse</span></li>
-				<!-- End::slide__category -->
-
-				<!-- Start::slide -->
-				<li class="slide {{ request()->is('trainers') && !request()->is('trainers/'.Auth::id().'*') ? 'active' : '' }}">
+				<!-- <li class="slide {{ request()->is('trainers') && !request()->is('trainers/'.Auth::id().'*') ? 'active' : '' }}">
 					<a href="{{route('trainers.index')}}" class="side-menu__item">
 						<svg xmlns="http://www.w3.org/2000/svg" class="side-menu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><circle cx="128" cy="120" r="40" opacity="0.2"/><circle cx="128" cy="120" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M63.8,199.37a72,72,0,0,1,128.4,0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M198.1,197.85A96,96,0,1,0,57.9,58.15" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="200" cy="56" r="16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
 						<span class="side-menu__label">All Trainers</span>
 					</a>
-				</li>
+				</li> -->
 				<!-- End::slide -->
 
 			</ul>

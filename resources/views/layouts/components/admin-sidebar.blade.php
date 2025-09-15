@@ -21,7 +21,7 @@
 			</div>
 			<ul class="main-menu">
 				<!-- Start::slide__category -->
-				<li class="slide__category"><span class="category-name">Admin Panel</span></li>
+				<li class="slide__category"><span class="category-name">Main</span></li>
 				<!-- End::slide__category -->
 
 				<!-- Start::slide -->
@@ -33,49 +33,40 @@
 				</li>
 				<!-- End::slide -->
 
-				<!-- Start::slide__category -->
-				<li class="slide__category"><span class="category-name">System Management</span></li>
-				<!-- End::slide__category -->
-
 				<!-- Start::slide -->
-				<li class="slide {{ request()->is('admin/users*') ? 'active' : '' }}">
-					<a href="{{route('admin.users')}}" class="side-menu__item">
+				<li class="slide has-sub">
+					<a href="javascript:void(0);" class="side-menu__item">
 						<svg xmlns="http://www.w3.org/2000/svg" class="side-menu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><circle cx="128" cy="120" r="40" opacity="0.2"/><circle cx="128" cy="120" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M63.8,199.37a72,72,0,0,1,128.4,0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M198.1,197.85A96,96,0,1,0,57.9,58.15" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="200" cy="56" r="16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
-						<span class="side-menu__label">User Management</span>
+						<span class="side-menu__label">System Management</span>
+						<i class="ri-arrow-right-s-line side-menu__angle"></i>
 					</a>
+					<ul class="slide-menu child1">
+						<li class="slide side-menu__label1">
+							<a href="javascript:void(0)">System Management</a>
+						</li>
+						<li class="slide {{ request()->is('admin/users*') ? 'active' : '' }}">
+							<a href="{{route('admin.users')}}" class="side-menu__item">
+								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><circle cx="128" cy="120" r="40" opacity="0.2"/><circle cx="128" cy="120" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M63.8,199.37a72,72,0,0,1,128.4,0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M198.1,197.85A96,96,0,1,0,57.9,58.15" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="200" cy="56" r="16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+								User Management</a>
+						</li>
+						<li class="slide {{ request()->is('admin/goals*') ? 'active' : '' }}">
+							<a href="{{route('goals.index')}}" class="side-menu__item">
+								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><circle cx="128" cy="128" r="40" opacity="0.2"/><circle cx="128" cy="128" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="m70.7,185.3,33.6-33.6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="m151.7,104.3,33.6-33.6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="208" y1="32" x2="224" y2="48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="208" y1="80" x2="224" y2="64" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="32" y1="208" x2="48" y2="224" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="32" y1="176" x2="48" y2="192" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+								Goals Management</a>
+						</li>
+						<li class="slide {{ request()->is('admin/workouts*') ? 'active' : '' }}">
+							<a href="{{route('workouts.index')}}" class="side-menu__item">
+								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M104,128a24,24,0,1,1,24,24A24,24,0,0,1,104,128Z" opacity="0.2"/><circle cx="128" cy="128" r="24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="m104,128-48,48a24,24,0,0,1-34-34l48-48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="m152,128,48-48a24,24,0,0,1,34,34l-48,48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+								Workouts Management</a>
+						</li>
+						<li class="slide {{ request()->is('trainers*') ? 'active' : '' }}">
+							<a href="{{route('trainers.index')}}" class="side-menu__item">
+								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><circle cx="128" cy="120" r="40" opacity="0.2"/><circle cx="128" cy="120" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M63.8,199.37a72,72,0,0,1,128.4,0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M198.1,197.85A96,96,0,1,0,57.9,58.15" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="200" cy="56" r="16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+								Trainers Overview</a>
+						</li>
+					</ul>
 				</li>
 				<!-- End::slide -->
-
-				<!-- Start::slide -->
-				<li class="slide {{ request()->is('admin/goals*') ? 'active' : '' }}">
-					<a href="{{route('goals.index')}}" class="side-menu__item">
-						<svg xmlns="http://www.w3.org/2000/svg" class="side-menu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><circle cx="128" cy="128" r="40" opacity="0.2"/><circle cx="128" cy="128" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="m70.7,185.3,33.6-33.6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="m151.7,104.3,33.6-33.6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="208" y1="32" x2="224" y2="48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="208" y1="80" x2="224" y2="64" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="32" y1="208" x2="48" y2="224" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="32" y1="176" x2="48" y2="192" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
-						<span class="side-menu__label">Goals Management</span>
-					</a>
-				</li>
-				<!-- End::slide -->
-
-				<!-- Start::slide -->
-				<li class="slide {{ request()->is('admin/workouts*') ? 'active' : '' }}">
-					<a href="{{route('workouts.index')}}" class="side-menu__item">
-						<svg xmlns="http://www.w3.org/2000/svg" class="side-menu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M104,128a24,24,0,1,1,24,24A24,24,0,0,1,104,128Z" opacity="0.2"/><circle cx="128" cy="128" r="24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="m104,128-48,48a24,24,0,0,1-34-34l48-48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="m152,128,48-48a24,24,0,0,1,34,34l-48,48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
-						<span class="side-menu__label">Workouts Management</span>
-					</a>
-				</li>
-				<!-- End::slide -->
-
-				<!-- Start::slide -->
-				<li class="slide {{ request()->is('trainers*') ? 'active' : '' }}">
-					<a href="{{route('trainers.index')}}" class="side-menu__item">
-						<svg xmlns="http://www.w3.org/2000/svg" class="side-menu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><circle cx="128" cy="120" r="40" opacity="0.2"/><circle cx="128" cy="120" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M63.8,199.37a72,72,0,0,1,128.4,0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M198.1,197.85A96,96,0,1,0,57.9,58.15" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="200" cy="56" r="16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
-						<span class="side-menu__label">Trainers Overview</span>
-					</a>
-				</li>
-				<!-- End::slide -->
-
-				<!-- Start::slide__category -->
-				<li class="slide__category"><span class="category-name">Reports & Analytics</span></li>
-				<!-- End::slide__category -->
 
 				<!-- Start::slide -->
 				<li class="slide {{ request()->is('admin/reports*') ? 'active' : '' }}">

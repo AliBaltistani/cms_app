@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Builder;
 
 class Workout extends Model
@@ -17,6 +18,7 @@ class Workout extends Model
         'description',
         'is_active',
         'thumbnail',
+        'user_id',
     ];
 
     protected $casts = [
@@ -33,6 +35,11 @@ class Workout extends Model
     public function videos(): HasMany
     {
         return $this->hasMany(WorkoutVideo::class)->orderBy('order');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     // Scopes

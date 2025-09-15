@@ -38,10 +38,10 @@
                     </div>
                     <div>
                         <div class="d-flex gap-2">
-                            <a href="{{ route('trainers.edit', Auth::id()) }}" class="btn btn-primary">
+                            <a href="{{ route(Auth::user()->role.'.profile.edit') }}" class="btn btn-primary">
                                 <i class="ri-edit-line me-1"></i>Edit Profile
                             </a>
-                            <a href="{{ route('trainers.certifications.create', Auth::id()) }}" class="btn btn-outline-primary">
+                            <a href="{{ route(Auth::user()->role.'.certifications') }}" class="btn btn-outline-primary">
                                 <i class="ri-add-line me-1"></i>Add Certification
                             </a>
                         </div>
@@ -51,29 +51,6 @@
         </div>
     </div>
 </div>
-
-<!-- Profile Completion Alert -->
-@if($stats['profile_completion'] < 80)
-<div class="row">
-    <div class="col-xl-12">
-        <div class="alert alert-warning alert-dismissible fade show" role="alert">
-            <div class="d-flex align-items-center">
-                <i class="ri-information-line me-2 fs-18"></i>
-                <div class="flex-fill">
-                    <strong>Complete Your Profile!</strong> Your profile is {{ $stats['profile_completion'] }}% complete. 
-                    <a href="{{ route('trainers.edit', Auth::id()) }}" class="alert-link">Complete your profile</a> to attract more clients.
-                </div>
-                <div class="ms-auto">
-                    <div class="progress" style="width: 100px; height: 8px;">
-                        <div class="progress-bar bg-warning" role="progressbar" style="width: {{ $stats['profile_completion'] }}%"></div>
-                    </div>
-                </div>
-            </div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    </div>
-</div>
-@endif
 
 <!-- Performance Statistics -->
 <div class="row">
@@ -214,34 +191,6 @@
     
     <!-- Profile & Quick Actions -->
     <div class="col-xl-4">
-        <!-- Profile Completion -->
-        <div class="card custom-card mb-4">
-            <div class="card-header">
-                <div class="card-title">
-                    Profile Completion
-                </div>
-            </div>
-            <div class="card-body">
-                <div class="text-center mb-3">
-                    <div class="progress-circle mx-auto" style="width: 80px; height: 80px; position: relative;">
-                        <svg width="80" height="80" viewBox="0 0 80 80">
-                            <circle cx="40" cy="40" r="35" fill="none" stroke="#e9ecef" stroke-width="6"></circle>
-                            <circle cx="40" cy="40" r="35" fill="none" stroke="#0d6efd" stroke-width="6" 
-                                stroke-dasharray="{{ 2 * 3.14159 * 35 }}" 
-                                stroke-dashoffset="{{ 2 * 3.14159 * 35 * (1 - $stats['profile_completion'] / 100) }}" 
-                                stroke-linecap="round" transform="rotate(-90 40 40)"></circle>
-                        </svg>
-                        <div class="position-absolute top-50 start-50 translate-middle">
-                            <h5 class="fw-bold mb-0">{{ $stats['profile_completion'] }}%</h5>
-                        </div>
-                    </div>
-                </div>
-                <p class="text-muted text-center fs-13 mb-3">Complete your profile to attract more clients and build trust.</p>
-                <a href="{{ route('trainers.edit', Auth::id()) }}" class="btn btn-outline-primary w-100">
-                    <i class="ri-edit-line me-1"></i>Complete Profile
-                </a>
-            </div>
-        </div>
         
         <!-- Quick Actions -->
         <div class="card custom-card">
@@ -252,17 +201,14 @@
             </div>
             <div class="card-body">
                 <div class="d-grid gap-3">
-                    <a href="{{ route('trainers.edit', Auth::id()) }}" class="btn btn-primary">
+                    <a href="{{ route(Auth::user()->role.'.profile.edit') }}" class="btn btn-primary">
                         <i class="ri-edit-line me-2"></i>Edit Profile
                     </a>
-                    <a href="{{ route('trainers.certifications.create', Auth::id()) }}" class="btn btn-outline-success">
+                    <a href="{{ route(Auth::user()->role.'.certifications') }}" class="btn btn-outline-success">
                         <i class="ri-award-line me-2"></i>Add Certification
                     </a>
-                    <a href="{{ route('trainer.testimonials') }}" class="btn btn-outline-info">
+                    <a href="{{ route(Auth::user()->role.'.testimonials') }}" class="btn btn-outline-info">
                         <i class="ri-chat-3-line me-2"></i>View Reviews
-                    </a>
-                    <a href="{{ route('trainers.show', Auth::id()) }}" class="btn btn-outline-secondary">
-                        <i class="ri-eye-line me-2"></i>View Public Profile
                     </a>
                 </div>
             </div>

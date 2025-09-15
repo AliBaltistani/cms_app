@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Goal extends Model
 {
@@ -10,6 +11,7 @@ class Goal extends Model
     protected $fillable = [
         'name',
         'status',
+        'user_id',
     ];
 
     // protected $casts = [
@@ -20,4 +22,12 @@ class Goal extends Model
         'status' => 1, // Default to active
     ];
     protected $hidden = ['deleted_at'];
+
+    /**
+     * Get the user that owns the goal.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 }

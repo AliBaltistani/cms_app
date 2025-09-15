@@ -97,6 +97,18 @@ Route::middleware('auth')->group(function () {
         Route::get('/users', [AdminDashboardController::class, 'users'])->name('admin.users');
         Route::get('/reports', [AdminDashboardController::class, 'reports'])->name('admin.reports');
         
+        
+         Route::prefix('profile')->group(function () {
+            Route::get('/', [UserProfileController::class, 'index'])->name('admin.profile');
+            Route::get('/edit', [UserProfileController::class, 'edit'])->name('admin.profile.edit');
+            Route::post('/update', [UserProfileController::class, 'update'])->name('admin.profile.update');
+            Route::get('/change-password', [UserProfileController::class, 'showChangePasswordForm'])->name('admin.profile.change-password');
+            Route::post('/change-password', [UserProfileController::class, 'changePassword'])->name('admin.profile.password.update');
+            Route::post('/delete-image', [UserProfileController::class, 'deleteProfileImage'])->name('admin.profile.delete-image');
+            Route::get('/settings', [UserProfileController::class, 'settings'])->name('admin.profile.settings');
+            Route::get('/activity-log', [UserProfileController::class, 'activityLog'])->name('admin.profile.activity-log');
+        });
+    
         // Goals Management
         Route::prefix('goals')->group(function () {
             Route::get('/', [GoalsController::class, 'index'])->name('goals.index');
@@ -158,6 +170,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/certifications', [TrainerDashboardController::class, 'certifications'])->name('trainer.certifications');
         Route::get('/testimonials', [TrainerDashboardController::class, 'testimonials'])->name('trainer.testimonials');
         Route::get('/profile', [TrainerDashboardController::class, 'profile'])->name('trainer.profile');
+        Route::get('/profile/edit', [UserProfileController::class, 'edit'])->name('trainer.profile.edit');
     });
 
     /**

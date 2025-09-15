@@ -67,62 +67,6 @@
 										English
 									</a>
 								</li>
-								<li>
-									<a class="dropdown-item d-flex align-items-center" href="javascript:void(0);">
-										<span class="avatar avatar-rounded avatar-xs lh-1 me-2">
-											<img src="{{asset('build/assets/images/flags/spain_flag.jpg')}}" alt="img" >
-										</span>
-										español
-									</a>
-								</li>
-								<li>
-									<a class="dropdown-item d-flex align-items-center" href="javascript:void(0);">
-										<span class="avatar avatar-rounded avatar-xs lh-1 me-2">
-											<img src="{{asset('build/assets/images/flags/french_flag.jpg')}}" alt="img" >
-										</span>
-										français
-									</a>
-								</li>
-								<li>
-									<a class="dropdown-item d-flex align-items-center" href="javascript:void(0);">
-										<span class="avatar avatar-rounded avatar-xs lh-1 me-2">
-											<img src="{{asset('build/assets/images/flags/uae_flag.jpg')}}" alt="img" >
-										</span>
-										عربي
-									</a>
-								</li>
-								<li>
-									<a class="dropdown-item d-flex align-items-center" href="javascript:void(0);">
-										<span class="avatar avatar-rounded avatar-xs lh-1 me-2">
-											<img src="{{asset('build/assets/images/flags/germany_flag.jpg')}}" alt="img" >
-										</span>
-										Deutsch
-									</a>
-								</li>
-								<li>
-									<a class="dropdown-item d-flex align-items-center" href="javascript:void(0);">
-										<span class="avatar avatar-rounded avatar-xs lh-1 me-2">
-											<img src="{{asset('build/assets/images/flags/china_flag.jpg')}}" alt="img" >
-										</span>
-										中国人
-									</a>
-								</li>
-								<li>
-									<a class="dropdown-item d-flex align-items-center" href="javascript:void(0);">
-										<span class="avatar avatar-rounded avatar-xs lh-1 me-2">
-											<img src="{{asset('build/assets/images/flags/italy_flag.jpg')}}" alt="img" >
-										</span>
-										Italiano
-									</a>
-								</li>
-								<li>
-									<a class="dropdown-item d-flex align-items-center" href="javascript:void(0);">
-										<span class="avatar avatar-rounded avatar-xs lh-1 me-2">
-											<img src="{{asset('build/assets/images/flags/russia_flag.jpg')}}" alt="img" >
-										</span>
-										Русский
-									</a>
-								</li>
 							</ul>
 						</li>
 						<!-- End::header-element -->
@@ -158,7 +102,7 @@
 							<div class="main-header-dropdown dropdown-menu dropdown-menu-end" data-popper-placement="none">
 								<div class="p-3 bg-primary text-fixed-white">
 									<div class="d-flex align-items-center justify-content-between">
-										<p class="mb-0 fs-16">Cart Items<span class="badge bg-warning ms-1 fs-12 rounded-circle" id="cart-data">5</span></p>
+										<p class="mb-0 fs-16">Cart Items<span class="badge bg-warning ms-1 fs-12 rounded-circle" id="cart-data">0</span></p>
 										<a href="javascript:void(0);" class="text-fixed-white text-decoration-underline fs-12">Continue Shopping <i class="ti ti-arrow-narrow-right"></i></a>
 									</div>
 								</div>
@@ -375,7 +319,7 @@
 										<a href="javascript:void(0);" class="btn btn-primary btn-wave">Proceed to checkout</a>
 									</div>
 								</div>
-								<div class="p-5 empty-item d-none">
+								<div class="p-5 empty-item d-block">
 									<div class="text-center">
 										<span class="avatar avatar-xl avatar-rounded bg-success-transparent">
 											<i class="ti ti-shopping-cart fs-2"></i>
@@ -560,14 +504,14 @@
 									<li>
 										<ul class="list-unstyled mb-0 sub-list">
 											<li>
-												<a class="dropdown-item d-flex align-items-center" href="{{ route('profile.index') }}"><i class="ti ti-user-circle me-2 fs-18"></i>View Profile</a>
+												<a class="dropdown-item d-flex align-items-center" href="{{ route(Auth::user()->role.'.profile') }}"><i class="ti ti-user-circle me-2 fs-18"></i>View Profile</a>
 											</li>
 											<li>
-												<a class="dropdown-item d-flex align-items-center" href="{{ route('profile.edit') }}"><i class="ti ti-settings-cog me-2 fs-18"></i>Account Settings</a>
+												<a class="dropdown-item d-flex align-items-center" href="{{ route(Auth::user()->role.'.profile.edit') }}"><i class="ti ti-settings-cog me-2 fs-18"></i>Account Settings</a>
 											</li>
 										</ul>        
 									</li>
-									<li>
+									<!-- <li>
 										<ul class="list-unstyled mb-0 sub-list">
 											<li>
 												<a class="dropdown-item d-flex align-items-center" href="javascript:void(0);"><i class="ti ti-lifebuoy me-2 fs-18"></i>Support</a>
@@ -579,7 +523,7 @@
 												<a class="dropdown-item d-flex align-items-center" href="javascript:void(0);"><i class="ti ti-calendar me-2 fs-18"></i>Events</a>
 											</li>
 										</ul>        
-									</li>
+									</li> -->
 									<li>
 										<form method="POST" action="{{ route('logout') }}" class="d-inline">
                                                     @csrf

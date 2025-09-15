@@ -34,7 +34,7 @@ class ClientMiddleware
         // Check if user has client role
         if ($user->role !== 'client') {
             // Redirect to main dashboard which will handle role-based routing
-            return redirect()->route('dashboard')
+            return redirect()->route('client.dashboard')
                 ->with('error', 'Access denied. Client access required.');
         }
         

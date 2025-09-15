@@ -21,7 +21,7 @@
 			</div>
 			<ul class="main-menu">
 				<!-- Start::slide__category -->
-				<li class="slide__category"><span class="category-name">My Fitness Journey</span></li>
+				<li class="slide__category"><span class="category-name">Main</span></li>
 				<!-- End::slide__category -->
 
 				<!-- Start::slide -->
@@ -42,31 +42,30 @@
 				</li>
 				<!-- End::slide -->
 
-				<!-- Start::slide__category -->
-				<li class="slide__category"><span class="category-name">Trainers & Reviews</span></li>
-				<!-- End::slide__category -->
-
 				<!-- Start::slide -->
-				<li class="slide {{ request()->is('client/trainers*') || request()->is('trainers*') ? 'active' : '' }}">
-					<a href="{{route('client.trainers')}}" class="side-menu__item">
+				<li class="slide has-sub">
+					<a href="javascript:void(0);" class="side-menu__item">
 						<svg xmlns="http://www.w3.org/2000/svg" class="side-menu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><circle cx="128" cy="120" r="40" opacity="0.2"/><circle cx="128" cy="120" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M63.8,199.37a72,72,0,0,1,128.4,0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M198.1,197.85A96,96,0,1,0,57.9,58.15" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="200" cy="56" r="16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
-						<span class="side-menu__label">Find Trainers</span>
+						<span class="side-menu__label">Trainers & Reviews</span>
+						<i class="ri-arrow-right-s-line side-menu__angle"></i>
 					</a>
+					<ul class="slide-menu child1">
+						<li class="slide side-menu__label1">
+							<a href="javascript:void(0)">Trainers & Reviews</a>
+						</li>
+						<li class="slide {{ request()->is('client/trainers*') || request()->is('trainers*') ? 'active' : '' }}">
+							<a href="{{route('client.trainers')}}" class="side-menu__item">
+								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><circle cx="128" cy="120" r="40" opacity="0.2"/><circle cx="128" cy="120" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M63.8,199.37a72,72,0,0,1,128.4,0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M198.1,197.85A96,96,0,1,0,57.9,58.15" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="200" cy="56" r="16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+								Find Trainers</a>
+						</li>
+						<li class="slide {{ request()->is('client/testimonials*') ? 'active' : '' }}">
+							<a href="{{route('client.testimonials')}}" class="side-menu__item">
+								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M225.86,110.61l-168,95.88A16,16,0,0,1,32,192V64a16,16,0,0,1,25.86-12.61l168,95.88A16,16,0,0,1,225.86,110.61Z" opacity="0.2"/><path d="M225.86,110.61l-168,95.88A16,16,0,0,1,32,192V64a16,16,0,0,1,25.86-12.61l168,95.88A16,16,0,0,1,225.86,110.61Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+								My Reviews</a>
+						</li>
+					</ul>
 				</li>
 				<!-- End::slide -->
-
-				<!-- Start::slide -->
-				<li class="slide {{ request()->is('client/testimonials*') ? 'active' : '' }}">
-					<a href="{{route('client.testimonials')}}" class="side-menu__item">
-						<svg xmlns="http://www.w3.org/2000/svg" class="side-menu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M225.86,110.61l-168,95.88A16,16,0,0,1,32,192V64a16,16,0,0,1,25.86-12.61l168,95.88A16,16,0,0,1,225.86,110.61Z" opacity="0.2"/><path d="M225.86,110.61l-168,95.88A16,16,0,0,1,32,192V64a16,16,0,0,1,25.86-12.61l168,95.88A16,16,0,0,1,225.86,110.61Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
-						<span class="side-menu__label">My Reviews</span>
-					</a>
-				</li>
-				<!-- End::slide -->
-
-				<!-- Start::slide__category -->
-				<li class="slide__category"><span class="category-name">Quick Actions</span></li>
-				<!-- End::slide__category -->
 
 				<!-- Start::slide -->
 				<li class="slide">

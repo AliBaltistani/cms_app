@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Goal;
 use App\Models\Workout;
 use App\Models\Testimonial;
+use Illuminate\Container\Attributes\Log;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -49,6 +50,9 @@ class ClientDashboardController extends Controller
             
             return view('client.dashboard', compact('stats'));
         } catch (\Exception $e) {
+            
+            echo $e->getMessage();
+            die;
             return redirect()->back()->with('error', 'Failed to load dashboard: ' . $e->getMessage());
         }
     }

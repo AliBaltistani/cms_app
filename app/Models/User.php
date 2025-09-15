@@ -144,4 +144,24 @@ class User extends Authenticatable
     {
         return $this->role === 'admin';
     }
+    
+    /**
+     * Get the goals for the user.
+     * 
+     * @return HasMany
+     */
+    public function goals(): HasMany
+    {
+        return $this->hasMany(Goal::class);
+    }
+    
+    /**
+     * Get the workouts for the user.
+     * 
+     * @return HasMany
+     */
+    public function workouts(): HasMany
+    {
+        return $this->hasMany(Workout::class);
+    }
 }
