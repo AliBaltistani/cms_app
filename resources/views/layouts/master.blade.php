@@ -14,6 +14,9 @@ $user = Auth::user();
         <meta name="Description" content="Laravel Bootstrap Responsive Admin Web Dashboard Template">
         <meta name="Author" content="Spruko Technologies Private Limited">
         <meta name="keywords" content="laravel, laravel admin panel, laravel dashboard, bootstrap dashboard, bootstrap admin panel, vite laravel, admin dashboard, admin panel in laravel, admin dashboard ui, laravel admin, admin panel template, laravel framework, dashboard, admin dashboard template, laravel template.">
+        
+        <!-- CSRF Token -->
+        <meta name="csrf-token" content="{{ csrf_token() }}">
     
         <!-- Title-->
         <title> Admin-panel </title>
@@ -57,7 +60,15 @@ $user = Auth::user();
             <!-- End::main-header -->
 
             <!-- Start::main-sidebar -->
-            @include('layouts.components.main-sidebar')
+            @if($user && $user->role === 'admin')
+                @include('layouts.components.admin-sidebar')
+            @elseif($user && $user->role === 'trainer')
+                @include('layouts.components.trainer-sidebar')
+            @elseif($user && $user->role === 'client')
+                @include('layouts.components.client-sidebar')
+            @else
+                @include('layouts.components.main-sidebar')
+            @endif
             <!-- End::main-sidebar -->
 
             <!-- Start::app-content -->

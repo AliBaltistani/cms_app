@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Trainer;
 
+use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCertificationRequest;
 use App\Http\Requests\StoreTestimonialRequest;
 use App\Http\Requests\UpdateTrainerProfileRequest;
@@ -238,6 +239,42 @@ class TrainerWebController extends Controller
             return redirect()->back()
                 ->with('error', 'Failed to submit testimonial: ' . $e->getMessage())
                 ->withInput();
+        }
+    }
+
+    /**
+     * Delete a certification.
+     * 
+     * @param int $id
+     * @param int $certificationId
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function deleteCertification($id, $certificationId)
+    {
+        try {
+            $trainer = User::where('id', $id)
+                ->where('role', 'trainer')
+                ->firstOrFail();
+            
+            // Check if user can delete this certification
+            if (Auth::id() !== $trainer->id && Auth::user()->role !== 'admin') {
+                return redirect()->route('trainers.show', $id)->with('error', 'You can only delete your own certifications.');
+            }
+            
+            $certification = UserCertification::where('id', $certificationId)
+                ->where('user_id', $trainer->id)
+                ->firstOrFail();
+            
+            // Delete the document file if it exists
+            if ($certification->doc) {
+                Storage::disk('public')->delete($certification->doc);
+            }
+            
+            $certification->delete();
+            
+            return redirect()->back()->with('success', 'Certification deleted successfully!');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to delete certification: ' . $e->getMessage());
         }
     }
 

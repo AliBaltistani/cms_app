@@ -227,7 +227,7 @@ class LoginController extends Controller
 
     /**
      * The user has been authenticated.
-     * Redirect to dashboard which uses master.blade.php layout
+     * Redirect to role-specific dashboard
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  mixed  $user
@@ -239,12 +239,24 @@ class LoginController extends Controller
         \Illuminate\Support\Facades\Log::info('User logged in successfully', [
             'user_id' => $user->id,
             'email' => $user->email,
+            'role' => $user->role,
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'timestamp' => now()->toDateTimeString()
         ]);
 
-        return redirect()->route('dashboard');
+        // Role-based redirect after successful login
+        switch ($user->role) {
+            case 'admin':
+                return redirect()->route('admin.dashboard')->with('success', 'Welcome back, Admin!');
+            case 'trainer':
+                return redirect()->route('trainer.dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
+            case 'client':
+                return redirect()->route('client.dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
+            default:
+                // Fallback for users without specific roles
+                return redirect()->route('profile.index')->with('success', 'Welcome back!');
+        }
     }
 
     /**
