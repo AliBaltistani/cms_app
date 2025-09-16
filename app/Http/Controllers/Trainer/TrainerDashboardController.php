@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Trainer;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Http\Requests\StoreCertificationRequest;
 use App\Models\UserCertification;
 use App\Models\Testimonial;
+use App\Models\TestimonialLikesDislike;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 /**
  * TrainerDashboardController
@@ -41,7 +44,7 @@ class TrainerDashboardController extends Controller
                     ->latest()
                     ->take(3)
                     ->get(),
-                'profile_completion' => $this->calculateProfileCompletion($user)
+                'profile_completion' => ''
             ];
             
             return view('trainer.dashboard', compact('stats'));
@@ -66,6 +69,201 @@ class TrainerDashboardController extends Controller
             return view('trainer.certifications.index', compact('certifications'));
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Failed to load certifications: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Store a new certification for the authenticated trainer.
+     * 
+     * @param \App\Http\Requests\StoreCertificationRequest $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function storeCertification(StoreCertificationRequest $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            if ($user->role !== 'trainer') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied. Only trainers can add certifications.'
+                ], 403);
+            }
+            
+            DB::beginTransaction();
+            
+            $data = $request->validated();
+            $data['user_id'] = $user->id;
+            
+            // Handle file upload if present
+            if ($request->hasFile('doc')) {
+                $file = $request->file('doc');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $path = $file->storeAs('certifications', $filename, 'public');
+                $data['doc'] = $path;
+            }
+            
+            $certification = UserCertification::create($data);
+            
+            DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Certification added successfully',
+                'data' => $certification
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to add certification',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Get a specific certification.
+     * 
+     * @param string $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function showCertification(string $id)
+    {
+        try {
+            $user = Auth::user();
+            
+            $certification = UserCertification::where('id', $id)
+                ->where('user_id', $user->id)
+                ->first();
+            
+            if (!$certification) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Certification not found'
+                ], 404);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Certification retrieved successfully',
+                'data' => $certification
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve certification',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Update a specific certification.
+     * 
+     * @param \App\Http\Requests\StoreCertificationRequest $request
+     * @param string $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function updateCertification(StoreCertificationRequest $request, string $id)
+    {
+        try {
+            $user = Auth::user();
+            
+            $certification = UserCertification::where('id', $id)
+                ->where('user_id', $user->id)
+                ->first();
+            
+            if (!$certification) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Certification not found'
+                ], 404);
+            }
+            
+            DB::beginTransaction();
+            
+            $data = $request->validated();
+            
+            // Handle file upload if present
+            if ($request->hasFile('doc')) {
+                // Delete old file if exists
+                if ($certification->doc && Storage::disk('public')->exists($certification->doc)) {
+                    Storage::disk('public')->delete($certification->doc);
+                }
+                
+                $file = $request->file('doc');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $path = $file->storeAs('certifications', $filename, 'public');
+                $data['doc'] = $path;
+            }
+            
+            $certification->update($data);
+            
+            DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Certification updated successfully',
+                'data' => $certification->fresh()
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update certification',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Delete a specific certification.
+     * 
+     * @param string $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function destroyCertification(string $id)
+    {
+        try {
+            $user = Auth::user();
+            
+            $certification = UserCertification::where('id', $id)
+                ->where('user_id', $user->id)
+                ->first();
+            
+            if (!$certification) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Certification not found'
+                ], 404);
+            }
+            
+            DB::beginTransaction();
+            
+            // Delete associated file if exists
+            if ($certification->doc && Storage::disk('public')->exists($certification->doc)) {
+                Storage::disk('public')->delete($certification->doc);
+            }
+            
+            $certification->delete();
+            
+            DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Certification deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete certification',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
     
@@ -102,6 +300,132 @@ class TrainerDashboardController extends Controller
             return view('trainer.profile.index', compact('user'));
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Failed to load profile: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Like a testimonial.
+     * 
+     * @param Request $request
+     * @param string $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function likeTestimonial(Request $request, string $id)
+    {
+        try {
+            $user = Auth::user();
+            $testimonial = Testimonial::findOrFail($id);
+            
+            DB::beginTransaction();
+            
+            // Find or create reaction record
+            $reaction = TestimonialLikesDislike::firstOrCreate(
+                [
+                    'testimonial_id' => $id,
+                    'user_id' => $user->id
+                ],
+                [
+                    'like' => false,
+                    'dislike' => false
+                ]
+            );
+            
+            $previousLike = $reaction->like;
+            $previousDislike = $reaction->dislike;
+            
+            // Toggle like
+            $reaction->setLike();
+            
+            // Update testimonial counters
+            if (!$previousLike) {
+                $testimonial->incrementLikes();
+            }
+            
+            if ($previousDislike) {
+                $testimonial->decrementDislikes();
+            }
+            
+            DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Testimonial liked successfully',
+                'data' => [
+                    'likes' => $testimonial->fresh()->likes,
+                    'dislikes' => $testimonial->fresh()->dislikes
+                ]
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to like testimonial',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Dislike a testimonial.
+     * 
+     * @param Request $request
+     * @param string $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function dislikeTestimonial(Request $request, string $id)
+    {
+        try {
+            $user = Auth::user();
+            $testimonial = Testimonial::findOrFail($id);
+            
+            DB::beginTransaction();
+            
+            // Find or create reaction record
+            $reaction = TestimonialLikesDislike::firstOrCreate(
+                [
+                    'testimonial_id' => $id,
+                    'user_id' => $user->id
+                ],
+                [
+                    'like' => false,
+                    'dislike' => false
+                ]
+            );
+            
+            $previousLike = $reaction->like;
+            $previousDislike = $reaction->dislike;
+            
+            // Toggle dislike
+            $reaction->setDislike();
+            
+            // Update testimonial counters
+            if (!$previousDislike) {
+                $testimonial->incrementDislikes();
+            }
+            
+            if ($previousLike) {
+                $testimonial->decrementLikes();
+            }
+            
+            DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Testimonial disliked successfully',
+                'data' => [
+                    'likes' => $testimonial->fresh()->likes,
+                    'dislikes' => $testimonial->fresh()->dislikes
+                ]
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to dislike testimonial',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
     

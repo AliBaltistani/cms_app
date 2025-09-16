@@ -117,6 +117,79 @@
                             <label for="profile-verified" class="form-label">Email Status :</label>
                             <input type="text" class="form-control" id="profile-verified" value="{{ $user->email_verified_at ? 'Verified' : 'Not Verified' }}" readonly>
                         </div>
+                        
+                        {{-- Trainer-specific fields - Only show for trainers --}}
+                        @if($user->role === 'trainer')
+                            <div class="col-xl-12">
+                                <hr class="my-4">
+                                <h6 class="fw-semibold mb-3 text-primary">
+                                    <i class="ri-user-star-line me-2"></i>Trainer Profile Information
+                                </h6>
+                            </div>
+                            
+                            <div class="col-xl-6">
+                                <label for="profile-designation" class="form-label">Designation :</label>
+                                <input type="text" class="form-control @error('designation') is-invalid @enderror" id="profile-designation" name="designation" value="{{ old('designation', $user->designation) }}" placeholder="e.g., Senior Fitness Trainer">
+                                @error('designation')
+                                    <div class="invalid-feedback">
+                                        {{ $message }}
+                                    </div>
+                                @enderror
+                                <div class="form-text">
+                                    <small class="text-muted">Your professional title or designation</small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-xl-6">
+                                <label for="profile-experience" class="form-label">Experience :</label>
+                                <select class="form-select @error('experience') is-invalid @enderror" id="profile-experience" name="experience">
+                                    <option value="">Select Experience Level</option>
+                                    <option value="less_than_1_year" {{ old('experience', $user->experience) === 'less_than_1_year' ? 'selected' : '' }}>Less than 1 year</option>
+                                    <option value="1_year" {{ old('experience', $user->experience) === '1_year' ? 'selected' : '' }}>1 year</option>
+                                    <option value="2_years" {{ old('experience', $user->experience) === '2_years' ? 'selected' : '' }}>2 years</option>
+                                    <option value="3_years" {{ old('experience', $user->experience) === '3_years' ? 'selected' : '' }}>3 years</option>
+                                    <option value="4_years" {{ old('experience', $user->experience) === '4_years' ? 'selected' : '' }}>4 years</option>
+                                    <option value="5_years" {{ old('experience', $user->experience) === '5_years' ? 'selected' : '' }}>5 years</option>
+                                    <option value="6_years" {{ old('experience', $user->experience) === '6_years' ? 'selected' : '' }}>6 years</option>
+                                    <option value="7_years" {{ old('experience', $user->experience) === '7_years' ? 'selected' : '' }}>7 years</option>
+                                    <option value="8_years" {{ old('experience', $user->experience) === '8_years' ? 'selected' : '' }}>8 years</option>
+                                    <option value="9_years" {{ old('experience', $user->experience) === '9_years' ? 'selected' : '' }}>9 years</option>
+                                    <option value="10_years" {{ old('experience', $user->experience) === '10_years' ? 'selected' : '' }}>10 years</option>
+                                    <option value="more_than_10_years" {{ old('experience', $user->experience) === 'more_than_10_years' ? 'selected' : '' }}>More than 10 years</option>
+                                </select>
+                                @error('experience')
+                                    <div class="invalid-feedback">
+                                        {{ $message }}
+                                    </div>
+                                @enderror
+                            </div>
+                            
+                            <div class="col-xl-12">
+                                <label for="profile-about" class="form-label">About Me :</label>
+                                <textarea class="form-control @error('about') is-invalid @enderror" id="profile-about" name="about" rows="4" placeholder="Tell clients about yourself, your background, and what makes you unique as a trainer...">{{ old('about', $user->about) }}</textarea>
+                                @error('about')
+                                    <div class="invalid-feedback">
+                                        {{ $message }}
+                                    </div>
+                                @enderror
+                                <div class="form-text">
+                                    <small class="text-muted">Share your background, specializations, and what makes you unique (max 1000 characters)</small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-xl-12">
+                                <label for="profile-training-philosophy" class="form-label">Training Philosophy :</label>
+                                <textarea class="form-control @error('training_philosophy') is-invalid @enderror" id="profile-training-philosophy" name="training_philosophy" rows="4" placeholder="Describe your approach to training, your beliefs about fitness, and how you help clients achieve their goals...">{{ old('training_philosophy', $user->training_philosophy) }}</textarea>
+                                @error('training_philosophy')
+                                    <div class="invalid-feedback">
+                                        {{ $message }}
+                                    </div>
+                                @enderror
+                                <div class="form-text">
+                                    <small class="text-muted">Explain your training approach and philosophy (max 1000 characters)</small>
+                                </div>
+                            </div>
+                        @endif
                     </div>
                     <div class="mt-4">
                         <button type="submit" class="btn btn-primary">Save Changes</button>

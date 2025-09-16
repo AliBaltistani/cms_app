@@ -209,7 +209,7 @@ function openCertificationModal(id = null) {
 // Load Certification Data for Edit
 function loadCertificationData(id) {
     $.ajax({
-        url: `/api/trainer/certifications/${id}`,
+        url: `/trainer/certifications/${id}`,
         method: 'GET',
         success: function(response) {
             if (response.success) {
@@ -252,7 +252,7 @@ $('#confirmDelete').click(function() {
     spinner.show();
     
     $.ajax({
-        url: `/api/trainer/certifications/${currentCertificationId}`,
+        url: `/trainer/certifications/${currentCertificationId}`,
         method: 'DELETE',
         success: function(response) {
             if (response.success) {
@@ -295,7 +295,7 @@ $('#certificationForm').submit(function(e) {
     submitBtn.prop('disabled', true);
     spinner.show();
     
-    const url = isEditMode ? `/api/trainer/certifications/${currentCertificationId}` : '/api/trainer/certifications';
+    const url = isEditMode ? `/trainer/certifications/${currentCertificationId}` : '/trainer/certifications';
     const method = isEditMode ? 'POST' : 'POST';
     
     if (isEditMode) {

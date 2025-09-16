@@ -112,6 +112,22 @@
                                                 </span>
                                                 <span class="fw-medium text-default">Role : </span> {{ ucfirst($user->role) }}
                                             </div>
+                                            @if($user->role === 'trainer' && $user->designation)
+                                            <div class="mb-2 d-flex align-items-center gap-1 flex-wrap">
+                                                <span class="avatar avatar-sm avatar-rounded text-default">
+                                                    <i class="ri-user-star-line align-middle fs-15"></i>
+                                                </span>
+                                                <span class="fw-medium text-default">Designation : </span> {{ $user->designation }}
+                                            </div>
+                                            @endif
+                                            @if($user->role === 'trainer' && $user->experience)
+                                            <div class="mb-2 d-flex align-items-center gap-1 flex-wrap">
+                                                <span class="avatar avatar-sm avatar-rounded text-default">
+                                                    <i class="ri-time-line align-middle fs-15"></i>
+                                                </span>
+                                                <span class="fw-medium text-default">Experience : </span> {{ str_replace('_', ' ', ucwords($user->experience, '_')) }}
+                                            </div>
+                                            @endif
                                             <div class="mb-0 d-flex align-items-center gap-1">
                                                 <span class="avatar avatar-sm avatar-rounded text-default">
                                                     <i class="ri-calendar-line align-middle fs-15"></i>
@@ -157,6 +173,37 @@
                                         <label class="form-label">Email Status :</label>
                                         <input type="text" class="form-control" value="{{ $user->email_verified_at ? 'Verified' : 'Not Verified' }}" readonly>
                                     </div>
+                                    
+                                    {{-- Trainer-specific fields display --}}
+                                    @if($user->role === 'trainer')
+                                        @if($user->designation)
+                                        <div class="col-xl-6">
+                                            <label class="form-label">Designation :</label>
+                                            <input type="text" class="form-control" value="{{ $user->designation }}" readonly>
+                                        </div>
+                                        @endif
+                                        
+                                        @if($user->experience)
+                                        <div class="col-xl-6">
+                                            <label class="form-label">Experience :</label>
+                                            <input type="text" class="form-control" value="{{ str_replace('_', ' ', ucwords($user->experience, '_')) }}" readonly>
+                                        </div>
+                                        @endif
+                                        
+                                        @if($user->about)
+                                        <div class="col-xl-12">
+                                            <label class="form-label">About Me :</label>
+                                            <textarea class="form-control" rows="4" readonly>{{ $user->about }}</textarea>
+                                        </div>
+                                        @endif
+                                        
+                                        @if($user->training_philosophy)
+                                        <div class="col-xl-12">
+                                            <label class="form-label">Training Philosophy :</label>
+                                            <textarea class="form-control" rows="4" readonly>{{ $user->training_philosophy }}</textarea>
+                                        </div>
+                                        @endif
+                                    @endif
                                 </div>
                             </div>
                         </div>

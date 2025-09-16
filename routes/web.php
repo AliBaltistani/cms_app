@@ -150,6 +150,17 @@ Route::middleware('auth')->group(function () {
         Route::get('/testimonials', [ClientDashboardController::class, 'testimonials'])->name('client.testimonials');
         Route::get('/trainers', [ClientDashboardController::class, 'trainers'])->name('client.trainers');
         
+         Route::prefix('profile')->group(function () {
+            Route::get('/', [UserProfileController::class, 'index'])->name('client.profile');
+            Route::get('/edit', [UserProfileController::class, 'edit'])->name('client.profile.edit');
+            Route::post('/update', [UserProfileController::class, 'update'])->name('client.profile.update');
+            Route::get('/change-password', [UserProfileController::class, 'showChangePasswordForm'])->name('client.profile.change-password');
+            Route::post('/change-password', [UserProfileController::class, 'changePassword'])->name('client.profile.password.update');
+            Route::post('/delete-image', [UserProfileController::class, 'deleteProfileImage'])->name('client.profile.delete-image');
+            Route::get('/settings', [UserProfileController::class, 'settings'])->name('client.profile.settings');
+            Route::get('/activity-log', [UserProfileController::class, 'activityLog'])->name('client.profile.activity-log');
+        });
+
         // Client Goals Management
         Route::prefix('goals')->group(function () {
             Route::get('/create', [GoalsController::class, 'create'])->name('client.goals.create');
@@ -157,6 +168,14 @@ Route::middleware('auth')->group(function () {
             Route::get('/edit/{id}', [GoalsController::class, 'edit'])->name('client.goals.edit');
             Route::post('/update/{id}', [GoalsController::class, 'update'])->name('client.goals.update');
             Route::delete('/destroy/{id}', [GoalsController::class, 'delete'])->name('client.goals.destroy');
+        });
+        
+        // Client Testimonial Management
+        Route::prefix('testimonials')->group(function () {
+            Route::post('/store', [ClientDashboardController::class, 'storeTestimonial'])->name('client.testimonials.store');
+            Route::get('/{id}', [ClientDashboardController::class, 'showTestimonial'])->name('client.testimonials.show');
+            Route::put('/{id}', [ClientDashboardController::class, 'updateTestimonial'])->name('client.testimonials.update');
+            Route::delete('/{id}', [ClientDashboardController::class, 'destroyTestimonial'])->name('client.testimonials.destroy');
         });
     });
 
@@ -171,6 +190,20 @@ Route::middleware('auth')->group(function () {
         Route::get('/testimonials', [TrainerDashboardController::class, 'testimonials'])->name('trainer.testimonials');
         Route::get('/profile', [TrainerDashboardController::class, 'profile'])->name('trainer.profile');
         Route::get('/profile/edit', [UserProfileController::class, 'edit'])->name('trainer.profile.edit');
+        
+        // Certification Management Routes for Trainers
+        Route::prefix('certifications')->group(function () {
+            Route::post('/', [TrainerDashboardController::class, 'storeCertification'])->name('trainer.certifications.store');
+            Route::get('/{id}', [TrainerDashboardController::class, 'showCertification'])->name('trainer.certifications.show');
+            Route::put('/{id}', [TrainerDashboardController::class, 'updateCertification'])->name('trainer.certifications.update');
+            Route::delete('/{id}', [TrainerDashboardController::class, 'destroyCertification'])->name('trainer.certifications.destroy');
+        });
+        
+        // Testimonial Reaction Routes for Trainers
+        Route::prefix('testimonials')->group(function () {
+            Route::post('/{id}/like', [TrainerDashboardController::class, 'likeTestimonial'])->name('trainer.testimonials.like');
+            Route::post('/{id}/dislike', [TrainerDashboardController::class, 'dislikeTestimonial'])->name('trainer.testimonials.dislike');
+        });
     });
 
     /**

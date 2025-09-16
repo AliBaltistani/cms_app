@@ -21,8 +21,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ApiAuthController;
 use App\Http\Controllers\ApiUserController;
 use App\Http\Controllers\ApiGoalController;
-use App\Http\Controllers\WorkoutController;
-use App\Http\Controllers\WorkoutVideoController;
+use App\Http\Controllers\Admin\WorkoutController;
+use App\Http\Controllers\Admin\WorkoutVideoController;
 use App\Http\Controllers\Api\TrainerController;
 
 /**
@@ -180,6 +180,20 @@ Route::middleware('auth:sanctum')->group(function () {
         
         // Testimonial management (only clients can add testimonials for trainers)
         Route::post('/{id}/testimonials', [TrainerController::class, 'addTestimonial'])->name('api.trainers.add-testimonial');
+    });
+    
+    /**
+     * Trainer Certification Management Routes
+     * Handle CRUD operations for trainer certifications
+     */
+    Route::prefix('trainer')->middleware('auth:sanctum')->group(function () {
+        Route::prefix('certifications')->group(function () {
+            Route::get('/', [TrainerController::class, 'getCertifications'])->name('api.trainer.certifications.index');
+            Route::post('/', [TrainerController::class, 'storeCertification'])->name('api.trainer.certifications.store');
+            Route::get('/{id}', [TrainerController::class, 'showCertification'])->name('api.trainer.certifications.show');
+            Route::put('/{id}', [TrainerController::class, 'updateCertification'])->name('api.trainer.certifications.update');
+            Route::delete('/{id}', [TrainerController::class, 'destroyCertification'])->name('api.trainer.certifications.destroy');
+        });
     });
     
     /**

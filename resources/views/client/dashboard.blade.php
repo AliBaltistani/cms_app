@@ -36,11 +36,11 @@
                         <h4 class="fw-semibold mb-1">Welcome back, {{ Auth::user()->name }}!</h4>
                         <p class="text-muted mb-0">Track your fitness journey and connect with amazing trainers.</p>
                     </div>
-                    <div>
+                    <!-- <div>
                         <a href="{{ route('client.goals.create') }}" class="btn btn-primary">
                             <i class="ri-add-line me-1"></i>Set New Goal
                         </a>
-                    </div>
+                    </div> -->
                 </div>
             </div>
         </div>
@@ -131,11 +131,11 @@
                 <div class="card-title">
                     Recent Goals ({{ $stats['recent_goals']->count() }})
                 </div>
-                <div class="ms-auto">
+                <!-- <div class="ms-auto">
                     <a href="{{ route('client.goals') }}" class="btn btn-sm btn-outline-primary">
                         View All Goals
                     </a>
-                </div>
+                </div> -->
             </div>
             <div class="card-body">
                 @forelse($stats['recent_goals'] as $goal)
@@ -157,14 +157,14 @@
                     </div>
                 </div>
                 @empty
-                <div class="text-center py-5">
+                <!-- <div class="text-center py-5">
                     <i class="ri-target-line fs-48 text-muted mb-3"></i>
                     <h6 class="fw-semibold mb-2">No Goals Yet</h6>
                     <p class="text-muted mb-3">Start your fitness journey by setting your first goal!</p>
                     <a href="{{ route('client.goals.create') }}" class="btn btn-primary btn-sm">
                         <i class="ri-add-line me-1"></i>Create Your First Goal
                     </a>
-                </div>
+                </div> -->
                 @endforelse
             </div>
         </div>
@@ -180,16 +180,19 @@
             </div>
             <div class="card-body">
                 <div class="d-grid gap-3">
-                    <a href="{{ route('client.goals.create') }}" class="btn btn-primary">
+                    <!-- <a href="{{ route('client.goals.create') }}" class="btn btn-primary">
                         <i class="ri-target-line me-2"></i>Set New Goal
-                    </a>
-                    <a href="{{ route('client.trainers') }}" class="btn btn-outline-success">
+                    </a> -->
+                    <!-- <a href="{{ route('client.trainers') }}" class="btn btn-outline-success">
                         <i class="ri-user-star-line me-2"></i>Find Trainers
-                    </a>
+                    </a> -->
+                    <button type="button" class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#reviewTrainerModal">
+                        <i class="ri-star-line me-2"></i>Review Trainer
+                    </button>
                     <a href="{{ route('client.testimonials') }}" class="btn btn-outline-info">
                         <i class="ri-chat-3-line me-2"></i>My Reviews
                     </a>
-                    <a href="{{ route('profile.index') }}" class="btn btn-outline-secondary">
+                    <a href="{{ route('client.profile') }}" class="btn btn-outline-secondary">
                         <i class="ri-user-settings-line me-2"></i>Profile Settings
                     </a>
                 </div>
@@ -308,8 +311,359 @@
 </div>
 <!--End::row-1 -->
 
+<!-- Review Trainer Modal -->
+<div class="modal fade" id="reviewTrainerModal" tabindex="-1" aria-labelledby="reviewTrainerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reviewTrainerModalLabel">Review Trainer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="reviewTrainerForm">
+                @csrf
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Select Trainer <span class="text-danger">*</span></label>
+                            <select class="form-select" id="trainer_id" name="trainer_id" required>
+                                <option value="">Choose a trainer...</option>
+                                @if(isset($stats['recommended_trainers']))
+                                    @foreach($stats['recommended_trainers'] as $trainer)
+                                        <option value="{{ $trainer->id }}">{{ $trainer->name }} @if($trainer->designation) - {{ $trainer->designation }} @endif</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Your Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="client_name" name="name" value="{{ Auth::user()->name }}" placeholder="Enter your name" required>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Rating <span class="text-danger">*</span></label>
+                            <div class="rating-stars" id="rating-stars">
+                                <i class="ri-star-line star" data-rating="1"></i>
+                                <i class="ri-star-line star" data-rating="2"></i>
+                                <i class="ri-star-line star" data-rating="3"></i>
+                                <i class="ri-star-line star" data-rating="4"></i>
+                                <i class="ri-star-line star" data-rating="5"></i>
+                            </div>
+                            <input type="hidden" id="rate" name="rate" required>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Review Comments <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="comments" name="comments" rows="4" placeholder="Share your experience with this trainer..." required></textarea>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Review Date</label>
+                            <input type="date" class="form-control" id="review_date" name="date" value="{{ date('Y-m-d') }}">
+                            <div class="invalid-feedback"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="submitReviewBtn">
+                        <span class="spinner-border spinner-border-sm me-2" id="submitReviewSpinner" style="display: none;"></span>
+                        Submit Review
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('scripts')
+<script>
+/**
+ * CSRF Token Setup for AJAX requests
+ */
+$.ajaxSetup({
+    headers: {
+        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+    }
+});
 
+/**
+ * Star Rating Functionality
+ */
+$(document).ready(function() {
+    let selectedRating = 0;
+    
+    // Star hover effect
+    $('.star').on('mouseenter', function() {
+        const rating = $(this).data('rating');
+        highlightStars(rating);
+    });
+    
+    // Reset stars on mouse leave
+    $('#rating-stars').on('mouseleave', function() {
+        highlightStars(selectedRating);
+    });
+    
+    // Star click selection
+    $('.star').on('click', function() {
+        selectedRating = $(this).data('rating');
+        $('#rate').val(selectedRating);
+        highlightStars(selectedRating);
+        
+        // Remove validation error if rating is selected
+        $('#rate').removeClass('is-invalid');
+        $('#rating-stars').next('.invalid-feedback').text('');
+    });
+    
+    /**
+     * Highlight stars up to the given rating
+     * 
+     * @param {number} rating - Rating value (1-5)
+     */
+    function highlightStars(rating) {
+        $('.star').each(function() {
+            const starRating = $(this).data('rating');
+            if (starRating <= rating) {
+                $(this).removeClass('ri-star-line').addClass('ri-star-fill text-warning');
+            } else {
+                $(this).removeClass('ri-star-fill text-warning').addClass('ri-star-line');
+            }
+        });
+    }
+    
+    /**
+     * Reset form when modal is closed
+     */
+    $('#reviewTrainerModal').on('hidden.bs.modal', function() {
+        resetReviewForm();
+    });
+    
+    /**
+     * Handle review form submission
+     */
+    $('#reviewTrainerForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        // Clear previous validation errors
+        clearValidationErrors();
+        
+        // Validate form
+        if (!validateReviewForm()) {
+            return;
+        }
+        
+        const formData = new FormData(this);
+        const submitBtn = $('#submitReviewBtn');
+        const spinner = $('#submitReviewSpinner');
+        
+        // Disable submit button and show spinner
+        submitBtn.prop('disabled', true);
+        spinner.show();
+        
+        $.ajax({
+            url: '/client/testimonials/store',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    // Show success message
+                    showAlert('Review submitted successfully!', 'success');
+                    
+                    // Close modal and reset form
+                    $('#reviewTrainerModal').modal('hide');
+                    resetReviewForm();
+                    
+                    // Optionally reload the page to show updated data
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showAlert(response.message || 'Error submitting review', 'danger');
+                }
+            },
+            error: function(xhr) {
+                const response = xhr.responseJSON;
+                
+                if (xhr.status === 422 && response.errors) {
+                    // Handle validation errors
+                    displayValidationErrors(response.errors);
+                } else {
+                    showAlert(response?.message || 'Error submitting review', 'danger');
+                }
+            },
+            complete: function() {
+                // Re-enable submit button and hide spinner
+                submitBtn.prop('disabled', false);
+                spinner.hide();
+            }
+        });
+    });
+    
+    /**
+     * Validate review form
+     * 
+     * @return {boolean} - True if form is valid
+     */
+    function validateReviewForm() {
+        let isValid = true;
+        
+        // Validate trainer selection
+        const trainerId = $('#trainer_id').val();
+        if (!trainerId) {
+            showFieldError('trainer_id', 'Please select a trainer');
+            isValid = false;
+        }
+        
+        // Validate client name
+        const clientName = $('#client_name').val().trim();
+        if (!clientName) {
+            showFieldError('client_name', 'Please enter your name');
+            isValid = false;
+        }
+        
+        // Validate rating
+        const rating = $('#rate').val();
+        if (!rating || rating < 1 || rating > 5) {
+            showFieldError('rate', 'Please select a rating');
+            isValid = false;
+        }
+        
+        // Validate comments
+        const comments = $('#comments').val().trim();
+        if (!comments) {
+            showFieldError('comments', 'Please enter your review comments');
+            isValid = false;
+        } else if (comments.length < 10) {
+            showFieldError('comments', 'Review comments must be at least 10 characters long');
+            isValid = false;
+        }
+        
+        return isValid;
+    }
+    
+    /**
+     * Show field validation error
+     * 
+     * @param {string} fieldId - Field ID
+     * @param {string} message - Error message
+     */
+    function showFieldError(fieldId, message) {
+        const field = $('#' + fieldId);
+        field.addClass('is-invalid');
+        field.next('.invalid-feedback').text(message);
+        
+        // Special handling for rating stars
+        if (fieldId === 'rate') {
+            $('#rating-stars').next('.invalid-feedback').text(message);
+        }
+    }
+    
+    /**
+     * Display validation errors from server response
+     * 
+     * @param {object} errors - Validation errors object
+     */
+    function displayValidationErrors(errors) {
+        Object.keys(errors).forEach(function(field) {
+            const fieldElement = $('#' + field);
+            if (fieldElement.length) {
+                fieldElement.addClass('is-invalid');
+                fieldElement.next('.invalid-feedback').text(errors[field][0]);
+            }
+        });
+    }
+    
+    /**
+     * Clear all validation errors
+     */
+    function clearValidationErrors() {
+        $('.form-control, .form-select').removeClass('is-invalid');
+        $('.invalid-feedback').text('');
+    }
+    
+    /**
+     * Reset review form to initial state
+     */
+    function resetReviewForm() {
+        $('#reviewTrainerForm')[0].reset();
+        selectedRating = 0;
+        $('#rate').val('');
+        highlightStars(0);
+        clearValidationErrors();
+        $('#client_name').val('{{ Auth::user()->name }}');
+        $('#review_date').val('{{ date("Y-m-d") }}');
+    }
+});
+
+/**
+ * Show alert message
+ * 
+ * @param {string} message - The message to display
+ * @param {string} type - The alert type (success, danger, warning, info)
+ */
+function showAlert(message, type) {
+    // Remove existing alerts
+    $('.alert').remove();
+    
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
+            <i class="ri-${type === 'success' ? 'check-circle' : 'error-warning'}-line me-2"></i>${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+    
+    $('body').append(alertHtml);
+    
+    // Auto dismiss after 3 seconds
+    setTimeout(function() {
+        $('.alert').fadeOut();
+    }, 3000);
+}
+</script>
+
+<style>
+/* Star Rating Styles */
+.rating-stars {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.rating-stars .star {
+    font-size: 24px;
+    color: #ddd;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.rating-stars .star:hover {
+    color: #ffc107;
+}
+
+.rating-stars .star.ri-star-fill {
+    color: #ffc107;
+}
+
+/* Modal Styles */
+.modal-lg {
+    max-width: 600px;
+}
+
+/* Form Validation Styles */
+.is-invalid {
+    border-color: #dc3545;
+}
+
+.invalid-feedback {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #dc3545;
+}
+</style>
 @endsection

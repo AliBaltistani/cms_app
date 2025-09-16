@@ -80,17 +80,6 @@
                     <i class="ri-phone-line me-1"></i>{{ $user->phone }}
                 </p>
                 
-                <div class="d-flex justify-content-center gap-2 mb-3">
-                    <button class="btn btn-primary" onclick="openProfileModal()">
-                        <i class="ri-edit-line me-1"></i>Edit Profile
-                    </button>
-                    <button class="btn btn-info" onclick="openImageModal()">
-                        <i class="ri-image-line me-1"></i>Change Photo
-                    </button>
-                    <a href="{{ route('trainers.show', $user->id) }}" class="btn btn-outline-primary" target="_blank">
-                        <i class="ri-eye-line me-1"></i>View Public
-                    </a>
-                </div>
                 
                 <div class="row text-center">
                     <div class="col-4">
@@ -122,7 +111,7 @@
                     Profile Information
                 </div>
                 <div class="ms-auto">
-                    <a href="{{ route('trainers.edit', $user->id) }}" class="btn btn-sm btn-outline-primary">
+                    <a href="{{ route('trainer.profile.edit') }}" class="btn btn-sm btn-outline-primary">
                         <i class="ri-edit-line me-1"></i>Edit
                     </a>
                 </div>

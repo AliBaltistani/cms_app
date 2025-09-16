@@ -160,7 +160,7 @@ class WorkoutController extends Controller
 
             // Handle web request
             $user = Auth::user();
-            return view('workouts.index', compact('workouts', 'user'));
+            return view('admin.workouts.index', compact('workouts', 'user'));
             
         } catch (\Exception $e) {
             Log::error('Failed to retrieve workouts: ' . $e->getMessage(), [
@@ -183,7 +183,7 @@ class WorkoutController extends Controller
     public function create(): View
     {
         $user = Auth::user();
-        return view('workouts.create', compact('user'));
+        return view('admin.workouts.create', compact('user'));
     }
 
     /**
@@ -214,7 +214,7 @@ class WorkoutController extends Controller
 
         $user = Auth::user();
 
-        return view('workouts.show', compact('workout', 'user'));
+        return view('admin.workouts.show', compact('workout', 'user'));
     }
 
     /**
@@ -223,7 +223,7 @@ class WorkoutController extends Controller
     public function edit(Workout $workout): View
     {
         $user = Auth::user();
-        return view('workouts.edit', compact('workout', 'user'));
+        return view('admin.workouts.edit', compact('workout', 'user'));
     }
 
     /**
@@ -301,7 +301,7 @@ class WorkoutController extends Controller
             }
             
             // Handle web request
-            return view('workouts.statistics', compact('stats'));
+            return view('admin.workouts.statistics', compact('stats'));
             
         } catch (\Exception $e) {
             Log::error('Failed to retrieve workout statistics: ' . $e->getMessage(), [

@@ -173,6 +173,234 @@ class TrainerController extends Controller
     }
 
     /**
+     * Get all certifications for the authenticated trainer.
+     * 
+     * @return JsonResponse
+     */
+    public function getCertifications(): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            if ($user->role !== 'trainer') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied. Only trainers can access certifications.'
+                ], 403);
+            }
+            
+            $certifications = $user->certifications()->orderBy('created_at', 'desc')->get();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Certifications retrieved successfully',
+                'data' => $certifications
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve certifications',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Store a new certification for the authenticated trainer.
+     * 
+     * @param StoreCertificationRequest $request
+     * @return JsonResponse
+     */
+    public function storeCertification(StoreCertificationRequest $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            if ($user->role !== 'trainer') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied. Only trainers can add certifications.'
+                ], 403);
+            }
+            
+            DB::beginTransaction();
+            
+            $data = $request->validated();
+            $data['user_id'] = $user->id;
+            
+            // Handle file upload if present
+            if ($request->hasFile('doc')) {
+                $file = $request->file('doc');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $path = $file->storeAs('certifications', $filename, 'public');
+                $data['doc'] = $path;
+            }
+            
+            $certification = UserCertification::create($data);
+            
+            DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Certification added successfully',
+                'data' => $certification
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to add certification',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get a specific certification.
+     * 
+     * @param string $id
+     * @return JsonResponse
+     */
+    public function showCertification(string $id): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            $certification = UserCertification::where('id', $id)
+                ->where('user_id', $user->id)
+                ->first();
+            
+            if (!$certification) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Certification not found'
+                ], 404);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Certification retrieved successfully',
+                'data' => $certification
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve certification',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update a specific certification.
+     * 
+     * @param StoreCertificationRequest $request
+     * @param string $id
+     * @return JsonResponse
+     */
+    public function updateCertification(StoreCertificationRequest $request, string $id): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            $certification = UserCertification::where('id', $id)
+                ->where('user_id', $user->id)
+                ->first();
+            
+            if (!$certification) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Certification not found'
+                ], 404);
+            }
+            
+            DB::beginTransaction();
+            
+            $data = $request->validated();
+            
+            // Handle file upload if present
+            if ($request->hasFile('doc')) {
+                // Delete old file if exists
+                if ($certification->doc && Storage::disk('public')->exists($certification->doc)) {
+                    Storage::disk('public')->delete($certification->doc);
+                }
+                
+                $file = $request->file('doc');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $path = $file->storeAs('certifications', $filename, 'public');
+                $data['doc'] = $path;
+            }
+            
+            $certification->update($data);
+            
+            DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Certification updated successfully',
+                'data' => $certification->fresh()
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update certification',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a specific certification.
+     * 
+     * @param string $id
+     * @return JsonResponse
+     */
+    public function destroyCertification(string $id): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            $certification = UserCertification::where('id', $id)
+                ->where('user_id', $user->id)
+                ->first();
+            
+            if (!$certification) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Certification not found'
+                ], 404);
+            }
+            
+            DB::beginTransaction();
+            
+            // Delete associated file if exists
+            if ($certification->doc && Storage::disk('public')->exists($certification->doc)) {
+                Storage::disk('public')->delete($certification->doc);
+            }
+            
+            $certification->delete();
+            
+            DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Certification deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete certification',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Add a testimonial for the trainer.
      * 
      * @param StoreTestimonialRequest $request

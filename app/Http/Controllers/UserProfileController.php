@@ -65,13 +65,15 @@ class UserProfileController extends Controller
     {
         $user = Auth::user();
         
-        // Validate input data
-        $validator = Validator::make($request->all(), [
+        // Base validation rules for all users
+        $validationRules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
             'phone' => 'required|string|max:20|unique:users,phone,' . $user->id,
             'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
-        ], [
+        ];
+        
+        $validationMessages = [
             'name.required' => 'Name is required.',
             'name.max' => 'Name cannot exceed 255 characters.',
             'email.required' => 'Email address is required.',
@@ -82,7 +84,27 @@ class UserProfileController extends Controller
             'profile_image.image' => 'Profile image must be an image file.',
             'profile_image.mimes' => 'Profile image must be jpeg, png, jpg, or gif.',
             'profile_image.max' => 'Profile image size cannot exceed 2MB.'
-        ]);
+        ];
+        
+        // Add trainer-specific validation rules if user is a trainer
+        if ($user->role === 'trainer') {
+            $validationRules = array_merge($validationRules, [
+                'designation' => 'nullable|string|max:255',
+                'experience' => 'nullable|in:less_than_1_year,1_year,2_years,3_years,4_years,5_years,6_years,7_years,8_years,9_years,10_years,more_than_10_years',
+                'about' => 'nullable|string|max:1000',
+                'training_philosophy' => 'nullable|string|max:1000'
+            ]);
+            
+            $validationMessages = array_merge($validationMessages, [
+                'designation.max' => 'Designation cannot exceed 255 characters.',
+                'experience.in' => 'Please select a valid experience level.',
+                'about.max' => 'About section cannot exceed 1000 characters.',
+                'training_philosophy.max' => 'Training philosophy cannot exceed 1000 characters.'
+            ]);
+        }
+        
+        // Validate input data
+        $validator = Validator::make($request->all(), $validationRules, $validationMessages);
 
         if ($validator->fails()) {
             return back()->withErrors($validator)->withInput();
@@ -101,10 +123,19 @@ class UserProfileController extends Controller
                 $user->profile_image = $imagePath;
             }
 
-            // Update user information
+            // Update basic user information
             $user->name = $request->name;
             $user->email = $request->email;
             $user->phone = $request->phone;
+            
+            // Update trainer-specific fields if user is a trainer
+            if ($user->role === 'trainer') {
+                $user->designation = $request->designation;
+                $user->experience = $request->experience;
+                $user->about = $request->about;
+                $user->training_philosophy = $request->training_philosophy;
+            }
+            
             $user->save();
 
             return redirect()->route('profile.index')

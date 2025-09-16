@@ -26,9 +26,14 @@ class StoreCertificationRequest extends FormRequest
             return false;
         }
         
-        // Check if the trainer is adding certification to their own profile
+        // For routes with trainer ID parameter (legacy routes)
         $trainerId = $this->route('id');
-        return $user->id == $trainerId;
+        if ($trainerId) {
+            return $user->id == $trainerId;
+        }
+        
+        // For authenticated trainer routes (new routes)
+        return true;
     }
 
     /**

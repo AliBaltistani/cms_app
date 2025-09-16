@@ -167,12 +167,18 @@
                     </div>
                     <p class="text-muted fs-13 mb-2">{{ Str::limit($testimonial->comments, 120) }}</p>
                     <div class="d-flex align-items-center gap-3">
-                        <span class="badge bg-success-transparent">
-                            <i class="ri-thumb-up-line me-1"></i>{{ $testimonial->likes }}
-                        </span>
-                        <span class="badge bg-danger-transparent">
-                            <i class="ri-thumb-down-line me-1"></i>{{ $testimonial->dislikes }}
-                        </span>
+                        <button class="btn btn-sm btn-outline-success like-btn" 
+                                onclick="likeTestimonial({{ $testimonial->id }})" 
+                                data-testimonial-id="{{ $testimonial->id }}">
+                            <i class="ri-thumb-up-line me-1"></i>
+                            <span class="likes-count">{{ $testimonial->likes }}</span>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger dislike-btn" 
+                                onclick="dislikeTestimonial({{ $testimonial->id }})" 
+                                data-testimonial-id="{{ $testimonial->id }}">
+                            <i class="ri-thumb-down-line me-1"></i>
+                            <span class="dislikes-count">{{ $testimonial->dislikes }}</span>
+                        </button>
                     </div>
                 </div>
                 @empty
@@ -273,5 +279,133 @@
 @endsection
 
 @section('scripts')
+<script>
+/**
+ * CSRF Token Setup for AJAX requests
+ */
+$.ajaxSetup({
+    headers: {
+        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+    }
+});
 
+/**
+ * Like a testimonial
+ * 
+ * @param {number} testimonialId - The ID of the testimonial to like
+ */
+function likeTestimonial(testimonialId) {
+    const likeBtn = $(`.like-btn[data-testimonial-id="${testimonialId}"]`);
+    const dislikeBtn = $(`.dislike-btn[data-testimonial-id="${testimonialId}"]`);
+    
+    // Disable buttons during request
+    likeBtn.prop('disabled', true);
+    dislikeBtn.prop('disabled', true);
+    
+    $.ajax({
+        url: `/trainer/testimonials/${testimonialId}/like`,
+        method: 'POST',
+        success: function(response) {
+            if (response.success) {
+                // Update like count
+                likeBtn.find('.likes-count').text(response.data.likes);
+                // Update dislike count
+                dislikeBtn.find('.dislikes-count').text(response.data.dislikes);
+                
+                // Visual feedback - highlight the liked button temporarily
+                likeBtn.removeClass('btn-outline-success').addClass('btn-success');
+                setTimeout(() => {
+                    likeBtn.removeClass('btn-success').addClass('btn-outline-success');
+                }, 1000);
+                
+                // Show success message
+                showAlert('Testimonial liked successfully!', 'success');
+            } else {
+                showAlert(response.message || 'Error liking testimonial', 'danger');
+            }
+        },
+        error: function(xhr) {
+            const response = xhr.responseJSON;
+            showAlert(response?.message || 'Error liking testimonial', 'danger');
+        },
+        complete: function() {
+            // Re-enable buttons
+            likeBtn.prop('disabled', false);
+            dislikeBtn.prop('disabled', false);
+        }
+    });
+}
+
+/**
+ * Dislike a testimonial
+ * 
+ * @param {number} testimonialId - The ID of the testimonial to dislike
+ */
+function dislikeTestimonial(testimonialId) {
+    const likeBtn = $(`.like-btn[data-testimonial-id="${testimonialId}"]`);
+    const dislikeBtn = $(`.dislike-btn[data-testimonial-id="${testimonialId}"]`);
+    
+    // Disable buttons during request
+    likeBtn.prop('disabled', true);
+    dislikeBtn.prop('disabled', true);
+    
+    $.ajax({
+        url: `/trainer/testimonials/${testimonialId}/dislike`,
+        method: 'POST',
+        success: function(response) {
+            if (response.success) {
+                // Update like count
+                likeBtn.find('.likes-count').text(response.data.likes);
+                // Update dislike count
+                dislikeBtn.find('.dislikes-count').text(response.data.dislikes);
+                
+                // Visual feedback - highlight the disliked button temporarily
+                dislikeBtn.removeClass('btn-outline-danger').addClass('btn-danger');
+                setTimeout(() => {
+                    dislikeBtn.removeClass('btn-danger').addClass('btn-outline-danger');
+                }, 1000);
+                
+                // Show success message
+                showAlert('Testimonial disliked successfully!', 'success');
+            } else {
+                showAlert(response.message || 'Error disliking testimonial', 'danger');
+            }
+        },
+        error: function(xhr) {
+            const response = xhr.responseJSON;
+            showAlert(response?.message || 'Error disliking testimonial', 'danger');
+        },
+        complete: function() {
+            // Re-enable buttons
+            likeBtn.prop('disabled', false);
+            dislikeBtn.prop('disabled', false);
+        }
+    });
+}
+
+/**
+ * Show alert message
+ * 
+ * @param {string} message - The message to display
+ * @param {string} type - The alert type (success, danger, warning, info)
+ */
+function showAlert(message, type) {
+    // Remove existing alerts
+    $('.alert').remove();
+    
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
+            <i class="ri-${type === 'success' ? 'check-circle' : 'error-warning'}-line me-2"></i>${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+    
+    $('body').append(alertHtml);
+    
+    // Auto dismiss after 3 seconds
+    setTimeout(function() {
+        $('.alert').fadeOut();
+    }, 3000);
+}
+</script>
 @endsection
