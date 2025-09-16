@@ -14,7 +14,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        // Register role-based middleware
+        $middleware->alias([
+            'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'client' => \App\Http\Middleware\ClientMiddleware::class,
+            'trainer' => \App\Http\Middleware\TrainerMiddleware::class,
+        ]);
     })
      ->withExceptions(function (Illuminate\Foundation\Configuration\Exceptions $exceptions) {
         $exceptions->render(function (AuthenticationException $e, Request $request) {

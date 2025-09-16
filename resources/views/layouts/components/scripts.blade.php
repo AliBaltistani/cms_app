@@ -1,10 +1,13 @@
 
-         <!-- Scroll To Top -->
+<!-- Scroll To Top -->
          <div class="scrollToTop">
             <span class="arrow lh-1"><i class="ti ti-arrow-big-up fs-18"></i></span>
          </div>
          <div id="responsive-overlay"></div>
          <!-- Scroll To Top -->
+
+         <!-- jQuery JS -->
+         <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 
          <!-- Popper JS -->
          <script src="{{asset('build/assets/libs/@popperjs/core/umd/popper.min.js')}}"></script>

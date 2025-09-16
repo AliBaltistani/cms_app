@@ -48,7 +48,22 @@
                                             @enderror
                                         </div>
                                         
-                                     
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Trainer <span class="text-danger">*</span></label>
+                                            <select class="form-select @error('user_id') is-invalid @enderror" name="user_id" required>
+                                                <option selected="" disabled="">Select Trainer</option>
+                                                @foreach($trainers as $trainer)
+                                                    <option value="{{ $trainer->id }}" {{ old('user_id', $workout->user_id) == $trainer->id ? 'selected' : '' }}>
+                                                        {{ $trainer->name }} ({{ $trainer->email }})
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                            @error('user_id')
+                                                <div class="invalid-feedback">
+                                                    {{ $message }}
+                                                </div>
+                                            @enderror
+                                        </div>
                                         
                                        <div class="col-md-6 mb-3">
                                         <label class="form-label">Status</label>

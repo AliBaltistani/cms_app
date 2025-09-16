@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
 use Illuminate\Support\Facades\Auth;
@@ -29,7 +30,7 @@ class GoalsController extends Controller
             'user_since' => $user->created_at->format('F Y'),
         ];
 
-        return view('goals.index', $dashboardData);
+        return view('admin.goals.index', $dashboardData);
     }
 
     public function create()
@@ -45,7 +46,7 @@ class GoalsController extends Controller
             'total_users' => \App\Models\User::count(),
             'user_since' => $user->created_at->format('F Y'),
         ];
-        return view('goals.create', $dashboardData);
+        return view('admin.goals.create', $dashboardData);
     }
 
     public function store(Request $request)
@@ -58,6 +59,7 @@ class GoalsController extends Controller
             // Create the goal
             Goal::create([
                 'name' => $data['name'],
+                'user_id' => Auth::id(),
                 'status' => $data['status']
             ]);
 
@@ -68,7 +70,7 @@ class GoalsController extends Controller
 
     public function show($id)
     {
-        return view('goals.show', compact('id'));
+        return view('admin.goals.show', compact('id'));
     }
 
 
@@ -86,7 +88,7 @@ class GoalsController extends Controller
             'total_users' => \App\Models\User::count(),
             'user_since' => $user->created_at->format('F Y'),
         ];
-        return view('goals.edit', $dashboardData);
+        return view('admin.goals.edit', $dashboardData);
     }
 
     public function update(Request $request, $id)

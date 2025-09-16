@@ -9,9 +9,13 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\UserProfileController;
-use App\Http\Controllers\GoalsController;
-use App\Http\Controllers\WorkoutController;
-use App\Http\Controllers\WorkoutVideoController;
+use App\Http\Controllers\Admin\GoalsController;
+use App\Http\Controllers\Admin\WorkoutController;
+use App\Http\Controllers\Admin\WorkoutVideoController;
+use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Client\ClientDashboardController;
+use App\Http\Controllers\Trainer\TrainerDashboardController;
+use App\Http\Controllers\Trainer\TrainerWebController;
 
 /**
  * Public Routes
@@ -48,14 +52,30 @@ Route::middleware('guest')->group(function () {
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout')->middleware('auth');
 
 /**
- * Protected Dashboard Routes
- * Requires user authentication
+ * Protected Routes - Requires Authentication
+ * Role-based access control with middleware
  */
 Route::middleware('auth')->group(function () {
-    // Main Dashboard - redirect here after successful login
-    Route::get('/dashboard', [DashboardsController::class, 'index'])->name('dashboard');
+    
+    // Main Dashboard Route - Redirects based on user role
+    Route::get('/dashboard', function () {
+        $user = Auth::user();
+        
+        switch ($user->role) {
+            case 'admin':
+                return redirect()->route('admin.dashboard');
+            case 'trainer':
+                return redirect()->route('trainer.dashboard');
+            case 'client':
+                // Direct redirect to avoid middleware conflicts
+                return redirect('/client/dashboard');
+            default:
+                return redirect()->route('profile.index');
+        }
+    })->name('dashboard');
 
-    // User Profile Routes
+
+    // Common User Profile Routes (Available to all authenticated users)
     Route::prefix('profile')->group(function () {
         Route::get('/', [UserProfileController::class, 'index'])->name('profile.index');
         Route::get('/edit', [UserProfileController::class, 'edit'])->name('profile.edit');
@@ -67,52 +87,182 @@ Route::middleware('auth')->group(function () {
         Route::get('/activity-log', [UserProfileController::class, 'activityLog'])->name('profile.activity-log');
     });
 
-    // Admin Routes
-    Route::prefix('admin')->group(function () {
-        Route::get('/', [DashboardsController::class, 'index']);
-
-        // Add more admin-specific routes here
-          Route::prefix('goals')->group(function () {
-             Route::get('/index', [GoalsController::class, 'index'])->name('goals.index');
-             Route::get('/create', [GoalsController::class, 'create'])->name('goals.create');
-             Route::post('/store', [GoalsController::class, 'store'])->name('goals.store');
-             Route::post('/show{id}', [GoalsController::class, 'show'])->name('goals.show');
-             Route::get('/edit/{id}', [GoalsController::class, 'edit'])->name('goals.edit');
-             Route::post('/update/{id}', [GoalsController::class, 'update'])->name('goals.update');
-             Route::delete('/destroy/{id}', [GoalsController::class, 'delete'])->name('goals.destroy');
-          });
-
-          // Add more admin-specific routes here
-          Route::prefix('workouts')->group(function () {
-             Route::get('/', [WorkoutController::class, 'index'])->name('workouts.index');
-             Route::get('/create', [WorkoutController::class, 'create'])->name('workouts.create');
-            //  Route::post('/store', [WorkoutController::class, 'store'])->name('workouts.store');
-            //  Route::post('/show{id}', [WorkoutController::class, 'show'])->name('workouts.show');
-            //  Route::get('/edit/{id}', [WorkoutController::class, 'edit'])->name('workouts.edit');
-            //  Route::post('/update/{id}', [WorkoutController::class, 'update'])->name('workouts.update');
-            //  Route::delete('/destroy/{id}', [WorkoutController::class, 'delete'])->name('workouts.destroy');
-          });
-
-
-          // Web routes for admin panel or frontend
-            Route::resource('workouts', WorkoutController::class);
-            Route::resource('workouts.videos', WorkoutVideoController::class)
-                ->except(['index'])
-                ->names([
-                    'create' => 'workout-videos.create',
-                    'store' => 'workout-videos.store',
-                    'show' => 'workout-videos.show',
-                    'edit' => 'workout-videos.edit',
-                    'update' => 'workout-videos.update',
-                    'destroy' => 'workout-videos.destroy',
-                ]);
-                
-            // Additional routes
-            Route::post('workouts/{workout}/duplicate', [WorkoutController::class, 'duplicate'])->name('workouts.duplicate');
-            Route::patch('workouts/{workout}/toggle-status', [WorkoutController::class, 'toggleStatus'])->name('workouts.toggle-status');
-            Route::patch('workouts/{workout}/videos/reorder', [WorkoutVideoController::class, 'reorder'])->name('workout-videos.reorder');
+    /**
+     * ADMIN ROUTES - Admin Role Required
+     * System administration and management
+     */
+    Route::middleware('admin')->prefix('admin')->group(function () {
+        // Admin Dashboard
+        Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
+        Route::get('/reports', [AdminDashboardController::class, 'reports'])->name('admin.reports');
         
+        // Users Management Routes
+        Route::prefix('users')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\UsersController::class, 'index'])->name('admin.users.index');
+            Route::get('/create', [\App\Http\Controllers\Admin\UsersController::class, 'create'])->name('admin.users.create');
+            Route::post('/store', [\App\Http\Controllers\Admin\UsersController::class, 'store'])->name('admin.users.store');
+            Route::get('/{id}', [\App\Http\Controllers\Admin\UsersController::class, 'show'])->name('admin.users.show');
+            Route::get('/{id}/edit', [\App\Http\Controllers\Admin\UsersController::class, 'edit'])->name('admin.users.edit');
+            Route::put('/{id}', [\App\Http\Controllers\Admin\UsersController::class, 'update'])->name('admin.users.update');
+            Route::delete('/{id}', [\App\Http\Controllers\Admin\UsersController::class, 'destroy'])->name('admin.users.destroy');
+            Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Admin\UsersController::class, 'toggleStatus'])->name('admin.users.toggle-status');
+            Route::delete('/{id}/delete-image', [\App\Http\Controllers\Admin\UsersController::class, 'deleteImage'])->name('admin.users.delete-image');
+        });
+        
+        // Trainers Management Routes
+        Route::prefix('trainers')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\TrainersController::class, 'index'])->name('admin.trainers.index');
+            Route::get('/create', [\App\Http\Controllers\Admin\TrainersController::class, 'create'])->name('admin.trainers.create');
+            Route::post('/store', [\App\Http\Controllers\Admin\TrainersController::class, 'store'])->name('admin.trainers.store');
+            Route::get('/{id}', [\App\Http\Controllers\Admin\TrainersController::class, 'show'])->name('admin.trainers.show');
+            Route::get('/{id}/edit', [\App\Http\Controllers\Admin\TrainersController::class, 'edit'])->name('admin.trainers.edit');
+            Route::put('/{id}', [\App\Http\Controllers\Admin\TrainersController::class, 'update'])->name('admin.trainers.update');
+            Route::delete('/{id}', [\App\Http\Controllers\Admin\TrainersController::class, 'destroy'])->name('admin.trainers.destroy');
+            Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Admin\TrainersController::class, 'toggleStatus'])->name('admin.trainers.toggle-status');
+            
+            // Trainer Certifications Management
+            Route::get('/{id}/certifications', [\App\Http\Controllers\Admin\TrainersController::class, 'certifications'])->name('admin.trainers.certifications');
+            Route::post('/{id}/certifications', [\App\Http\Controllers\Admin\TrainersController::class, 'storeCertification'])->name('admin.trainers.certifications.store');
+            Route::delete('/{trainerId}/certifications/{certificationId}', [\App\Http\Controllers\Admin\TrainersController::class, 'deleteCertification'])->name('admin.trainers.certifications.destroy');
+            
+            // Trainer Testimonials Management
+            Route::get('/{id}/testimonials', [\App\Http\Controllers\Admin\TrainersController::class, 'testimonials'])->name('admin.trainers.testimonials');
+        });
+        
+        
+         Route::prefix('profile')->group(function () {
+            Route::get('/', [UserProfileController::class, 'index'])->name('admin.profile');
+            Route::get('/edit', [UserProfileController::class, 'edit'])->name('admin.profile.edit');
+            Route::post('/update', [UserProfileController::class, 'update'])->name('admin.profile.update');
+            Route::get('/change-password', [UserProfileController::class, 'showChangePasswordForm'])->name('admin.profile.change-password');
+            Route::post('/change-password', [UserProfileController::class, 'changePassword'])->name('admin.profile.password.update');
+            Route::post('/delete-image', [UserProfileController::class, 'deleteProfileImage'])->name('admin.profile.delete-image');
+            Route::get('/settings', [UserProfileController::class, 'settings'])->name('admin.profile.settings');
+            Route::get('/activity-log', [UserProfileController::class, 'activityLog'])->name('admin.profile.activity-log');
+        });
+    
+        // Goals Management
+        Route::prefix('goals')->group(function () {
+            Route::get('/', [GoalsController::class, 'index'])->name('goals.index');
+            Route::get('/create', [GoalsController::class, 'create'])->name('goals.create');
+            Route::post('/store', [GoalsController::class, 'store'])->name('goals.store');
+            Route::get('/show/{id}', [GoalsController::class, 'show'])->name('goals.show');
+            Route::get('/edit/{id}', [GoalsController::class, 'edit'])->name('goals.edit');
+            Route::post('/update/{id}', [GoalsController::class, 'update'])->name('goals.update');
+            Route::delete('/destroy/{id}', [GoalsController::class, 'delete'])->name('goals.destroy');
+        });
 
+        // Workouts Management
+        Route::resource('workouts', WorkoutController::class);
+        Route::resource('workouts.videos', WorkoutVideoController::class)
+            ->names([
+                'index' => 'workout-videos.index',
+                'create' => 'workout-videos.create',
+                'store' => 'workout-videos.store',
+                'show' => 'workout-videos.show',
+                'edit' => 'workout-videos.edit',
+                'update' => 'workout-videos.update',
+                'destroy' => 'workout-videos.destroy',
+            ]);
+            
+        // Additional Workout Routes
+        Route::post('workouts/{workout}/duplicate', [WorkoutController::class, 'duplicate'])->name('workouts.duplicate');
+        Route::patch('workouts/{workout}/toggle-status', [WorkoutController::class, 'toggleStatus'])->name('workouts.toggle-status');
+        
+        // Workout Video Additional Routes
+        Route::get('workouts/{workout}/videos/reorder', [WorkoutVideoController::class, 'reorderForm'])->name('workout-videos.reorder-form');
+        Route::patch('workouts/{workout}/videos/reorder', [WorkoutVideoController::class, 'reorder'])->name('workout-videos.reorder');
+    });
+
+    /**
+     * CLIENT ROUTES - Client Role Required
+     * Client dashboard and personal management
+     */
+    Route::middleware('client')->prefix('client')->group(function () {
+        // Client Dashboard
+        Route::get('/dashboard', [ClientDashboardController::class, 'index'])->name('client.dashboard');
+        Route::get('/goals', [ClientDashboardController::class, 'goals'])->name('client.goals');
+        Route::get('/testimonials', [ClientDashboardController::class, 'testimonials'])->name('client.testimonials');
+        Route::get('/trainers', [ClientDashboardController::class, 'trainers'])->name('client.trainers');
+        
+         Route::prefix('profile')->group(function () {
+            Route::get('/', [UserProfileController::class, 'index'])->name('client.profile');
+            Route::get('/edit', [UserProfileController::class, 'edit'])->name('client.profile.edit');
+            Route::post('/update', [UserProfileController::class, 'update'])->name('client.profile.update');
+            Route::get('/change-password', [UserProfileController::class, 'showChangePasswordForm'])->name('client.profile.change-password');
+            Route::post('/change-password', [UserProfileController::class, 'changePassword'])->name('client.profile.password.update');
+            Route::post('/delete-image', [UserProfileController::class, 'deleteProfileImage'])->name('client.profile.delete-image');
+            Route::get('/settings', [UserProfileController::class, 'settings'])->name('client.profile.settings');
+            Route::get('/activity-log', [UserProfileController::class, 'activityLog'])->name('client.profile.activity-log');
+        });
+
+        // Client Goals Management
+        Route::prefix('goals')->group(function () {
+            Route::get('/create', [GoalsController::class, 'create'])->name('client.goals.create');
+            Route::post('/store', [GoalsController::class, 'store'])->name('client.goals.store');
+            Route::get('/edit/{id}', [GoalsController::class, 'edit'])->name('client.goals.edit');
+            Route::post('/update/{id}', [GoalsController::class, 'update'])->name('client.goals.update');
+            Route::delete('/destroy/{id}', [GoalsController::class, 'delete'])->name('client.goals.destroy');
+        });
+        
+        // Client Testimonial Management
+        Route::prefix('testimonials')->group(function () {
+            Route::post('/store', [ClientDashboardController::class, 'storeTestimonial'])->name('client.testimonials.store');
+            Route::get('/{id}', [ClientDashboardController::class, 'showTestimonial'])->name('client.testimonials.show');
+            Route::put('/{id}', [ClientDashboardController::class, 'updateTestimonial'])->name('client.testimonials.update');
+            Route::delete('/{id}', [ClientDashboardController::class, 'destroyTestimonial'])->name('client.testimonials.destroy');
+        });
+    });
+
+    /**
+     * TRAINER ROUTES - Trainer Role Required
+     * Trainer dashboard and profile management
+     */
+    Route::middleware('trainer')->prefix('trainer')->group(function () {
+        // Trainer Dashboard
+        Route::get('/dashboard', [TrainerDashboardController::class, 'index'])->name('trainer.dashboard');
+        Route::get('/certifications', [TrainerDashboardController::class, 'certifications'])->name('trainer.certifications');
+        Route::get('/testimonials', [TrainerDashboardController::class, 'testimonials'])->name('trainer.testimonials');
+        Route::get('/profile', [TrainerDashboardController::class, 'profile'])->name('trainer.profile');
+        Route::get('/profile/edit', [UserProfileController::class, 'edit'])->name('trainer.profile.edit');
+        
+        // Certification Management Routes for Trainers
+        Route::prefix('certifications')->group(function () {
+            Route::post('/', [TrainerDashboardController::class, 'storeCertification'])->name('trainer.certifications.store');
+            Route::get('/{id}', [TrainerDashboardController::class, 'showCertification'])->name('trainer.certifications.show');
+            Route::put('/{id}', [TrainerDashboardController::class, 'updateCertification'])->name('trainer.certifications.update');
+            Route::delete('/{id}', [TrainerDashboardController::class, 'destroyCertification'])->name('trainer.certifications.destroy');
+        });
+        
+        // Testimonial Reaction Routes for Trainers
+        Route::prefix('testimonials')->group(function () {
+            Route::post('/{id}/like', [TrainerDashboardController::class, 'likeTestimonial'])->name('trainer.testimonials.like');
+            Route::post('/{id}/dislike', [TrainerDashboardController::class, 'dislikeTestimonial'])->name('trainer.testimonials.dislike');
+        });
+    });
+
+    /**
+     * PUBLIC TRAINER ROUTES - Available to all authenticated users
+     * Trainer profiles, certifications, and testimonials
+     */
+    Route::prefix('trainers')->group(function () {
+        // Public trainer listing and profile viewing
+        Route::get('/', [TrainerWebController::class, 'index'])->name('trainers.index');
+        Route::get('/{id}', [TrainerWebController::class, 'show'])->name('trainers.show');
+        
+        // Trainer profile management (only trainers can update their own profile)
+        Route::get('/{id}/edit', [TrainerWebController::class, 'edit'])->name('trainers.edit');
+        Route::put('/{id}', [TrainerWebController::class, 'update'])->name('trainers.update');
+        Route::delete('/{id}/image', [TrainerWebController::class, 'deleteImage'])->name('trainers.delete-image');
+        
+        // Certification management (only trainers can add certifications to their profile)
+        Route::get('/{id}/certifications/create', [TrainerWebController::class, 'createCertification'])->name('trainers.certifications.create');
+        Route::post('/{id}/certifications', [TrainerWebController::class, 'storeCertification'])->name('trainers.certifications.store');
+        Route::delete('/{id}/certifications/{certificationId}', [TrainerWebController::class, 'deleteCertification'])->name('trainers.certifications.destroy');
+        
+        // Testimonial management (only clients can add testimonials for trainers)
+        Route::get('/{id}/testimonials/create', [TrainerWebController::class, 'createTestimonial'])->name('trainers.testimonials.create');
+        Route::post('/{id}/testimonials', [TrainerWebController::class, 'storeTestimonial'])->name('trainers.testimonials.store');
     });
 });
 
