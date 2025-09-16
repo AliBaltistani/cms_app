@@ -18,7 +18,7 @@ class ClientMiddleware
      * Handle an incoming request.
      * 
      * Check if the authenticated user has client role
-     * Redirect to appropriate dashboard if not authorized
+     * Return JSON response for API requests or redirect for web requests
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
@@ -26,6 +26,15 @@ class ClientMiddleware
     {
         // Check if user is authenticated
         if (!Auth::check()) {
+            // Return JSON response for API requests
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated',
+                    'error' => 'Please login to access this area.'
+                ], 401);
+            }
+            
             return redirect()->route('login')->with('error', 'Please login to access this area.');
         }
         
@@ -33,6 +42,15 @@ class ClientMiddleware
         
         // Check if user has client role
         if ($user->role !== 'client') {
+            // Return JSON response for API requests
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access Denied',
+                    'error' => 'Client access required. Your role: ' . $user->role
+                ], 403);
+            }
+            
             // Redirect to main dashboard which will handle role-based routing
             return redirect()->route('client.dashboard')
                 ->with('error', 'Access denied. Client access required.');

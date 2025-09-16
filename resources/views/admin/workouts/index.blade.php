@@ -36,12 +36,19 @@
                                 <div class="card-body">
                                     <!-- Filters -->
                                     <div class="row mb-3">
-                                        
                                         <div class="col-md-3">
                                             <select class="form-select" id="statusFilter">
                                                 <option value="">All Status</option>
                                                 <option value="1">Active</option>
                                                 <option value="0">Inactive</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <select class="form-select" id="trainerFilter">
+                                                <option value="">All Trainers</option>
+                                                @foreach($trainers as $trainer)
+                                                    <option value="{{ $trainer->id }}">{{ $trainer->name }}</option>
+                                                @endforeach
                                             </select>
                                         </div>
                                         <div class="col-md-3">
@@ -55,6 +62,7 @@
                                                 <tr>
                                                     <th scope="col">ID</th>
                                                     <th scope="col">Name</th>
+                                                    <th scope="col">Trainer</th>
                                                     <th scope="col">Duration</th>
                                                     <th scope="col">Videos</th>
                                                     <th scope="col">Status</th>
@@ -76,6 +84,21 @@
                                                                 @if($workout->description)
                                                                     <br><small class="text-muted">{{ Str::limit($workout->description, 50) }}</small>
                                                                 @endif
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            @if($workout->user && $workout->user->profile_image)
+                                                                <img src="{{ asset('storage/' . $workout->user->profile_image) }}" alt="trainer" class="rounded-circle me-2" width="30" height="30">
+                                                            @else
+                                                                <div class="avatar avatar-sm rounded-circle me-2 bg-primary-transparent">
+                                                                    <i class="ri-user-line"></i>
+                                                                </div>
+                                                            @endif
+                                                            <div>
+                                                                <strong>{{ $workout->user->name ?? 'Unknown' }}</strong>
+                                                                <br><small class="text-muted">{{ $workout->user->email ?? 'N/A' }}</small>
                                                             </div>
                                                         </div>
                                                     </td>

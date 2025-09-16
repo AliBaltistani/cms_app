@@ -92,7 +92,7 @@ class WorkoutVideoController extends Controller
     {
         $videos = $workout->videos()->orderBy('order')->get();
         
-        return view('workouts.videos.index', compact('workout', 'videos'));
+        return view('admin.workouts.videos.index', compact('workout', 'videos'));
     }
 
     /**
@@ -101,7 +101,7 @@ class WorkoutVideoController extends Controller
     public function create(Workout $workout): View
     {
         $user = Auth::user();
-        return view('workouts.videos.create', compact('workout', 'user'));
+        return view('admin.workouts.videos.create', compact('workout', 'user'));
     }
 
     /**
@@ -148,7 +148,7 @@ class WorkoutVideoController extends Controller
         }
         $user = Auth::user();
 
-        return view('workouts.videos.edit', compact('workout', 'video', 'user'));
+        return view('admin.workouts.videos.edit', compact('workout', 'video', 'user'));
     }
 
     /**
@@ -203,7 +203,7 @@ class WorkoutVideoController extends Controller
     {
         $videos = $workout->videos()->orderBy('order')->get();
         
-        return view('workouts.videos.reorder', compact('workout', 'videos'));
+        return view('admin.workouts.videos.reorder', compact('workout', 'videos'));
     }
 
     /**

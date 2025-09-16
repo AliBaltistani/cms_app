@@ -94,8 +94,40 @@ Route::middleware('auth')->group(function () {
     Route::middleware('admin')->prefix('admin')->group(function () {
         // Admin Dashboard
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
-        Route::get('/users', [AdminDashboardController::class, 'users'])->name('admin.users');
         Route::get('/reports', [AdminDashboardController::class, 'reports'])->name('admin.reports');
+        
+        // Users Management Routes
+        Route::prefix('users')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\UsersController::class, 'index'])->name('admin.users.index');
+            Route::get('/create', [\App\Http\Controllers\Admin\UsersController::class, 'create'])->name('admin.users.create');
+            Route::post('/store', [\App\Http\Controllers\Admin\UsersController::class, 'store'])->name('admin.users.store');
+            Route::get('/{id}', [\App\Http\Controllers\Admin\UsersController::class, 'show'])->name('admin.users.show');
+            Route::get('/{id}/edit', [\App\Http\Controllers\Admin\UsersController::class, 'edit'])->name('admin.users.edit');
+            Route::put('/{id}', [\App\Http\Controllers\Admin\UsersController::class, 'update'])->name('admin.users.update');
+            Route::delete('/{id}', [\App\Http\Controllers\Admin\UsersController::class, 'destroy'])->name('admin.users.destroy');
+            Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Admin\UsersController::class, 'toggleStatus'])->name('admin.users.toggle-status');
+            Route::delete('/{id}/delete-image', [\App\Http\Controllers\Admin\UsersController::class, 'deleteImage'])->name('admin.users.delete-image');
+        });
+        
+        // Trainers Management Routes
+        Route::prefix('trainers')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\TrainersController::class, 'index'])->name('admin.trainers.index');
+            Route::get('/create', [\App\Http\Controllers\Admin\TrainersController::class, 'create'])->name('admin.trainers.create');
+            Route::post('/store', [\App\Http\Controllers\Admin\TrainersController::class, 'store'])->name('admin.trainers.store');
+            Route::get('/{id}', [\App\Http\Controllers\Admin\TrainersController::class, 'show'])->name('admin.trainers.show');
+            Route::get('/{id}/edit', [\App\Http\Controllers\Admin\TrainersController::class, 'edit'])->name('admin.trainers.edit');
+            Route::put('/{id}', [\App\Http\Controllers\Admin\TrainersController::class, 'update'])->name('admin.trainers.update');
+            Route::delete('/{id}', [\App\Http\Controllers\Admin\TrainersController::class, 'destroy'])->name('admin.trainers.destroy');
+            Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Admin\TrainersController::class, 'toggleStatus'])->name('admin.trainers.toggle-status');
+            
+            // Trainer Certifications Management
+            Route::get('/{id}/certifications', [\App\Http\Controllers\Admin\TrainersController::class, 'certifications'])->name('admin.trainers.certifications');
+            Route::post('/{id}/certifications', [\App\Http\Controllers\Admin\TrainersController::class, 'storeCertification'])->name('admin.trainers.certifications.store');
+            Route::delete('/{trainerId}/certifications/{certificationId}', [\App\Http\Controllers\Admin\TrainersController::class, 'deleteCertification'])->name('admin.trainers.certifications.destroy');
+            
+            // Trainer Testimonials Management
+            Route::get('/{id}/testimonials', [\App\Http\Controllers\Admin\TrainersController::class, 'testimonials'])->name('admin.trainers.testimonials');
+        });
         
         
          Route::prefix('profile')->group(function () {
@@ -123,8 +155,8 @@ Route::middleware('auth')->group(function () {
         // Workouts Management
         Route::resource('workouts', WorkoutController::class);
         Route::resource('workouts.videos', WorkoutVideoController::class)
-            ->except(['index'])
             ->names([
+                'index' => 'workout-videos.index',
                 'create' => 'workout-videos.create',
                 'store' => 'workout-videos.store',
                 'show' => 'workout-videos.show',
@@ -136,6 +168,9 @@ Route::middleware('auth')->group(function () {
         // Additional Workout Routes
         Route::post('workouts/{workout}/duplicate', [WorkoutController::class, 'duplicate'])->name('workouts.duplicate');
         Route::patch('workouts/{workout}/toggle-status', [WorkoutController::class, 'toggleStatus'])->name('workouts.toggle-status');
+        
+        // Workout Video Additional Routes
+        Route::get('workouts/{workout}/videos/reorder', [WorkoutVideoController::class, 'reorderForm'])->name('workout-videos.reorder-form');
         Route::patch('workouts/{workout}/videos/reorder', [WorkoutVideoController::class, 'reorder'])->name('workout-videos.reorder');
     });
 

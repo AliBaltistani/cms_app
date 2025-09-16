@@ -109,9 +109,9 @@ class ApiAuthController extends ApiBaseController
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users,email',
                 'password' => 'required|string|min:8|confirmed',
-                'password_confirmation' => 'required|string',
+                // 'password_confirmation' => 'required|string',
                 'phone' => 'nullable|string|max:20|unique:users,phone',
-                'role' => 'nullable|in:admin,trainer,client',
+                'role' => 'nullable|in:trainer,client',
                 'device_name' => 'nullable|string|max:255'
             ]);
             
@@ -310,43 +310,44 @@ class ApiAuthController extends ApiBaseController
     public function forgotPassword(Request $request): JsonResponse
     {
         try {
+            // Validate email input
             $validator = Validator::make($request->all(), [
                 'email' => 'required|email|exists:users,email'
+            ], [
+                'email.required' => 'Email address is required.',
+                'email.email' => 'Please enter a valid email address.',
+                'email.exists' => 'No account found with this email address.'
             ]);
             
             if ($validator->fails()) {
                 return $this->sendError('Validation Error', $validator->errors(), 422);
             }
             
+            // Get user details
             $user = User::where('email', $request->email)->first();
             
-            // Generate OTP
-            $otp = str_pad(random_int(100000, 999999), 6, '0', STR_PAD_LEFT);
+            if (!$user) {
+                return $this->sendError('User Not Found', ['email' => 'User not found.'], 404);
+            }
             
-            // Store or update password reset record
-            PasswordReset::updateOrCreate(
-                ['email' => $request->email],
-                [
-                    'token' => Hash::make($otp),
-                    'otp' => $otp,
-                    'created_at' => now(),
-                    'expires_at' => now()->addMinutes(15)
-                ]
-            );
+            // Generate unique token and create password reset record with OTP
+            $token = Str::random(60);
+            $passwordReset = PasswordReset::createWithOTP($request->email, $token);
             
             // Send OTP email
-            Mail::to($user->email)->send(new PasswordResetOTP($user, $otp));
+            Mail::to($request->email)->send(new PasswordResetOTP($passwordReset->otp, $user->name));
             
-            Log::info('Password reset OTP sent', [
+            Log::info('Password reset OTP sent via API', [
                 'email' => $request->email,
-                'user_id' => $user->id
+                'user_id' => $user->id,
+                'otp' => $passwordReset->otp // For debugging - remove in production
             ]);
             
-            return $this->sendResponse([], 'Password reset OTP sent to your email');
+            return $this->sendResponse([], 'Password reset OTP sent to your email address');
             
         } catch (\Exception $e) {
-            Log::error('Failed to send password reset OTP: ' . $e->getMessage(), [
-                'email' => $request->email,
+            Log::error('Failed to send password reset OTP via API: ' . $e->getMessage(), [
+                'email' => $request->email ?? 'unknown',
                 'trace' => $e->getTraceAsString()
             ]);
             
@@ -363,43 +364,44 @@ class ApiAuthController extends ApiBaseController
     public function verifyOTP(Request $request): JsonResponse
     {
         try {
+            // Validate OTP input
             $validator = Validator::make($request->all(), [
                 'email' => 'required|email',
                 'otp' => 'required|string|size:6'
+            ], [
+                'email.required' => 'Email address is required.',
+                'email.email' => 'Please enter a valid email address.',
+                'otp.required' => 'OTP is required.',
+                'otp.size' => 'OTP must be exactly 6 digits.'
             ]);
             
             if ($validator->fails()) {
                 return $this->sendError('Validation Error', $validator->errors(), 422);
             }
             
-            $passwordReset = PasswordReset::where('email', $request->email)
-                ->where('otp', $request->otp)
-                ->where('expires_at', '>', now())
-                ->first();
+            // Verify OTP using model method
+            $passwordReset = PasswordReset::verifyOTP($request->email, $request->otp);
             
             if (!$passwordReset) {
-                return $this->sendError('Invalid OTP', ['otp' => 'Invalid or expired OTP'], 400);
+                return $this->sendError('Invalid OTP', ['otp' => 'Invalid or expired OTP. Please try again.'], 400);
             }
             
             // Generate reset token for password reset
             $resetToken = Str::random(64);
-            $passwordReset->update([
-                'reset_token' => Hash::make($resetToken),
-                'otp_verified_at' => now()
-            ]);
             
-            Log::info('Password reset OTP verified', [
+            Log::info('Password reset OTP verified via API', [
                 'email' => $request->email
             ]);
             
             return $this->sendResponse([
                 'reset_token' => $resetToken,
+                'email' => $request->email,
                 'expires_in' => 900 // 15 minutes
             ], 'OTP verified successfully');
             
         } catch (\Exception $e) {
-            Log::error('OTP verification failed: ' . $e->getMessage(), [
-                'email' => $request->email,
+            Log::error('OTP verification failed via API: ' . $e->getMessage(), [
+                'email' => $request->email ?? 'unknown',
                 'trace' => $e->getTraceAsString()
             ]);
             
@@ -416,47 +418,61 @@ class ApiAuthController extends ApiBaseController
     public function resetPassword(Request $request): JsonResponse
     {
         try {
+            // Validate password input
             $validator = Validator::make($request->all(), [
                 'email' => 'required|email',
-                'reset_token' => 'required|string',
+                'otp' => 'required|string|size:6',
                 'password' => 'required|string|min:8|confirmed',
                 'password_confirmation' => 'required|string'
+            ], [
+                'email.required' => 'Email address is required.',
+                'email.email' => 'Please enter a valid email address.',
+                'otp.required' => 'OTP is required.',
+                'otp.size' => 'OTP must be exactly 6 digits.',
+                'password.required' => 'Password is required.',
+                'password.min' => 'Password must be at least 8 characters long.',
+                'password.confirmed' => 'Password confirmation does not match.',
+                'password_confirmation.required' => 'Password confirmation is required.'
             ]);
             
             if ($validator->fails()) {
                 return $this->sendError('Validation Error', $validator->errors(), 422);
             }
             
-            $passwordReset = PasswordReset::where('email', $request->email)
-                ->whereNotNull('otp_verified_at')
-                ->where('expires_at', '>', now())
-                ->first();
+            // Verify OTP again for security
+            $passwordReset = PasswordReset::verifyOTP($request->email, $request->otp);
             
-            if (!$passwordReset || !Hash::check($request->reset_token, $passwordReset->reset_token)) {
-                return $this->sendError('Invalid Token', ['reset_token' => 'Invalid or expired reset token'], 400);
+            if (!$passwordReset) {
+                return $this->sendError('Invalid OTP', ['otp' => 'Invalid or expired OTP. Please try again.'], 400);
+            }
+            
+            // Find user and update password
+            $user = User::where('email', $request->email)->first();
+            
+            if (!$user) {
+                return $this->sendError('User Not Found', ['email' => 'User not found.'], 404);
             }
             
             // Update user password
-            $user = User::where('email', $request->email)->first();
             $user->password = Hash::make($request->password);
             $user->save();
             
-            // Delete password reset record
-            $passwordReset->delete();
+            // Mark OTP as used and clean up
+            $passwordReset->markOTPAsUsed();
             
             // Revoke all existing tokens for security
             $user->tokens()->delete();
             
-            Log::info('Password reset successfully', [
+            Log::info('Password reset successfully via API', [
                 'email' => $request->email,
                 'user_id' => $user->id
             ]);
             
-            return $this->sendResponse([], 'Password reset successfully');
+            return $this->sendResponse([], 'Password reset successfully! Please login with your new password.');
             
         } catch (\Exception $e) {
-            Log::error('Password reset failed: ' . $e->getMessage(), [
-                'email' => $request->email,
+            Log::error('Password reset failed via API: ' . $e->getMessage(), [
+                'email' => $request->email ?? 'unknown',
                 'trace' => $e->getTraceAsString()
             ]);
             
@@ -475,6 +491,10 @@ class ApiAuthController extends ApiBaseController
         try {
             $validator = Validator::make($request->all(), [
                 'email' => 'required|email|exists:users,email'
+            ], [
+                'email.required' => 'Email address is required.',
+                'email.email' => 'Please enter a valid email address.',
+                'email.exists' => 'No account found with this email address.'
             ]);
             
             if ($validator->fails()) {
@@ -487,15 +507,34 @@ class ApiAuthController extends ApiBaseController
                 ->first();
             
             if ($recentReset) {
-                return $this->sendError('Rate Limited', ['error' => 'Please wait before requesting another OTP'], 429);
+                return $this->sendError('Rate Limited', ['error' => 'Please wait 2 minutes before requesting another OTP'], 429);
             }
             
-            // Use the same logic as forgotPassword
-            return $this->forgotPassword($request);
+            // Get user details
+            $user = User::where('email', $request->email)->first();
+            
+            if (!$user) {
+                return $this->sendError('User Not Found', ['email' => 'User not found.'], 404);
+            }
+            
+            // Generate new token and create new password reset record with OTP
+            $token = Str::random(60);
+            $passwordReset = PasswordReset::createWithOTP($request->email, $token);
+            
+            // Send new OTP email
+            Mail::to($request->email)->send(new PasswordResetOTP($passwordReset->otp, $user->name));
+            
+            Log::info('Password reset OTP resent via API', [
+                'email' => $request->email,
+                'user_id' => $user->id,
+                'otp' => $passwordReset->otp // For debugging - remove in production
+            ]);
+            
+            return $this->sendResponse([], 'New OTP has been sent to your email address');
             
         } catch (\Exception $e) {
-            Log::error('Failed to resend OTP: ' . $e->getMessage(), [
-                'email' => $request->email,
+            Log::error('Failed to resend OTP via API: ' . $e->getMessage(), [
+                'email' => $request->email ?? 'unknown',
                 'trace' => $e->getTraceAsString()
             ]);
             

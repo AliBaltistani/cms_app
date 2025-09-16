@@ -33,7 +33,7 @@ class TrainerController extends Controller
         try {
             $trainers = User::where('role', 'trainer')
                 ->with(['certifications', 'receivedTestimonials.client'])
-                ->select('id', 'name', 'email', 'designation', 'experience', 'about', 'training_philosophy', 'created_at')
+                ->select('id', 'name', 'email', 'designation', 'profile_image', 'phone', 'experience', 'about', 'training_philosophy', 'created_at')
                 ->paginate(10);
             
             return response()->json([
@@ -68,7 +68,7 @@ class TrainerController extends Controller
                               ->orderBy('created_at', 'desc');
                     }
                 ])
-                ->select('id', 'name', 'email', 'designation', 'experience', 'about', 'training_philosophy', 'created_at')
+                ->select('id', 'name', 'email', 'phone', 'profile_image', 'designation', 'experience', 'about', 'training_philosophy', 'created_at')
                 ->first();
             
             if (!$trainer) {
@@ -555,4 +555,5 @@ class TrainerController extends Controller
             ], 500);
         }
     }
+
 }

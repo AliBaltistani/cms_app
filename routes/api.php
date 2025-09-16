@@ -24,6 +24,7 @@ use App\Http\Controllers\ApiGoalController;
 use App\Http\Controllers\Admin\WorkoutController;
 use App\Http\Controllers\Admin\WorkoutVideoController;
 use App\Http\Controllers\Api\TrainerController;
+use App\Http\Controllers\Api\ClientController;
 
 /**
  * =============================================================================
@@ -80,6 +81,42 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     
     /**
+     * ADMIN API ROUTES - Admin Role Required
+     * Complete user and trainer management via API
+     */
+    Route::middleware('admin')->prefix('admin')->group(function () {
+        
+        // Admin User Management API
+        Route::prefix('users')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\AdminUserController::class, 'index'])->name('api.admin.users.index');
+            Route::post('/', [\App\Http\Controllers\Api\AdminUserController::class, 'store'])->name('api.admin.users.store');
+            Route::get('/statistics', [\App\Http\Controllers\Api\AdminUserController::class, 'statistics'])->name('api.admin.users.statistics');
+            Route::get('/{id}', [\App\Http\Controllers\Api\AdminUserController::class, 'show'])->name('api.admin.users.show');
+            Route::put('/{id}', [\App\Http\Controllers\Api\AdminUserController::class, 'update'])->name('api.admin.users.update');
+            Route::delete('/{id}', [\App\Http\Controllers\Api\AdminUserController::class, 'destroy'])->name('api.admin.users.destroy');
+            Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\AdminUserController::class, 'toggleStatus'])->name('api.admin.users.toggle-status');
+            Route::delete('/{id}/delete-image', [\App\Http\Controllers\Api\AdminUserController::class, 'deleteImage'])->name('api.admin.users.delete-image');
+        });
+        
+        // Admin Trainer Management API
+        // Route::prefix('trainers')->group(function () {
+        //     Route::get('/', [\App\Http\Controllers\Api\AdminTrainerController::class, 'index'])->name('api.admin.trainers.index');
+        //     Route::get('/{id}', [\App\Http\Controllers\Api\AdminTrainerController::class, 'show'])->name('api.admin.trainers.show');
+        //     Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\AdminTrainerController::class, 'toggleStatus'])->name('api.admin.trainers.toggle-status');
+        //     Route::get('/{id}/analytics', [\App\Http\Controllers\Api\AdminTrainerController::class, 'getAnalytics'])->name('api.admin.trainers.analytics');
+            
+        //     // Admin Trainer Certifications Management API
+        //     Route::get('/{id}/certifications', [\App\Http\Controllers\Api\AdminTrainerController::class, 'getCertifications'])->name('api.admin.trainers.certifications.index');
+        //     Route::post('/{id}/certifications', [\App\Http\Controllers\Api\AdminTrainerController::class, 'storeCertification'])->name('api.admin.trainers.certifications.store');
+        //     Route::put('/{trainerId}/certifications/{certificationId}', [\App\Http\Controllers\Api\AdminTrainerController::class, 'updateCertification'])->name('api.admin.trainers.certifications.update');
+        //     Route::delete('/{trainerId}/certifications/{certificationId}', [\App\Http\Controllers\Api\AdminTrainerController::class, 'deleteCertification'])->name('api.admin.trainers.certifications.destroy');
+            
+        //     // Admin Trainer Testimonials Management API
+        //     Route::get('/{id}/testimonials', [\App\Http\Controllers\Api\AdminTrainerController::class, 'getTestimonials'])->name('api.admin.trainers.testimonials.index');
+        // });
+    });
+    
+    /**
      * Goals Management Routes
      * Complete CRUD operations for user goals
      */
@@ -103,90 +140,38 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     
     /**
-     * Workouts Management Routes
-     * Complete CRUD operations for workout management
+     * CLIENT WORKOUT ROUTES - Client Role Required
+     * Read-only access to active workouts for clients
      */
-    Route::prefix('workouts')->group(function () {
-        Route::get('/', [WorkoutController::class, 'index'])->name('api.workouts.index');
-        Route::post('/', [WorkoutController::class, 'store'])->name('api.workouts.store');
-        Route::get('/search', [WorkoutController::class, 'search'])->name('api.workouts.search');
-        Route::get('/statistics', [WorkoutController::class, 'statistics'])->name('api.workouts.statistics');
-        Route::get('/categories', [WorkoutController::class, 'categories'])->name('api.workouts.categories');
+    Route::middleware('client')->prefix('client')->group(function () {
+        // Client Dashboard
+        Route::get('/dashboard', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'getDashboard'])->name('api.client.dashboard');
         
-        Route::prefix('{workout}')->group(function () {
-            Route::get('/', [WorkoutController::class, 'show'])->name('api.workouts.show');
-            Route::put('/', [WorkoutController::class, 'update'])->name('api.workouts.update');
-            Route::delete('/', [WorkoutController::class, 'destroy'])->name('api.workouts.destroy');
-            Route::patch('/toggle-status', [WorkoutController::class, 'toggleStatus'])->name('api.workouts.toggle-status');
-            Route::post('/duplicate', [WorkoutController::class, 'duplicate'])->name('api.workouts.duplicate');
-            Route::post('/favorite', [WorkoutController::class, 'addToFavorites'])->name('api.workouts.add-favorite');
-            Route::delete('/favorite', [WorkoutController::class, 'removeFromFavorites'])->name('api.workouts.remove-favorite');
+        // Client Workout Routes
+        Route::prefix('workouts')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'index'])->name('api.client.workouts.index');
+            Route::get('/search', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'search'])->name('api.client.workouts.search');
+            Route::get('/statistics', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'getStatistics'])->name('api.client.workouts.statistics');
+            Route::get('/featured', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'getFeatured'])->name('api.client.workouts.featured');
             
-            /**
-             * Workout Videos Management Routes
-             * Nested routes for managing videos within workouts
-             */
-            Route::prefix('videos')->group(function () {
-                Route::get('/', [WorkoutVideoController::class, 'index'])->name('api.workout-videos.index');
-                Route::post('/', [WorkoutVideoController::class, 'store'])->name('api.workout-videos.store');
-                Route::patch('/reorder', [WorkoutVideoController::class, 'reorder'])->name('api.workout-videos.reorder');
-                
-                Route::prefix('{video}')->group(function () {
-                    Route::get('/', [WorkoutVideoController::class, 'show'])->name('api.workout-videos.show');
-                    Route::put('/', [WorkoutVideoController::class, 'update'])->name('api.workout-videos.update');
-                    Route::delete('/', [WorkoutVideoController::class, 'destroy'])->name('api.workout-videos.destroy');
-                    Route::patch('/toggle-status', [WorkoutVideoController::class, 'toggleStatus'])->name('api.workout-videos.toggle-status');
-                });
+            Route::prefix('{id}')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'show'])->name('api.client.workouts.show');
+                Route::get('/videos', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'getVideos'])->name('api.client.workouts.videos');
+                Route::get('/videos/{videoId}', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'showVideo'])->name('api.client.workouts.videos.show');
             });
         });
-        
-        // Bulk operations for workouts
-        Route::prefix('bulk')->group(function () {
-            Route::patch('/', [WorkoutController::class, 'bulkUpdate'])->name('api.workouts.bulk-update');
-            Route::delete('/', [WorkoutController::class, 'bulkDelete'])->name('api.workouts.bulk-delete');
-        });
     });
     
     /**
-     * Standalone Workout Videos Routes
-     * For managing videos independently of workouts
+     * TRAINER API ROUTES - Trainer Role Required
+     * Handle trainer profile management, certifications, and workouts
      */
-    Route::prefix('videos')->group(function () {
-        Route::get('/', [WorkoutVideoController::class, 'getAllVideos'])->name('api.videos.index');
-        Route::get('/search', [WorkoutVideoController::class, 'search'])->name('api.videos.search');
-        Route::get('/categories', [WorkoutVideoController::class, 'categories'])->name('api.videos.categories');
+    Route::middleware('trainer')->prefix('trainer')->group(function () {
+        // Trainer Profile Management
+        Route::get('/profile', [TrainerController::class, 'getProfile'])->name('api.trainer.profile');
+        Route::put('/profile', [TrainerController::class, 'updateProfile'])->name('api.trainer.update-profile');
         
-        Route::prefix('{video}')->group(function () {
-            Route::get('/', [WorkoutVideoController::class, 'showVideo'])->name('api.videos.show');
-            Route::post('/favorite', [WorkoutVideoController::class, 'addToFavorites'])->name('api.videos.add-favorite');
-            Route::delete('/favorite', [WorkoutVideoController::class, 'removeFromFavorites'])->name('api.videos.remove-favorite');
-        });
-    });
-    
-    /**
-     * Trainer Profile Management Routes
-     * Handle trainer profiles, certifications, and testimonials
-     */
-    Route::prefix('trainers')->group(function () {
-        // Public trainer listing and profile viewing
-        Route::get('/', [TrainerController::class, 'index'])->name('api.trainers.index');
-        Route::get('/{id}', [TrainerController::class, 'show'])->name('api.trainers.show');
-        
-        // Trainer profile management (only trainers can update their own profile)
-        Route::put('/{id}', [TrainerController::class, 'update'])->name('api.trainers.update');
-        
-        // Certification management (only trainers can add certifications to their profile)
-        Route::post('/{id}/certifications', [TrainerController::class, 'addCertification'])->name('api.trainers.add-certification');
-        
-        // Testimonial management (only clients can add testimonials for trainers)
-        Route::post('/{id}/testimonials', [TrainerController::class, 'addTestimonial'])->name('api.trainers.add-testimonial');
-    });
-    
-    /**
-     * Trainer Certification Management Routes
-     * Handle CRUD operations for trainer certifications
-     */
-    Route::prefix('trainer')->middleware('auth:sanctum')->group(function () {
+        // Trainer Certification Management
         Route::prefix('certifications')->group(function () {
             Route::get('/', [TrainerController::class, 'getCertifications'])->name('api.trainer.certifications.index');
             Route::post('/', [TrainerController::class, 'storeCertification'])->name('api.trainer.certifications.store');
@@ -194,6 +179,55 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{id}', [TrainerController::class, 'updateCertification'])->name('api.trainer.certifications.update');
             Route::delete('/{id}', [TrainerController::class, 'destroyCertification'])->name('api.trainer.certifications.destroy');
         });
+        
+        // Trainer Testimonials (Read Only)
+        Route::get('/testimonials', [TrainerController::class, 'getMyTestimonials'])->name('api.trainer.testimonials.index');
+        
+        /**
+         * TRAINER WORKOUT MANAGEMENT - Complete CRUD operations
+         * Trainers can manage their own workouts and videos
+         */
+        Route::prefix('workouts')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'index'])->name('api.trainer.workouts.index');
+            Route::post('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'store'])->name('api.trainer.workouts.store');
+            
+            Route::prefix('{id}')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'show'])->name('api.trainer.workouts.show');
+                Route::put('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'update'])->name('api.trainer.workouts.update');
+                Route::delete('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'destroy'])->name('api.trainer.workouts.destroy');
+                Route::patch('/toggle-status', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'toggleStatus'])->name('api.trainer.workouts.toggle-status');
+                
+                /**
+                 * Trainer Workout Videos Management
+                 * Nested routes for managing videos within trainer's workouts
+                 */
+                Route::prefix('videos')->group(function () {
+                    Route::get('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'getVideos'])->name('api.trainer.workouts.videos.index');
+                    Route::post('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'storeVideo'])->name('api.trainer.workouts.videos.store');
+                    Route::patch('/reorder', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'reorderVideos'])->name('api.trainer.workouts.videos.reorder');
+                    
+                    Route::prefix('{videoId}')->group(function () {
+                        Route::put('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'updateVideo'])->name('api.trainer.workouts.videos.update');
+                        Route::delete('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'destroyVideo'])->name('api.trainer.workouts.videos.destroy');
+                    });
+                });
+            });
+        });
+    });
+    
+    /**
+     * PUBLIC TRAINER ROUTES (No Role Restriction)
+     * Public access to trainer information for browsing
+     */
+    Route::prefix('trainers')->group(function () {
+        // Public trainer listing and profile viewing
+        Route::get('/', [TrainerController::class, 'index'])->name('api.trainers.index');
+        Route::get('/{id}', [TrainerController::class, 'show'])->name('api.trainers.show');
+        // Route::get('/{id}/certifications', [TrainerController::class, 'getTrainerCertifications'])->name('api.trainers.certifications');
+        // Route::get('/{id}/testimonials', [TrainerController::class, 'getTrainerTestimonials'])->name('api.trainers.testimonials');
+        
+        // Client can add testimonials for trainers
+        // Route::post('/{id}/testimonials', [TrainerController::class, 'addTestimonial'])->name('api.trainers.add-testimonial');
     });
     
     /**
@@ -203,6 +237,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('testimonials')->group(function () {
         Route::post('/{id}/like', [TrainerController::class, 'likeTestimonial'])->name('api.testimonials.like');
         Route::post('/{id}/dislike', [TrainerController::class, 'dislikeTestimonial'])->name('api.testimonials.dislike');
+    });
+    
+    /**
+     * CLIENT API ROUTES - Client Role Required
+     * Find trainers and view trainer profiles with comprehensive details
+     */
+    Route::middleware('client')->prefix('client')->group(function () {
+        
+        // Find Trainers Routes
+        Route::prefix('trainers')->group(function () {
+            Route::get('/find', [ClientController::class, 'findTrainers'])->name('api.client.trainers.find');
+            Route::get('/{trainerId}/profile', [ClientController::class, 'getTrainerProfile'])->name('api.client.trainers.profile');
+            Route::get('/{trainerId}/certifications', [ClientController::class, 'getTrainerCertifications'])->name('api.client.trainers.certifications');
+            Route::get('/{trainerId}/testimonials', [ClientController::class, 'getTrainerTestimonials'])->name('api.client.trainers.testimonials');
+        });
     });
     
     /**
@@ -253,13 +302,13 @@ Route::fallback(function () {
             'error' => 'The requested API endpoint does not exist',
             'available_endpoints' => [
                 'auth' => '/api/auth/*',
-                'user' => '/api/user/*',
-                'goals' => '/api/goals/*',
-                'workouts' => '/api/workouts/*',
-                'videos' => '/api/videos/*',
+                // 'user' => '/api/user/*',
+                // 'goals' => '/api/goals/*',
+                // 'workouts' => '/api/workouts/*',
+                // 'videos' => '/api/videos/*',
                 'trainers' => '/api/trainers/*',
                 'testimonials' => '/api/testimonials/*',
-                'system' => '/api/system/*'
+                // 'system' => '/api/system/*'
             ]
         ]
     ], 404);

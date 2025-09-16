@@ -116,7 +116,7 @@ This document provides comprehensive documentation for the Go Globe CMS API. The
 ```json
 {
     "email": "john@example.com",
-    "reset_token": "abc123...",
+    "otp": "abc123...",
     "password": "newpassword123",
     "password_confirmation": "newpassword123"
 }

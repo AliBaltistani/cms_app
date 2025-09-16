@@ -100,11 +100,7 @@ class ApiGoalController extends ApiBaseController
             // Validate goal data
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
-                'description' => 'nullable|string|max:1000',
-                'status' => 'required|in:0,1',
-                'target_date' => 'nullable|date|after:today',
-                'priority' => 'nullable|in:low,medium,high',
-                'category' => 'nullable|string|max:100'
+                'status' => 'nullable|in:0,1',
             ]);
             
             if ($validator->fails()) {
@@ -112,7 +108,7 @@ class ApiGoalController extends ApiBaseController
             }
             
             // Create goal with authenticated user
-            $goalData = $request->validated();
+            $goalData = $validator->validated();
             $goalData['user_id'] = Auth::id();
             
             $goal = Goal::create($goalData);
@@ -121,11 +117,7 @@ class ApiGoalController extends ApiBaseController
             $responseData = [
                 'id' => $goal->id,
                 'name' => $goal->name,
-                'description' => $goal->description,
                 'status' => $goal->status,
-                'target_date' => $goal->target_date,
-                'priority' => $goal->priority,
-                'category' => $goal->category,
                 'user_id' => $goal->user_id,
                 'created_at' => $goal->created_at->toISOString(),
                 'updated_at' => $goal->updated_at->toISOString()
@@ -146,7 +138,7 @@ class ApiGoalController extends ApiBaseController
                 'trace' => $e->getTraceAsString()
             ]);
             
-            return $this->sendError('Creation Failed', ['error' => 'Unable to create goal'], 500);
+            return $this->sendError('Creation Failed', ['error' => 'Unable to create goal'. $e->getMessage()], 500);
         }
     }
     
@@ -168,11 +160,7 @@ class ApiGoalController extends ApiBaseController
             $goalData = [
                 'id' => $goal->id,
                 'name' => $goal->name,
-                'description' => $goal->description,
                 'status' => $goal->status,
-                'target_date' => $goal->target_date,
-                'priority' => $goal->priority,
-                'category' => $goal->category,
                 'user_id' => $goal->user_id,
                 'created_at' => $goal->created_at->toISOString(),
                 'updated_at' => $goal->updated_at->toISOString()
@@ -209,11 +197,7 @@ class ApiGoalController extends ApiBaseController
             // Validate update data
             $validator = Validator::make($request->all(), [
                 'name' => 'sometimes|required|string|max:255',
-                'description' => 'nullable|string|max:1000',
-                'status' => 'sometimes|required|in:0,1',
-                'target_date' => 'nullable|date|after:today',
-                'priority' => 'nullable|in:low,medium,high',
-                'category' => 'nullable|string|max:100'
+                'status' => 'sometimes|required|in:0,1'
             ]);
             
             if ($validator->fails()) {
@@ -221,17 +205,13 @@ class ApiGoalController extends ApiBaseController
             }
             
             // Update goal
-            $goal->update($request->validated());
+            $goal->update($validator->validated());
             
             // Prepare response data
             $responseData = [
                 'id' => $goal->id,
                 'name' => $goal->name,
-                'description' => $goal->description,
                 'status' => $goal->status,
-                'target_date' => $goal->target_date,
-                'priority' => $goal->priority,
-                'category' => $goal->category,
                 'user_id' => $goal->user_id,
                 'created_at' => $goal->created_at->toISOString(),
                 'updated_at' => $goal->updated_at->toISOString()
@@ -240,7 +220,7 @@ class ApiGoalController extends ApiBaseController
             Log::info('Goal updated successfully', [
                 'goal_id' => $goal->id,
                 'user_id' => Auth::id(),
-                'updated_fields' => array_keys($request->validated())
+                'updated_fields' => array_keys($validator->validated())
             ]);
             
             return $this->sendResponse($responseData, 'Goal updated successfully');
@@ -352,8 +332,6 @@ class ApiGoalController extends ApiBaseController
             $validator = Validator::make($request->all(), [
                 'query' => 'required|string|min:2|max:255',
                 'status' => 'nullable|in:0,1',
-                'priority' => 'nullable|in:low,medium,high',
-                'category' => 'nullable|string|max:100',
                 'per_page' => 'nullable|integer|min:1|max:100'
             ]);
             
@@ -366,9 +344,7 @@ class ApiGoalController extends ApiBaseController
             // Apply search query
             $searchTerm = $request->query;
             $query->where(function ($q) use ($searchTerm) {
-                $q->where('name', 'like', "%{$searchTerm}%")
-                  ->orWhere('description', 'like', "%{$searchTerm}%")
-                  ->orWhere('category', 'like', "%{$searchTerm}%");
+                $q->where('name', 'like', "%{$searchTerm}%");
             });
             
             // Apply additional filters
@@ -376,13 +352,6 @@ class ApiGoalController extends ApiBaseController
                 $query->where('status', $request->status);
             }
             
-            if ($request->filled('priority')) {
-                $query->where('priority', $request->priority);
-            }
-            
-            if ($request->filled('category')) {
-                $query->where('category', 'like', "%{$request->category}%");
-            }
             
             // Order by relevance (name matches first, then description)
             $query->orderByRaw("CASE WHEN name LIKE '%{$searchTerm}%' THEN 1 ELSE 2 END")
@@ -431,9 +400,7 @@ class ApiGoalController extends ApiBaseController
             $validator = Validator::make($request->all(), [
                 'goal_ids' => 'required|array|min:1',
                 'goal_ids.*' => 'integer|exists:goals,id',
-                'status' => 'nullable|in:0,1',
-                'priority' => 'nullable|in:low,medium,high',
-                'category' => 'nullable|string|max:100'
+                'status' => 'nullable|in:0,1'
             ]);
             
             if ($validator->fails()) {
@@ -447,13 +414,7 @@ class ApiGoalController extends ApiBaseController
                 $updateData['status'] = $request->status;
             }
             
-            if ($request->filled('priority')) {
-                $updateData['priority'] = $request->priority;
-            }
             
-            if ($request->filled('category')) {
-                $updateData['category'] = $request->category;
-            }
             
             if (empty($updateData)) {
                 return $this->sendError('No Updates', ['error' => 'No valid update fields provided'], 400);

@@ -94,19 +94,16 @@ class WorkoutController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = Workout::query();
+            $query = Workout::query()->with(['user:id,name,email,role']);
 
             // Apply filters
             if ($request->filled('is_active')) {
                 $query->where('is_active', $request->boolean('is_active'));
             }
             
-            if ($request->filled('category')) {
-                $query->where('category', $request->category);
-            }
-            
-            if ($request->filled('difficulty')) {
-                $query->where('difficulty', $request->difficulty);
+            // Filter by trainer (user_id)
+            if ($request->filled('trainer_id')) {
+                $query->where('user_id', $request->trainer_id);
             }
             
             if ($request->filled('duration_min')) {
@@ -123,7 +120,10 @@ class WorkoutController extends Controller
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
                       ->orWhere('description', 'like', "%{$search}%")
-                      ->orWhere('category', 'like', "%{$search}%");
+                      ->orWhereHas('user', function ($userQuery) use ($search) {
+                          $userQuery->where('name', 'like', "%{$search}%")
+                                   ->orWhere('email', 'like', "%{$search}%");
+                      });
                 });
             }
 
@@ -158,9 +158,14 @@ class WorkoutController extends Controller
                 return $this->sendApiResponse($responseData, 'Workouts retrieved successfully');
             }
 
-            // Handle web request
+            // Handle web request - Get trainers for filter dropdown
             $user = Auth::user();
-            return view('admin.workouts.index', compact('workouts', 'user'));
+            $trainers = \App\Models\User::where('role', 'trainer')
+                                        ->select('id', 'name', 'email')
+                                        ->orderBy('name')
+                                        ->get();
+            
+            return view('admin.workouts.index', compact('workouts', 'user', 'trainers'));
             
         } catch (\Exception $e) {
             Log::error('Failed to retrieve workouts: ' . $e->getMessage(), [
@@ -183,7 +188,14 @@ class WorkoutController extends Controller
     public function create(): View
     {
         $user = Auth::user();
-        return view('admin.workouts.create', compact('user'));
+        
+        // Get all trainers for the dropdown
+        $trainers = \App\Models\User::where('role', 'trainer')
+                                    ->select('id', 'name', 'email')
+                                    ->orderBy('name')
+                                    ->get();
+        
+        return view('admin.workouts.create', compact('user', 'trainers'));
     }
 
     /**
@@ -223,7 +235,14 @@ class WorkoutController extends Controller
     public function edit(Workout $workout): View
     {
         $user = Auth::user();
-        return view('admin.workouts.edit', compact('workout', 'user'));
+        
+        // Get all trainers for the dropdown
+        $trainers = \App\Models\User::where('role', 'trainer')
+                                    ->select('id', 'name', 'email')
+                                    ->orderBy('name')
+                                    ->get();
+        
+        return view('admin.workouts.edit', compact('workout', 'user', 'trainers'));
     }
 
     /**

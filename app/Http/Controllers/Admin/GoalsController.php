@@ -59,11 +59,12 @@ class GoalsController extends Controller
             // Create the goal
             Goal::create([
                 'name' => $data['name'],
+                'user_id' => Auth::id(),
                 'status' => $data['status']
             ]);
 
             // Redirect to the goals index with success message
-            return redirect()->route('admin.goals.index')->with('success', 'Goal created successfully.');
+            return redirect()->route('goals.index')->with('success', 'Goal created successfully.');
 
     }
 
@@ -104,7 +105,7 @@ class GoalsController extends Controller
                 ]);
     
                 // Redirect to the goals index with success message
-                return redirect()->route('admin.goals.index')->with('success', 'Goal updated successfully.');
+                return redirect()->route('goals.index')->with('success', 'Goal updated successfully.');
     }
 
     public function delete($id)
@@ -112,7 +113,7 @@ class GoalsController extends Controller
             $goal = Goal::findOrFail($id);
             $goal->delete();
     
-            return redirect()->route('admin.goals.index')->with('success', 'Goal deleted successfully.');
+            return redirect()->route('goals.index')->with('success', 'Goal deleted successfully.');
     }
 
      protected function validator(array $data)

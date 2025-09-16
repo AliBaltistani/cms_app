@@ -158,17 +158,6 @@
         </div>
     </div>
     
-    <div class="col-xxl-3 col-xl-6 col-lg-6 col-md-6 col-sm-12">
-        <div class="card custom-card">
-            <div class="card-body">
-                <div class="text-center">
-                    <a href="{{ route('admin.users') }}" class="btn btn-primary btn-sm">
-                        <i class="ri-settings-line me-1"></i>Manage System
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
 <!-- Recent Activity Section -->
@@ -212,7 +201,7 @@
                 
                 @if($stats['recent_users']->count() > 0)
                 <div class="text-center mt-3">
-                    <a href="{{ route('admin.users') }}" class="btn btn-outline-primary btn-sm">
+                    <a href="{{ route('admin.users.index') }}" class="btn btn-outline-primary btn-sm">
                         View All Users
                     </a>
                 </div>
@@ -261,13 +250,13 @@
                 </div>
                 @endforelse
                 
-                @if($stats['recent_testimonials']->count() > 0)
+                {{-- @if($stats['recent_testimonials']->count() > 0)
                 <div class="text-center mt-3">
                     <a href="{{ route('admin.reports') }}" class="btn btn-outline-primary btn-sm">
                         View Reports
                     </a>
                 </div>
-                @endif
+                @endif --}}
             </div>
         </div>
     </div>
@@ -285,7 +274,7 @@
             <div class="card-body">
                 <div class="row gy-3">
                     <div class="col-xl-3 col-lg-6 col-md-6 col-sm-12">
-                        <a href="{{ route('admin.users') }}" class="btn btn-outline-primary w-100">
+                        <a href="{{ route('admin.users.index') }}" class="btn btn-outline-primary w-100">
                             <i class="ri-user-settings-line me-2"></i>Manage Users
                         </a>
                     </div>
@@ -299,11 +288,11 @@
                             <i class="ri-run-line me-2"></i>Manage Workouts
                         </a>
                     </div>
-                    <div class="col-xl-3 col-lg-6 col-md-6 col-sm-12">
+                    {{-- <div class="col-xl-3 col-lg-6 col-md-6 col-sm-12">
                         <a href="{{ route('admin.reports') }}" class="btn btn-outline-warning w-100">
                             <i class="ri-bar-chart-line me-2"></i>View Reports
                         </a>
-                    </div>
+                    </div> --}}
                 </div>
             </div>
         </div>
