@@ -128,6 +128,20 @@ Route::middleware('auth')->group(function () {
             // Trainer Testimonials Management
             Route::get('/{id}/testimonials', [\App\Http\Controllers\Admin\TrainersController::class, 'testimonials'])->name('admin.trainers.testimonials');
         });
+
+        // Trainers Management Routes
+        // Trainees Management Routes
+        Route::prefix('trainees')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\TraineesController::class, 'index'])->name('admin.trainees.index');
+            Route::get('/create', [\App\Http\Controllers\Admin\TraineesController::class, 'create'])->name('admin.trainees.create');
+            Route::post('/store', [\App\Http\Controllers\Admin\TraineesController::class, 'store'])->name('admin.trainees.store');
+            Route::get('/{id}', [\App\Http\Controllers\Admin\TraineesController::class, 'show'])->name('admin.trainees.show');
+            Route::get('/{id}/edit', [\App\Http\Controllers\Admin\TraineesController::class, 'edit'])->name('admin.trainees.edit');
+            Route::put('/{id}', [\App\Http\Controllers\Admin\TraineesController::class, 'update'])->name('admin.trainees.update');
+            Route::delete('/{id}', [\App\Http\Controllers\Admin\TraineesController::class, 'destroy'])->name('admin.trainees.destroy');
+            Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Admin\TraineesController::class, 'toggleStatus'])->name('admin.trainees.toggle-status');
+            Route::delete('/{id}/delete-image', [\App\Http\Controllers\Admin\TraineesController::class, 'deleteImage'])->name('admin.trainees.delete-image');
+        });
         
         
          Route::prefix('profile')->group(function () {
