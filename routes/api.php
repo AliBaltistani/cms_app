@@ -213,6 +213,24 @@ Route::middleware('auth:sanctum')->group(function () {
                 });
             });
         });
+        
+        /**
+         * TRAINER NUTRITION MANAGEMENT - Complete CRUD operations
+         * Trainers can create and manage nutrition plans for their trainees
+         */
+        Route::prefix('nutrition')->group(function () {
+            Route::get('/plans', [\App\Http\Controllers\Api\TrainerNutritionController::class, 'index'])->name('api.trainer.nutrition.plans.index');
+            Route::post('/plans', [\App\Http\Controllers\Api\TrainerNutritionController::class, 'store'])->name('api.trainer.nutrition.plans.store');
+            Route::get('/plans/{id}', [\App\Http\Controllers\Api\TrainerNutritionController::class, 'show'])->name('api.trainer.nutrition.plans.show');
+            Route::get('/clients', [\App\Http\Controllers\Api\TrainerNutritionController::class, 'getClients'])->name('api.trainer.nutrition.clients');
+            
+            // Meal management for nutrition plans
+            Route::post('/plans/{planId}/meals', [\App\Http\Controllers\Api\TrainerNutritionController::class, 'addMeal'])->name('api.trainer.nutrition.plans.meals.store');
+            
+            // Macros and restrictions management
+            Route::put('/plans/{planId}/macros', [\App\Http\Controllers\Api\TrainerNutritionController::class, 'updateMacros'])->name('api.trainer.nutrition.plans.macros.update');
+            Route::put('/plans/{planId}/restrictions', [\App\Http\Controllers\Api\TrainerNutritionController::class, 'updateRestrictions'])->name('api.trainer.nutrition.plans.restrictions.update');
+        });
     });
     
     /**
@@ -251,6 +269,18 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{trainerId}/profile', [ClientController::class, 'getTrainerProfile'])->name('api.client.trainers.profile');
             Route::get('/{trainerId}/certifications', [ClientController::class, 'getTrainerCertifications'])->name('api.client.trainers.certifications');
             Route::get('/{trainerId}/testimonials', [ClientController::class, 'getTrainerTestimonials'])->name('api.client.trainers.testimonials');
+        });
+        
+        /**
+         * CLIENT NUTRITION MANAGEMENT - Read-only access
+         * Trainees can view their assigned nutrition plans and meals
+         */
+        Route::prefix('nutrition')->group(function () {
+            Route::get('/plans', [\App\Http\Controllers\Api\TraineeNutritionController::class, 'index'])->name('api.client.nutrition.plans.index');
+            Route::get('/plans/{id}', [\App\Http\Controllers\Api\TraineeNutritionController::class, 'show'])->name('api.client.nutrition.plans.show');
+            Route::get('/plans/{planId}/meals/{mealId}', [\App\Http\Controllers\Api\TraineeNutritionController::class, 'getMeal'])->name('api.client.nutrition.plans.meals.show');
+            Route::get('/plans/{planId}/meals/type/{mealType}', [\App\Http\Controllers\Api\TraineeNutritionController::class, 'getMealsByType'])->name('api.client.nutrition.plans.meals.by-type');
+            Route::get('/summary', [\App\Http\Controllers\Api\TraineeNutritionController::class, 'getNutritionSummary'])->name('api.client.nutrition.summary');
         });
     });
     

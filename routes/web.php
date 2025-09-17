@@ -186,6 +186,33 @@ Route::middleware('auth')->group(function () {
         // Workout Video Additional Routes
         Route::get('workouts/{workout}/videos/reorder', [WorkoutVideoController::class, 'reorderForm'])->name('workout-videos.reorder-form');
         Route::patch('workouts/{workout}/videos/reorder', [WorkoutVideoController::class, 'reorder'])->name('workout-videos.reorder');
+        
+        // Nutrition Plans Management
+        Route::prefix('nutrition-plans')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'index'])->name('admin.nutrition-plans.index');
+            Route::get('/create', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'create'])->name('admin.nutrition-plans.create');
+            Route::post('/store', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'store'])->name('admin.nutrition-plans.store');
+            Route::get('/{id}', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'show'])->name('admin.nutrition-plans.show');
+            Route::get('/{id}/edit', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'edit'])->name('admin.nutrition-plans.edit');
+            Route::put('/{id}', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'update'])->name('admin.nutrition-plans.update');
+            Route::delete('/{id}', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'destroy'])->name('admin.nutrition-plans.destroy');
+            Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'toggleStatus'])->name('admin.nutrition-plans.toggle-status');
+            Route::post('/{id}/duplicate', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'duplicate'])->name('admin.nutrition-plans.duplicate');
+            Route::delete('/{id}/delete-media', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'deleteMedia'])->name('admin.nutrition-plans.delete-media');
+            
+            // Nutrition Meals Management
+            Route::prefix('{planId}/meals')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'index'])->name('admin.nutrition-plans.meals.index');
+                Route::get('/create', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'create'])->name('admin.nutrition-plans.meals.create');
+                Route::post('/store', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'store'])->name('admin.nutrition-plans.meals.store');
+                Route::get('/{id}', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'show'])->name('admin.nutrition-plans.meals.show');
+                Route::get('/{id}/edit', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'edit'])->name('admin.nutrition-plans.meals.edit');
+                Route::put('/{id}', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'update'])->name('admin.nutrition-plans.meals.update');
+                Route::delete('/{id}', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'destroy'])->name('admin.nutrition-plans.meals.destroy');
+                Route::patch('/reorder', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'reorder'])->name('admin.nutrition-plans.meals.reorder');
+                Route::delete('/{id}/delete-image', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'deleteImage'])->name('admin.nutrition-plans.meals.delete-image');
+            });
+        });
     });
 
     /**

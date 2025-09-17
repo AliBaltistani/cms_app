@@ -131,6 +131,31 @@
 				</li>
 				<!-- End::slide Workouts Management -->
 
+				<!-- Start::slide Nutrition Management -->
+				<li class="slide has-sub {{ request()->is('admin/nutrition-plans*') ? 'open' : '' }}">
+					<a href="javascript:void(0);" class="side-menu__item">
+						<svg xmlns="http://www.w3.org/2000/svg" class="side-menu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM72,184a8,8,0,0,1-16,0V72a8,8,0,0,1,16,0Zm32,0a8,8,0,0,1-16,0V72a8,8,0,0,1,16,0Zm32,0a8,8,0,0,1-16,0V72a8,8,0,0,1,16,0Zm32,0a8,8,0,0,1-16,0V72a8,8,0,0,1,16,0Zm32,0a8,8,0,0,1-16,0V72a8,8,0,0,1,16,0Z" opacity="0.2"/><rect x="32" y="48" width="192" height="160" rx="16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="64" y1="72" x2="64" y2="184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="96" y1="72" x2="96" y2="184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="72" x2="128" y2="184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="160" y1="72" x2="160" y2="184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="192" y1="72" x2="192" y2="184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+						<span class="side-menu__label">Nutrition Management</span>
+						<i class="ri-arrow-right-s-line side-menu__angle"></i>
+					</a>
+					<ul class="slide-menu child1">
+						<li class="slide side-menu__label1">
+							<a href="javascript:void(0)">Nutrition Management</a>
+						</li>
+						<li class="slide {{ request()->is('admin/nutrition-plans') && !request()->is('admin/nutrition-plans/create') ? 'active' : '' }}">
+							<a href="{{route('admin.nutrition-plans.index')}}" class="side-menu__item">
+								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM72,184a8,8,0,0,1-16,0V72a8,8,0,0,1,16,0Zm32,0a8,8,0,0,1-16,0V72a8,8,0,0,1,16,0Zm32,0a8,8,0,0,1-16,0V72a8,8,0,0,1,16,0Zm32,0a8,8,0,0,1-16,0V72a8,8,0,0,1,16,0Zm32,0a8,8,0,0,1-16,0V72a8,8,0,0,1,16,0Z" opacity="0.2"/><rect x="32" y="48" width="192" height="160" rx="16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="64" y1="72" x2="64" y2="184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="96" y1="72" x2="96" y2="184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="72" x2="128" y2="184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="160" y1="72" x2="160" y2="184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="192" y1="72" x2="192" y2="184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+								All Nutrition Plans</a>
+						</li>
+						<li class="slide {{ request()->is('admin/nutrition-plans/create') ? 'active' : '' }}">
+							<a href="{{route('admin.nutrition-plans.create')}}" class="side-menu__item">
+								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><line x1="40" y1="128" x2="216" y2="128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="40" x2="128" y2="216" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+								Create Nutrition Plan</a>
+						</li>
+					</ul>
+				</li>
+				<!-- End::slide Nutrition Management -->
+
 			</ul>
 			<ul class="doublemenu_bottom-menu main-menu mb-0 border-top">
 				<!-- Start::slide -->
