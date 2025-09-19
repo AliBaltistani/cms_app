@@ -219,7 +219,21 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="trainer_experience" class="form-label">Experience (Years) <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control" id="trainer_experience" name="experience" min="0" max="50" required>
+                                <select class="form-select" id="trainer_experience" name="experience" required>
+                                    <option value="">Select Experience Level</option>
+                                    <option value="0">Less than 1 year</option>
+                                    <option value="1">1 year</option>
+                                    <option value="2">2 years</option>
+                                    <option value="3">3 years</option>
+                                    <option value="4">4 years</option>
+                                    <option value="5">5 years</option>
+                                    <option value="6">6 years</option>
+                                    <option value="7">7 years</option>
+                                    <option value="8">8 years</option>
+                                    <option value="9">9 years</option>
+                                    <option value="10">10 years</option>
+                                    <option value="11">More than 10 years</option>
+                                </select>
                                 <div class="invalid-feedback"></div>
                             </div>
                         </div>
@@ -259,6 +273,19 @@
                         <textarea class="form-control" id="trainer_training_philosophy" name="training_philosophy" rows="3" maxlength="1000"></textarea>
                         <div class="invalid-feedback"></div>
                         <small class="text-muted">Maximum 1000 characters</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="trainer_specializations" class="form-label">Specializations</label>
+                        <select class="form-select" id="trainer_specializations" name="specializations">
+                            <option value="" disabled selected>Select Specialization</option>
+                            @php
+                                $specializations = \App\Models\Specialization::where('status', 1)->orderBy('name')->get();
+                            @endphp
+                            @foreach($specializations as $specialization)
+                                <option value="{{ $specialization->id }}">{{ $specialization->name }}</option>
+                            @endforeach
+                        </select>
+                        <div class="invalid-feedback"></div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -431,9 +458,9 @@ $(document).ready(function() {
                 render: function(data, type, row) {
                     return `
                         <div class="btn-group" role="group">
-                            <button type="button" class="btn btn-sm btn-info btn-wave" onclick="viewTrainer(${data})" title="View">
+                            <a href="/admin/trainers/${data}" class="btn btn-sm btn-info btn-wave" title="View">
                                 <i class="ri-eye-line"></i>
-                            </button>
+                            </a>
                             <button type="button" class="btn btn-sm btn-success btn-wave" onclick="editTrainer(${data})" title="Edit">
                                 <i class="ri-edit-2-line"></i>
                             </button>

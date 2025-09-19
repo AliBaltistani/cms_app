@@ -34,7 +34,13 @@ class UserCertification extends Model
      */
     protected $fillable = [
         'user_id',
-        'certificate_name',
+        'name',
+        'issuing_organization',
+        'issue_date',
+        'expiry_date',
+        'credential_id',
+        'credential_url',
+        'certificate_name', // Keep for backward compatibility
         'doc'
     ];
     
@@ -42,6 +48,8 @@ class UserCertification extends Model
      * The attributes that should be cast.
      */
     protected $casts = [
+        'issue_date' => 'date',
+        'expiry_date' => 'date',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];

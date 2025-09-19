@@ -143,6 +143,19 @@ Route::middleware('auth')->group(function () {
             Route::delete('/{id}/delete-image', [\App\Http\Controllers\Admin\TraineesController::class, 'deleteImage'])->name('admin.trainees.delete-image');
         });
         
+        // Specializations Management Routes
+        Route::prefix('specializations')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\SpecializationsController::class, 'index'])->name('admin.specializations.index');
+            Route::get('/create', [\App\Http\Controllers\Admin\SpecializationsController::class, 'create'])->name('admin.specializations.create');
+            Route::post('/store', [\App\Http\Controllers\Admin\SpecializationsController::class, 'store'])->name('admin.specializations.store');
+            Route::get('/{id}', [\App\Http\Controllers\Admin\SpecializationsController::class, 'show'])->name('admin.specializations.show');
+            Route::get('/{specialization}/edit', [\App\Http\Controllers\Admin\SpecializationsController::class, 'edit'])->name('admin.specializations.edit');
+            Route::put('/{specialization}', [\App\Http\Controllers\Admin\SpecializationsController::class, 'update'])->name('admin.specializations.update');
+            Route::delete('/{specialization}', [\App\Http\Controllers\Admin\SpecializationsController::class, 'destroy'])->name('admin.specializations.destroy');
+            Route::patch('/{specialization}/toggle-status', [\App\Http\Controllers\Admin\SpecializationsController::class, 'toggleStatus'])->name('admin.specializations.toggle-status');
+            Route::post('/bulk-delete', [\App\Http\Controllers\Admin\SpecializationsController::class, 'bulkDelete'])->name('admin.specializations.bulk-delete');
+            Route::get('/export', [\App\Http\Controllers\Admin\SpecializationsController::class, 'export'])->name('admin.specializations.export');
+        });
         
          Route::prefix('profile')->group(function () {
             Route::get('/', [UserProfileController::class, 'index'])->name('admin.profile');

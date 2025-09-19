@@ -63,6 +63,31 @@
 				</li>
 				<!-- End::slide User Management -->
 
+				<!-- Start::slide Specializations Management -->
+				<li class="slide has-sub {{ request()->is('admin/specializations*') ? 'open' : '' }}">
+					<a href="javascript:void(0);" class="side-menu__item">
+						<svg xmlns="http://www.w3.org/2000/svg" class="side-menu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Z" opacity="0.2"/><circle cx="128" cy="128" r="104" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="128 80 128 128 168 168" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="128" r="12" fill="currentColor"/></svg>
+						<span class="side-menu__label">Specializations</span>
+						<i class="ri-arrow-right-s-line side-menu__angle"></i>
+					</a>
+					<ul class="slide-menu child1">
+						<li class="slide side-menu__label1">
+							<a href="javascript:void(0)">Specializations</a>
+						</li>
+						<li class="slide {{ request()->is('admin/specializations') && !request()->is('admin/specializations/create') ? 'active' : '' }}">
+							<a href="{{route('admin.specializations.index')}}" class="side-menu__item">
+								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Z" opacity="0.2"/><circle cx="128" cy="128" r="104" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="128 80 128 128 168 168" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="128" r="12" fill="currentColor"/></svg>
+								All Specializations</a>
+						</li>
+						<li class="slide {{ request()->is('admin/specializations/create') ? 'active' : '' }}">
+							<a href="{{route('admin.specializations.create')}}" class="side-menu__item">
+								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><line x1="40" y1="128" x2="216" y2="128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="40" x2="128" y2="216" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+								Add New Specialization</a>
+						</li>
+					</ul>
+				</li>
+				<!-- End::slide Specializations Management -->
+
 				<!-- Start::slide Goals Management -->
 				<li class="slide has-sub {{ request()->is('admin/goals*') ? 'open' : '' }}">
 					<a href="javascript:void(0);" class="side-menu__item">

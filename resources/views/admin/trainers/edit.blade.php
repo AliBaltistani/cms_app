@@ -185,7 +185,21 @@ function togglePassword(fieldId) {
                         
                         <div class="col-xl-6 mb-3">
                             <label for="experience" class="form-label">Experience (Years) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control @error('experience') is-invalid @enderror" id="experience" name="experience" value="{{ old('experience', $trainer->experience) }}" placeholder="Enter years of experience" min="0" max="50" required>
+                            <select class="form-select @error('experience') is-invalid @enderror" id="experience" name="experience" required>
+                                <option value="">Select Experience Level</option>
+                                <option value="less_than_1_year" {{ old('experience', $trainer->experience) == 'less_than_1_year' ? 'selected' : '' }}>Less than 1 year</option>
+                                <option value="1_year" {{ old('experience', $trainer->experience) == '1_year' ? 'selected' : '' }}>1 year</option>
+                                <option value="2_years" {{ old('experience', $trainer->experience) == '2_years' ? 'selected' : '' }}>2 years</option>
+                                <option value="3_years" {{ old('experience', $trainer->experience) == '3_years' ? 'selected' : '' }}>3 years</option>
+                                <option value="4_years" {{ old('experience', $trainer->experience) == '4_years' ? 'selected' : '' }}>4 years</option>
+                                <option value="5_years" {{ old('experience', $trainer->experience) == '5_years' ? 'selected' : '' }}>5 years</option>
+                                <option value="6_years" {{ old('experience', $trainer->experience) == '6_years' ? 'selected' : '' }}>6 years</option>
+                                <option value="7_years" {{ old('experience', $trainer->experience) == '7_years' ? 'selected' : '' }}>7 years</option>
+                                <option value="8_years" {{ old('experience', $trainer->experience) == '8_years' ? 'selected' : '' }}>8 years</option>
+                                <option value="9_years" {{ old('experience', $trainer->experience) == '9_years' ? 'selected' : '' }}>9 years</option>
+                                <option value="10_years" {{ old('experience', $trainer->experience) == '10_years' ? 'selected' : '' }}>10 years</option>
+                                <option value="more_than_10_years" {{ old('experience', $trainer->experience) == 'more_than_10_years' ? 'selected' : '' }}>More than 10 years</option>
+                            </select>
                             @error('experience')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -215,6 +229,27 @@ function togglePassword(fieldId) {
                             <label for="training_philosophy" class="form-label">Training Philosophy</label>
                             <textarea class="form-control @error('training_philosophy') is-invalid @enderror" id="training_philosophy" name="training_philosophy" rows="3" placeholder="Your training philosophy (optional)">{{ old('training_philosophy', $trainer->training_philosophy) }}</textarea>
                             @error('training_philosophy')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        
+                        <!-- Specializations -->
+                        <div class="col-xl-12 mb-3">
+                            <label for="specializations" class="form-label">Specializations</label>
+                            <select class="form-select @error('specializations') is-invalid @enderror" id="specializations" name="specializations">
+                                <option value="" disabled>Select Specialization</option>
+                                @php
+                                    $specializations = \App\Models\Specialization::where('status', 1)->orderBy('name')->get();
+                                    $trainerSpecialization = $trainer->specializations->first();
+                                @endphp
+                                @foreach($specializations as $specialization)
+                                    <option value="{{ $specialization->id }}" 
+                                        {{ old('specializations', $trainerSpecialization?->id) == $specialization->id ? 'selected' : '' }}>
+                                        {{ $specialization->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('specializations')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>

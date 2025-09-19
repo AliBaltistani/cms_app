@@ -760,7 +760,21 @@ function showAlert(type, message) {
                                         <div class="col-md-6">
                                             <div class="mb-3">
                                                 <label for="create_experience" class="form-label">Experience (Years) <span class="text-danger trainer-required">*</span></label>
-                                                <input type="number" class="form-control" id="create_experience" name="experience" min="0" max="50">
+                                                <select class="form-select" id="create_experience" name="experience">
+                                                    <option value="">Select Experience Level</option>
+                                                    <option value="0">Less than 1 year</option>
+                                                    <option value="1">1 year</option>
+                                                    <option value="2">2 years</option>
+                                                    <option value="3">3 years</option>
+                                                    <option value="4">4 years</option>
+                                                    <option value="5">5 years</option>
+                                                    <option value="6">6 years</option>
+                                                    <option value="7">7 years</option>
+                                                    <option value="8">8 years</option>
+                                                    <option value="9">9 years</option>
+                                                    <option value="10">10 years</option>
+                                                    <option value="11">More than 10 years</option>
+                                                </select>
                                                 <div class="invalid-feedback"></div>
                                             </div>
                                         </div>

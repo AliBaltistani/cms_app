@@ -9,6 +9,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class User extends Authenticatable
 {
@@ -239,5 +240,56 @@ class User extends Authenticatable
     public function bookingSettings()
     {
         return $this->hasOne(BookingSetting::class, 'trainer_id');
+    }
+    
+    /**
+     * Get the specializations for the trainer.
+     * 
+     * Many-to-many relationship with Specialization model through trainer_specializations pivot table
+     * Only applicable for users with 'trainer' role
+     * 
+     * @return BelongsToMany
+     */
+    public function specializations(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Specialization::class,
+            'trainer_specializations',
+            'trainer_id',
+            'specialization_id'
+        )->withPivot(['created_at']);
+    }
+    
+    /**
+     * Check if trainer has a specific specialization.
+     * 
+     * @param int|Specialization $specialization
+     * @return bool
+     */
+    public function hasSpecialization($specialization): bool
+    {
+        if (!$this->isTrainerRole()) {
+            return false;
+        }
+        
+        $specializationId = $specialization instanceof Specialization 
+            ? $specialization->id 
+            : $specialization;
+            
+        return $this->specializations()->where('specialization_id', $specializationId)->exists();
+    }
+    
+    /**
+     * Get trainer's specialization names as comma-separated string.
+     * 
+     * @return string
+     */
+    public function getSpecializationNamesAttribute(): string
+    {
+        if (!$this->isTrainerRole()) {
+            return '';
+        }
+        
+        return $this->specializations()->pluck('name')->implode(', ');
     }
 }
