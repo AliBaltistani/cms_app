@@ -57,7 +57,7 @@
                     </div>
                     <div class="ms-2">
                         <span class="avatar avatar-md avatar-rounded bg-primary-transparent">
-                            <i class="ri-user-check-line fs-18"></i>
+                            <i class="ri-user-follow-line fs-18"></i>
                         </span>
                     </div>
                 </div>
@@ -145,21 +145,17 @@
 
             <div class="card-body">
                 <div class="table-responsive">
-                    <table id="trainersTable" class="table text-nowrap table-striped table-hover">
+                    <table id="trainersTable" class="table table-bordered text-nowrap w-100 table-striped table-hover">
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Profile</th>
                                 <th>Name</th>
                                 <th>Email</th>
                                 <th>Phone</th>
                                 <th>Designation</th>
                                 <th>Experience</th>
-                                <th>Location</th>
                                 <th>Status</th>
-                                <th>Certifications</th>
-                                <th>Testimonials</th>
-                                <th>Rating</th>
+                                <!-- <th>Certifications</th> -->
+                                <!-- <th>Rating</th> -->
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -405,31 +401,33 @@ $(document).ready(function() {
             }
         },
         columns: [
-            { data: 'id', name: 'id', width: '5%' },
             { 
-                data: 'profile_image', 
-                name: 'profile_image', 
-                orderable: false, 
-                searchable: false,
-                width: '8%',
+                data: 'name', 
+                name: 'name', 
+                width: '15%',
                 render: function(data, type, row) {
-                    if (data) {
-                        return `<img src="${data}" alt="Profile" class="avatar avatar-sm avatar-rounded">`;
+                    let profileImage = '';
+                    if (row.profile_image) {
+                        profileImage = `<img src="${row.profile_image}" alt="Profile" class="avatar avatar-sm avatar-rounded me-2">`;
+                    } else {
+                        profileImage = `<span class="avatar avatar-sm avatar-rounded bg-success-transparent me-2">
+                                            <i class="ri-user-star-line"></i>
+                                        </span>`;
                     }
-                    return `<span class="avatar avatar-sm avatar-rounded bg-success-transparent">
-                                <i class="ri-user-star-line"></i>
-                            </span>`;
+                    return `<div class="d-flex align-items-center">
+                                ${profileImage}
+                                <span class="fw-semibold">${data}</span>
+                            </div>`;
                 }
             },
-            { data: 'name', name: 'name', width: '12%' },
-            { data: 'email', name: 'email', width: '12%' },
+            { data: 'email', name: 'email', width: '10%' },
             { data: 'phone', name: 'phone', width: '10%' },
             { data: 'designation', name: 'designation', width: '10%' },
-            { data: 'experience', name: 'experience', width: '8%' },
+            { data: 'experience', name: 'experience', width: '10%' },
             { 
                 data: 'status', 
                 name: 'status', 
-                width: '8%',
+                width: '10%',
                 render: function(data, type, row) {
                     if (data === 'Active') {
                         return '<span class="badge bg-success-transparent">Active</span>';
@@ -437,25 +435,24 @@ $(document).ready(function() {
                     return '<span class="badge bg-danger-transparent">Inactive</span>';
                 }
             },
-            { data: 'certifications_count', name: 'certifications_count', width: '8%' },
-            { data: 'testimonials_count', name: 'testimonials_count', width: '8%' },
-            { 
-                data: 'average_rating', 
-                name: 'average_rating', 
-                width: '8%',
-                render: function(data, type, row) {
-                    if (data > 0) {
-                        return `<span class="badge bg-warning">${data} ⭐</span>`;
-                    }
-                    return '<span class="text-muted">No ratings</span>';
-                }
-            },
+            // { data: 'certifications_count', name: 'certifications_count', width: '10%' },
+            // { 
+            //     data: 'average_rating', 
+            //     name: 'average_rating', 
+            //     width: '10%',
+            //     render: function(data, type, row) {
+            //         if (data > 0) {
+            //             return `<span class="badge bg-warning">${data} ⭐</span>`;
+            //         }
+            //         return '<span class="text-muted">No ratings</span>';
+            //     }
+            // },
             { 
                 data: 'id', 
                 name: 'actions', 
                 orderable: false, 
                 searchable: false,
-                width: '15%',
+                width: '13%',
                 render: function(data, type, row) {
                     return `
                         <div class="btn-group" role="group">

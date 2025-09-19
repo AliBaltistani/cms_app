@@ -96,7 +96,7 @@ $bodyClass = 'bg-white';
                                     <button type="submit" class="btn btn-primary">Sign In</button>
                                 </div>
                             </form>
-                                <div class="text-center my-3 authentication-barrier">
+                                {{-- <div class="text-center my-3 authentication-barrier">
                                     <span class="op-4 fs-13">OR</span>
                                 </div>
                                 <div class="d-grid mb-3">
@@ -115,7 +115,7 @@ $bodyClass = 'bg-white';
                                 </div>
                                 <div class="text-center mt-3 fw-medium">
                                     Dont have an account? <a href="{{ route('register') }}" class="text-primary">Register Here</a>
-                                </div>
+                                </div> --}}
                             </div>
                         </div>
                     </div>
@@ -123,11 +123,11 @@ $bodyClass = 'bg-white';
             </div>
             <div class="col-xxl-3 col-xl-3 col-lg-12 d-xl-block d-none px-0">
                 <div class="authentication-cover overflow-hidden">
-                    <div class="authentication-cover-logo">
+                    {{-- <div class="authentication-cover-logo">
                         <a href="{{url('index')}}">
                         <img src="{{asset('build/assets/images/brand-logos/toggle-logo.png')}}" alt="logo" class="desktop-dark"> 
                         </a>
-                    </div>
+                    </div> --}}
                     <div class="authentication-cover-background">
                         <img src="{{asset('build/assets/images/media/backgrounds/9.png')}}" alt="">
                     </div>
@@ -137,7 +137,7 @@ $bodyClass = 'bg-white';
                             <p class="mb-0 text-muted fw-medium">Manage your website and content with ease using our powerful admin tools.</p>
                         </div>
                         <div>
-                            <img src="{{asset('build/assets/images/media/media-72.png')}}" alt="" class="img-fluid">
+                            <img src="{{asset('build/assets/images/media/main-background.svg')}}" style="width: 100%; height: 250px;" alt="" class="img-fluid">
                         </div>
                     </div>
                 </div>

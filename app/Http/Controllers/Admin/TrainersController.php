@@ -172,7 +172,7 @@ class TrainersController extends Controller
                     'email' => $trainer->email,
                     'phone' => $trainer->phone ?? 'N/A',
                     'designation' => $trainer->designation ?? 'N/A',
-                    'experience' => $trainer->experience ? $trainer->experience . ' years' : 'N/A',
+                    'experience' => $trainer->experience ? str_replace('_', ' ', ucwords($trainer->experience)) : 'N/A',
                     'status' => $trainer->email_verified_at ? 'Active' : 'Inactive',
                     'profile_image' => $trainer->profile_image ? asset('storage/' . $trainer->profile_image) : null,
                     'certifications_count' => $trainer->certifications->count(),

@@ -31,29 +31,37 @@ $(document).ready(function() {
             }
         },
         columns: [
-            { data: 'id', name: 'id', width: '5%' },
             { 
-                data: 'profile_image', 
-                name: 'profile_image', 
-                orderable: false, 
-                searchable: false,
-                width: '8%',
+                data: 'id', 
+                name: 'id', 
+                visible: false,
+                searchable: false
+            },
+            { 
+                data: 'name', 
+                name: 'name', 
+                width: '15%',
                 render: function(data, type, row) {
-                    if (data) {
-                        return `<img src="${data}" alt="Profile" class="avatar avatar-sm avatar-rounded">`;
+                    let profileImage = '';
+                    if (row.profile_image) {
+                        profileImage = `<img src="${row.profile_image}" alt="Profile" class="avatar avatar-sm avatar-rounded me-2">`;
+                    } else {
+                        profileImage = `<span class="avatar avatar-sm avatar-rounded bg-primary-transparent me-2">
+                                            <i class="ri-user-line"></i>
+                                        </span>`;
                     }
-                    return `<span class="avatar avatar-sm avatar-rounded bg-primary-transparent">
-                                <i class="ri-user-line"></i>
-                            </span>`;
+                    return `<div class="d-flex align-items-center">
+                                ${profileImage}
+                                <span class="fw-medium">${data}</span>
+                            </div>`;
                 }
             },
-            { data: 'name', name: 'name', width: '15%' },
             { data: 'email', name: 'email', width: '15%' },
-            { data: 'phone', name: 'phone', width: '10%' },
+            { data: 'phone', name: 'phone', width: '12%' },
             { 
                 data: 'role', 
                 name: 'role', 
-                width: '8%',
+                width: '12%',
                 render: function(data, type, row) {
                     let badgeClass = 'bg-secondary';
                     if (data === 'Admin') badgeClass = 'bg-danger';
@@ -65,7 +73,7 @@ $(document).ready(function() {
             { 
                 data: 'status', 
                 name: 'status', 
-                width: '8%',
+                width: '12%',
                 render: function(data, type, row) {
                     if (data === 'Active') {
                         return '<span class="badge bg-success-transparent">Active</span>';
@@ -73,13 +81,13 @@ $(document).ready(function() {
                     return '<span class="badge bg-danger-transparent">Inactive</span>';
                 }
             },
-            { data: 'created_at', name: 'created_at', width: '15%' },
+            { data: 'created_at', name: 'created_at', width: '12%' },
             { 
                 data: 'id', 
                 name: 'actions', 
                 orderable: false, 
                 searchable: false,
-                width: '15%',
+                width: '22%',
                 render: function(data, type, row) {
                     return `
                         <div class="btn-group" role="group">
@@ -537,7 +545,7 @@ function showAlert(type, message) {
                     </div>
                     <div class="ms-2">
                         <span class="avatar avatar-md avatar-rounded bg-warning-transparent">
-                            <i class="ri-user-check-line fs-18"></i>
+                            <i class="ri-user-follow-line fs-18"></i>
                         </span>
                     </div>
                 </div>
@@ -591,12 +599,11 @@ function showAlert(type, message) {
 
             <div class="card-body">
                 <div class="table-responsive">
-                    <table id="usersTable" class="table text-nowrap table-striped table-hover">
+                    <table id="usersTable" class="table table-bordered text-nowrap w-100 table-striped table-hover">
                         <thead>
                             <tr>
                                 <th>ID</th>
                                 <th>Profile</th>
-                                <th>Name</th>
                                 <th>Email</th>
                                 <th>Phone</th>
                                 <th>Role</th>

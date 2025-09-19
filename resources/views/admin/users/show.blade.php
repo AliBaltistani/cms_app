@@ -35,7 +35,7 @@
                                     @if($user->profile_image)
                                         <img src="{{ asset('storage/' . $user->profile_image) }}" alt="">
                                     @else
-                                        <img src="{{asset('build/assets/images/faces/12.jpg')}}" alt="">
+                                         {{ strtoupper(substr($user->name, 0, 1)) }}
                                     @endif
                                 </span>
                                 <div class="mt-4 mb-3 d-flex align-items-center flex-wrap gap-3 justify-content-between">
@@ -47,7 +47,7 @@
                                 </div>
                             </div>
                             <div>
-                                <div class="btn-list">
+                                <div class="btn-list mb-3">
                                     <a href="{{ route('admin.users.edit', $user->id) }}" class="btn btn-primary btn-sm">
                                         <i class="ri-edit-line me-1"></i>Edit User
                                     </a>

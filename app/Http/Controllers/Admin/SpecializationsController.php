@@ -116,7 +116,7 @@ class SpecializationsController extends Controller
                 $data[] = [
                     'id' => $specialization->id,
                     'name' => $specialization->name,
-                    'description' => $specialization->description ? substr($specialization->description, 0, 100) . '...' : 'No description',
+                    'description' => $specialization->description ? substr($specialization->description, 0, 30) . '...' : 'No description',
                     'status' => $specialization->status ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-danger">Inactive</span>',
                     'trainers_count' => $specialization->trainers_count,
                     'created_at' => $specialization->created_at->format('d/m/Y H:i'),
