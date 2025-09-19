@@ -30,6 +30,12 @@
                                 <div class="fw-bold">{{ $workout->formatted_duration }}</div>
                             </div>
                             
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Price</label>
+                                <div class="fw-bold">
+                                    <span class="badge bg-success-transparent">{{ $workout->formatted_price }}</span>
+                                </div>
+                            </div>
                             
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">Status</label>

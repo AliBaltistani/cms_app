@@ -157,6 +157,19 @@ Route::middleware('auth')->group(function () {
             Route::get('/export', [\App\Http\Controllers\Admin\SpecializationsController::class, 'export'])->name('admin.specializations.export');
         });
         
+        // User Locations Management Routes
+        Route::prefix('user-locations')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\UserLocationsController::class, 'index'])->name('admin.user-locations.index');
+            Route::get('/create', [\App\Http\Controllers\Admin\UserLocationsController::class, 'create'])->name('admin.user-locations.create');
+            Route::post('/store', [\App\Http\Controllers\Admin\UserLocationsController::class, 'store'])->name('admin.user-locations.store');
+            Route::get('/{userLocation}', [\App\Http\Controllers\Admin\UserLocationsController::class, 'show'])->name('admin.user-locations.show');
+            Route::get('/{userLocation}/edit', [\App\Http\Controllers\Admin\UserLocationsController::class, 'edit'])->name('admin.user-locations.edit');
+            Route::put('/{userLocation}', [\App\Http\Controllers\Admin\UserLocationsController::class, 'update'])->name('admin.user-locations.update');
+            Route::delete('/{userLocation}', [\App\Http\Controllers\Admin\UserLocationsController::class, 'destroy'])->name('admin.user-locations.destroy');
+            Route::post('/bulk-delete', [\App\Http\Controllers\Admin\UserLocationsController::class, 'bulkDelete'])->name('admin.user-locations.bulk-delete');
+            Route::get('/user/{userId}', [\App\Http\Controllers\Admin\UserLocationsController::class, 'getLocationsByUser'])->name('admin.user-locations.by-user');
+        });
+        
          Route::prefix('profile')->group(function () {
             Route::get('/', [UserProfileController::class, 'index'])->name('admin.profile');
             Route::get('/edit', [UserProfileController::class, 'edit'])->name('admin.profile.edit');

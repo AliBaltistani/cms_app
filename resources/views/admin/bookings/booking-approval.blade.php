@@ -237,14 +237,14 @@
                     <span class="setting-label">Approval Required:</span>
                     <span class="setting-value">{{ $bookingSettings->require_approval ? 'Yes' : 'No' }}</span>
                 </div>
-                <div class="setting-item">
+                <!-- <div class="setting-item">
                     <span class="setting-label">Advance Booking:</span>
                     <span class="setting-value">{{ $bookingSettings->advance_booking_days ?? 7 }} days</span>
                 </div>
                 <div class="setting-item">
                     <span class="setting-label">Cancellation Notice:</span>
                     <span class="setting-value">{{ $bookingSettings->cancellation_hours ?? 24 }} hours</span>
-                </div>
+                </div> -->
             </div>
             @endif
 
@@ -287,7 +287,7 @@
                     </div>
 
                     <!-- Allow Weekend Booking -->
-                    <div class="setting-row">
+                    <div class="setting-row d-none" >
                         <div class="setting-info">
                             <div class="setting-title">Allow Weekend Booking</div>
                             <div class="setting-description">
@@ -304,7 +304,7 @@
                 </div>
 
                 <!-- Additional Settings -->
-                <div class="approval-section">
+                <div class="approval-section" style="display:none;">
                     <h5 class="mb-3">Booking Rules</h5>
                     
                     <div class="row">

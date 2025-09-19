@@ -155,6 +155,7 @@
                                 <th>Phone</th>
                                 <th>Designation</th>
                                 <th>Experience</th>
+                                <th>Location</th>
                                 <th>Status</th>
                                 <th>Certifications</th>
                                 <th>Testimonials</th>

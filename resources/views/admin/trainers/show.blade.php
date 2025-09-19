@@ -136,6 +136,142 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Location Information Card -->
+            <div class="card custom-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div class="card-title">
+                        <i class="ri-map-pin-line me-2"></i>Location Information
+                    </div>
+                    <div class="card-options">
+                        @if($trainer->location)
+                            @if($trainer->location->hasCompleteAddress())
+                                <span class="badge bg-success">Complete</span>
+                            @else
+                                <span class="badge bg-warning">Incomplete</span>
+                            @endif
+                        @else
+                            <span class="badge bg-secondary">Not Set</span>
+                        @endif
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if($trainer->location)
+                        <div class="row gy-3">
+                            @if($trainer->location->country)
+                            <div class="col-12">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-2">
+                                        <i class="ri-global-line text-muted"></i>
+                                    </div>
+                                    <div>
+                                        <span class="fw-semibold">Country:</span>
+                                        <span class="text-muted ms-2">{{ $trainer->location->country }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+                            
+                            @if($trainer->location->state)
+                            <div class="col-12">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-2">
+                                        <i class="ri-map-2-line text-muted"></i>
+                                    </div>
+                                    <div>
+                                        <span class="fw-semibold">State/Province:</span>
+                                        <span class="text-muted ms-2">{{ $trainer->location->state }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+                            
+                            @if($trainer->location->city)
+                            <div class="col-12">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-2">
+                                        <i class="ri-building-line text-muted"></i>
+                                    </div>
+                                    <div>
+                                        <span class="fw-semibold">City:</span>
+                                        <span class="text-muted ms-2">{{ $trainer->location->city }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+                            
+                            @if($trainer->location->zipcode)
+                            <div class="col-12">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-2">
+                                        <i class="ri-mail-send-line text-muted"></i>
+                                    </div>
+                                    <div>
+                                        <span class="fw-semibold">Zipcode:</span>
+                                        <span class="text-muted ms-2">{{ $trainer->location->zipcode }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+                            
+                            @if($trainer->location->address)
+                            <div class="col-12">
+                                <div class="d-flex align-items-start">
+                                    <div class="me-2 mt-1">
+                                        <i class="ri-road-map-line text-muted"></i>
+                                    </div>
+                                    <div>
+                                        <span class="fw-semibold">Address:</span>
+                                        <div class="text-muted ms-0 mt-1">{{ $trainer->location->address }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+                            
+                            @if($trainer->location->hasCompleteAddress())
+                            <div class="col-12">
+                                <div class="alert alert-info mb-0">
+                                    <div class="d-flex align-items-start">
+                                        <i class="ri-map-pin-2-line me-2 mt-1"></i>
+                                        <div>
+                                            <strong>Complete Address:</strong>
+                                            <div class="mt-1">{{ $trainer->location->full_address }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+                        </div>
+                        
+                        <!-- Location Management Actions -->
+                        <div class="mt-3 pt-3 border-top">
+                            <div class="d-flex gap-2">
+                                <a href="{{ route('admin.user-locations.show', $trainer->location->id) }}" 
+                                   class="btn btn-sm btn-outline-info">
+                                    <i class="ri-eye-line me-1"></i>View Details
+                                </a>
+                                <a href="{{ route('admin.user-locations.edit', $trainer->location->id) }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="ri-edit-line me-1"></i>Edit Location
+                                </a>
+                            </div>
+                        </div>
+                    @else
+                        <!-- No Location Set -->
+                        <div class="text-center py-4">
+                            <div class="avatar avatar-lg avatar-rounded bg-light mb-3 mx-auto">
+                                <i class="ri-map-pin-line text-muted" style="font-size: 2rem;"></i>
+                            </div>
+                            <h6 class="text-muted mb-2">No Location Information</h6>
+                            <p class="text-muted small mb-3">This trainer hasn't set their location information yet.</p>
+                            <a href="{{ route('admin.user-locations.create', ['user_id' => $trainer->id]) }}" 
+                               class="btn btn-sm btn-primary">
+                                <i class="ri-add-line me-1"></i>Add Location
+                            </a>
+                        </div>
+                    @endif
+                </div>
+            </div>
         </div>
 
         <div class="col-xl-8">

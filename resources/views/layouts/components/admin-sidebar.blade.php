@@ -193,12 +193,12 @@
 						<li class="slide side-menu__label1">
 							<a href="javascript:void(0)">Scheduling & Booking</a>
 						</li>
-						<li class="slide {{ request()->is('admin/bookings/dashboard') ? 'active' : '' }}">
+						<!-- <li class="slide {{ request()->is('admin/bookings/dashboard') ? 'active' : '' }}">
 							<a href="{{ route('admin.bookings.dashboard') }}" class="side-menu__item">
 								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><rect x="32" y="48" width="192" height="160" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="m68,88 L188,88" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="68" cy="128" r="8" fill="currentColor"/><path d="m88,128 L188,128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="68" cy="168" r="8" fill="currentColor"/><path d="m88,168 L188,168" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
 								Dashboard
 							</a>
-						</li>
+						</li> -->
 
 						<li class="slide {{ request()->is('admin/bookings/scheduling-menu*') ? 'active' : '' }}">
 							<a href="{{ route('admin.bookings.scheduling-menu') }}" class="side-menu__item">
@@ -212,18 +212,18 @@
 								Schedule Calendar
 							</a>
 						</li> --}}
-						<li class="slide {{ request()->is('admin/bookings') && !request()->is('admin/bookings/*') ? 'active' : '' }}">
+						<!-- <li class="slide {{ request()->is('admin/bookings') && !request()->is('admin/bookings/*') ? 'active' : '' }}">
 							<a href="{{ route('admin.bookings.index') }}" class="side-menu__item">
 								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><rect x="40" y="40" width="176" height="176" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="40" y1="88" x2="216" y2="88" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="40" x2="128" y2="216" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
 								All Bookings
 							</a>
-						</li>
-						<li class="slide {{ request()->is('admin/bookings/create') ? 'active' : '' }}">
+						</li> -->
+						<!-- <li class="slide {{ request()->is('admin/bookings/create') ? 'active' : '' }}">
 							<a href="{{ route('admin.bookings.create') }}" class="side-menu__item">
 								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><line x1="40" y1="128" x2="216" y2="128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="40" x2="128" y2="216" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
 								Create Booking
 							</a>
-						</li>
+						</li> -->
 						
 					</ul>
 				</li>

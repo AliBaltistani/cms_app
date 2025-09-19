@@ -168,6 +168,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{id}', [TrainerController::class, 'show'])->name('show');
         Route::get('/{id}/certifications', [TrainerController::class, 'getTrainerCertifications'])->name('certifications');
         Route::get('/{id}/testimonials', [TrainerController::class, 'getTrainerTestimonials'])->name('testimonials');
+        Route::get('/{id}/availability', [TrainerController::class, 'getAvailability'])->name('availability');
     });
     
     /**
@@ -347,32 +348,32 @@ Route::middleware('auth:sanctum')->group(function () {
          * Trainer Workout Management
          * Complete CRUD operations for trainer's workouts and videos
          */
-        Route::prefix('workouts')->name('workouts.')->group(function () {
-            Route::get('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'index'])->name('index');
-            Route::post('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'store'])->name('store');
+        // Route::prefix('workouts')->name('workouts.')->group(function () {
+        //     Route::get('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'index'])->name('index');
+        //     Route::post('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'store'])->name('store');
             
-            Route::prefix('{id}')->group(function () {
-                Route::get('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'show'])->name('show');
-                Route::put('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'update'])->name('update');
-                Route::delete('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'destroy'])->name('destroy');
-                Route::patch('/toggle-status', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'toggleStatus'])->name('toggle-status');
+        //     Route::prefix('{id}')->group(function () {
+        //         Route::get('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'show'])->name('show');
+        //         Route::put('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'update'])->name('update');
+        //         Route::delete('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'destroy'])->name('destroy');
+        //         Route::patch('/toggle-status', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'toggleStatus'])->name('toggle-status');
                 
-                /**
-                 * Trainer Workout Videos Management
-                 * Nested routes for managing videos within trainer's workouts
-                 */
-                Route::prefix('videos')->name('videos.')->group(function () {
-                    Route::get('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'getVideos'])->name('index');
-                    Route::post('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'storeVideo'])->name('store');
-                    Route::patch('/reorder', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'reorderVideos'])->name('reorder');
+        //         /**
+        //          * Trainer Workout Videos Management
+        //          * Nested routes for managing videos within trainer's workouts
+        //          */
+        //         Route::prefix('videos')->name('videos.')->group(function () {
+        //             Route::get('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'getVideos'])->name('index');
+        //             Route::post('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'storeVideo'])->name('store');
+        //             Route::patch('/reorder', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'reorderVideos'])->name('reorder');
                     
-                    Route::prefix('{videoId}')->group(function () {
-                        Route::put('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'updateVideo'])->name('update');
-                        Route::delete('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'destroyVideo'])->name('destroy');
-                    });
-                });
-            });
-        });
+        //             Route::prefix('{videoId}')->group(function () {
+        //                 Route::put('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'updateVideo'])->name('update');
+        //                 Route::delete('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'destroyVideo'])->name('destroy');
+        //             });
+        //         });
+        //     });
+        // });
         
         /**
          * Trainer Nutrition Management
@@ -459,7 +460,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/plans/{planId}/meals/{mealId}', [\App\Http\Controllers\Api\TraineeNutritionController::class, 'getMeal'])->name('plans.meals.show');
             Route::get('/plans/{planId}/meals/type/{mealType}', [\App\Http\Controllers\Api\TraineeNutritionController::class, 'getMealsByType'])->name('plans.meals.by-type');
             Route::get('/summary', [\App\Http\Controllers\Api\TraineeNutritionController::class, 'getNutritionSummary'])->name('summary');
-        });
+        }); 
     });
 });
 

@@ -10,6 +10,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class User extends Authenticatable
 {
@@ -76,6 +77,16 @@ class User extends Authenticatable
     
 
 
+    /**
+     * Get the location for the user.
+     * 
+     * @return HasOne
+     */
+    public function location(): HasOne
+    {
+        return $this->hasOne(UserLocation::class);
+    }
+    
     /**
      * Get the certifications for the trainer.
      * 

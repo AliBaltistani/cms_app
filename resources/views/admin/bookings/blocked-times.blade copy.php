@@ -267,7 +267,36 @@
                 </div>
             </div>
 
-            
+            <!-- Calendar -->
+            <div class="calendar-container">
+                <div class="calendar-header">
+                    <button class="calendar-nav" onclick="changeMonth(-1)">
+                        <i class="ri-arrow-left-line"></i>
+                    </button>
+                    <h4 class="mb-0" id="calendar-month-year">{{ $currentMonth->format('F Y') }}</h4>
+                    <button class="calendar-nav" onclick="changeMonth(1)">
+                        <i class="ri-arrow-right-line"></i>
+                    </button>
+                </div>
+                
+                <div class="calendar-grid">
+                    <!-- Day Headers -->
+                    <div class="calendar-day-header">Sun</div>
+                    <div class="calendar-day-header">Mon</div>
+                    <div class="calendar-day-header">Tue</div>
+                    <div class="calendar-day-header">Wed</div>
+                    <div class="calendar-day-header">Thu</div>
+                    <div class="calendar-day-header">Fri</div>
+                    <div class="calendar-day-header">Sat</div>
+                    
+                    <!-- Calendar Days -->
+                    @foreach($calendarDays as $day)
+                        <div class="calendar-day {{ $day['isOtherMonth'] ? 'other-month' : '' }} {{ $day['isBlocked'] ? 'blocked' : '' }}">
+                            {{ $day['day'] }}
+                        </div>
+                    @endforeach
+                </div>
+            </div>
 
             <!-- Blocked Times List -->
             <div class="blocked-times-list">

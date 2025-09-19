@@ -354,102 +354,72 @@ $(document).ready(function() {
 
 // Action Functions
 function toggleStatus(planId) {
-    Swal.fire({
-        title: 'Toggle Plan Status',
-        text: 'Are you sure you want to change the status of this nutrition plan?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Yes, toggle it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: '/admin/nutrition-plans/' + planId + '/toggle-status',
-                type: 'PATCH',
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
-                success: function(response) {
-                    if (response.success) {
-                        Swal.fire('Success!', response.message, 'success');
-                        $('#nutritionPlansTable').DataTable().ajax.reload();
-                    } else {
-                        Swal.fire('Error!', response.message, 'error');
-                    }
-                },
-                error: function(xhr) {
-                    Swal.fire('Error!', 'Failed to toggle plan status', 'error');
+    if (confirm('Are you sure you want to change the status of this nutrition plan?')) {
+        $.ajax({
+            url: '/admin/nutrition-plans/' + planId + '/toggle-status',
+            type: 'PATCH',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                if (response.success) {
+                    alert('Success: ' + response.message);
+                    $('#nutritionPlansTable').DataTable().ajax.reload();
+                } else {
+                    alert('Error: ' + response.message);
                 }
-            });
-        }
-    });
+            },
+            error: function(xhr) {
+                alert('Error: Failed to toggle plan status');
+            }
+        });
+    }
 }
 
 function duplicatePlan(planId) {
-    Swal.fire({
-        title: 'Duplicate Plan',
-        text: 'This will create a copy of the nutrition plan. Continue?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Yes, duplicate it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: '/admin/nutrition-plans/' + planId + '/duplicate',
-                type: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
-                success: function(response) {
-                    if (response.success) {
-                        Swal.fire('Success!', response.message, 'success');
-                        $('#nutritionPlansTable').DataTable().ajax.reload();
-                    } else {
-                        Swal.fire('Error!', response.message, 'error');
-                    }
-                },
-                error: function(xhr) {
-                    Swal.fire('Error!', 'Failed to duplicate plan', 'error');
+    if (confirm('This will create a copy of the nutrition plan. Continue?')) {
+        $.ajax({
+            url: '/admin/nutrition-plans/' + planId + '/duplicate',
+            type: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                if (response.success) {
+                    alert('Success: ' + response.message);
+                    $('#nutritionPlansTable').DataTable().ajax.reload();
+                } else {
+                    alert('Error: ' + response.message);
                 }
-            });
-        }
-    });
+            },
+            error: function(xhr) {
+                alert('Error: Failed to duplicate plan');
+            }
+        });
+    }
 }
 
 function deletePlan(planId) {
-    Swal.fire({
-        title: 'Delete Plan',
-        text: 'Are you sure you want to delete this nutrition plan? This action cannot be undone!',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Yes, delete it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: '/admin/nutrition-plans/' + planId,
-                type: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
-                success: function(response) {
-                    if (response.success) {
-                        Swal.fire('Deleted!', response.message, 'success');
-                        $('#nutritionPlansTable').DataTable().ajax.reload();
-                    } else {
-                        Swal.fire('Error!', response.message, 'error');
-                    }
-                },
-                error: function(xhr) {
-                    Swal.fire('Error!', 'Failed to delete plan', 'error');
+    if (confirm('Are you sure you want to delete this nutrition plan? This action cannot be undone!')) {
+        $.ajax({
+            url: '/admin/nutrition-plans/' + planId,
+            type: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                if (response.success) {
+                    alert('Success: ' + response.message);
+                    $('#nutritionPlansTable').DataTable().ajax.reload();
+                } else {
+                    alert('Error: ' + response.message);
                 }
-            });
-        }
-    });
+            },
+            error: function(xhr) {
+                alert('Error: Failed to delete plan');
+            }
+        });
+    }
 }
 </script>
 @endsection

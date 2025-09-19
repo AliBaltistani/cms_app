@@ -98,11 +98,11 @@
                 </nav>
             </div>
         </div>
-        <div class="ms-auto pageheader-btn">
+        <!-- <div class="ms-auto pageheader-btn">
             <a href="{{ route('admin.bookings.schedule') }}" class="btn btn-secondary btn-wave waves-effect waves-light">
                 <i class="ri-calendar-line fw-semibold align-middle me-1"></i> Back to Schedule
             </a>
-        </div>
+        </div> -->
     </div>
     <!-- Page Header Close -->
 

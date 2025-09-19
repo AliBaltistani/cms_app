@@ -29,7 +29,8 @@ class UpdateWorkoutRequest extends FormRequest
             'description' => 'nullable|string|max:1000',
             'user_id' => 'required|integer|exists:users,id',
             'is_active' => 'boolean',
-            'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048'
+            'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'price' => 'nullable|numeric|min:0|max:9999999.99',
         ];
     }
 
@@ -43,6 +44,9 @@ class UpdateWorkoutRequest extends FormRequest
             'user_id.exists' => 'The selected trainer is invalid.',
             'thumbnail.image' => 'Thumbnail must be a valid image file.',
             'thumbnail.max' => 'Thumbnail size must not exceed 2MB.',
+            'price.numeric' => 'Price must be a valid number.',
+            'price.min' => 'Price cannot be negative.',
+            'price.max' => 'Price cannot exceed $9,999,999.99.',
         ];
     }
 

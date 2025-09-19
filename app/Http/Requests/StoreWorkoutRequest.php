@@ -22,6 +22,7 @@ class StoreWorkoutRequest extends FormRequest
             'user_id' => 'required|integer|exists:users,id',
             'is_active' => 'boolean',
             'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'price' => 'nullable|numeric|min:0|max:9999999.99',
         ];
     }
 
@@ -35,6 +36,9 @@ class StoreWorkoutRequest extends FormRequest
             // 'duration.min' => 'Duration must be at least 1 minute.',
             'thumbnail.image' => 'Thumbnail must be a valid image file.',
             'thumbnail.max' => 'Thumbnail size must not exceed 2MB.',
+            'price.numeric' => 'Price must be a valid number.',
+            'price.min' => 'Price cannot be negative.',
+            'price.max' => 'Price cannot exceed $9,999,999.99.',
         ];
     }
 

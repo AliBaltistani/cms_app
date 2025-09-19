@@ -64,6 +64,7 @@
                                                     <th scope="col">Name</th>
                                                     <th scope="col">Trainer</th>
                                                     <th scope="col">Duration</th>
+                                                    <th scope="col">Price</th>
                                                     <th scope="col">Videos</th>
                                                     <th scope="col">Status</th>
                                                     <th scope="col">Created At</th>
@@ -107,6 +108,9 @@
                                                         @if($workout->repetitions > 1)
                                                             <br><small class="text-muted">{{ $workout->repetitions }} reps</small>
                                                         @endif
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-success-transparent">{{ $workout->formatted_price }}</span>
                                                     </td>
                                                     <td>
                                                         <span class="badge bg-primary-transparent">{{ $workout->videos->count() }} videos</span>
