@@ -114,7 +114,7 @@
                     </div>
                     <div class="ms-2">
                         <span class="avatar avatar-md avatar-rounded bg-secondary-transparent">
-                            <i class="ri-target-line fs-18"></i>
+                            <i class="ri-flag-2-line fs-18"></i>
                         </span>
                     </div>
                 </div>

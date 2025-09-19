@@ -129,7 +129,7 @@
                                 </div>
                                 <div>
                                     <span class="fw-semibold">Experience:</span>
-                                    <span class="text-muted ms-2">{{ $trainer->experience ?? 0 }} years</span>
+                                    <span class="text-muted ms-2">{{ str_replace('_', ' ', ucwords($trainer->experience)) ?? 0 }}</span>
                                 </div>
                             </div>
                         </div>
@@ -339,7 +339,7 @@
             <div class="card custom-card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <div class="card-title">Recent Certifications</div>
-                    <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
+                    <!-- <a href="#" class="btn btn-sm btn-outline-primary">View All</a> -->
                 </div>
                 <div class="card-body">
                     <div class="list-group list-group-flush">

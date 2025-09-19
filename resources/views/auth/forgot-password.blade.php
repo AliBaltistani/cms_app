@@ -102,21 +102,21 @@ $bodyClass = 'bg-white';
             </div>
             <div class="col-xxl-3 col-xl-3 col-lg-12 d-xl-block d-none px-0">
                 <div class="authentication-cover overflow-hidden">
-                    <div class="authentication-cover-logo">
+                    {{-- <div class="authentication-cover-logo">
                         <a href="{{url('index')}}">
                         <img src="{{asset('build/assets/images/brand-logos/toggle-logo.png')}}" alt="logo" class="desktop-dark"> 
                         </a>
-                    </div>
+                    </div> --}}
                     <div class="authentication-cover-background">
                         <img src="{{asset('build/assets/images/media/backgrounds/9.png')}}" alt="">
                     </div>
                     <div class="authentication-cover-content">
-                        <div class="p-5">
+                        <div class="">
                             <h3 class="fw-semibold lh-base">Secure Password Reset</h3>
                             <p class="mb-0 text-muted fw-medium">We'll help you regain access to your account safely and securely.</p>
                         </div>
                         <div>
-                            <img src="{{asset('build/assets/images/media/media-72.png')}}" alt="" class="img-fluid">
+                            <img src="{{asset('build/assets/images/media/main-background.svg')}}" style="width: 100%; height: 250px;" alt="" class="img-fluid">
                         </div>
                     </div>
                 </div>

@@ -338,7 +338,7 @@ function showAlert(type, message) {
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table id="traineesTable" class="table table-bordered text-nowrap w-100">
+                    <table id="traineesTable" class="table table-bordered text-nowrap w-100 table-striped table-hover">
                         <thead>
                             <tr>
                                 <th>ID</th>

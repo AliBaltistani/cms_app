@@ -19,10 +19,10 @@ $user = Auth::user();
         <meta name="csrf-token" content="{{ csrf_token() }}">
     
         <!-- Title-->
-        <title> Admin-panel </title>
+        <title> Admin TrainerHQ </title>
         
         <!-- Favicon -->
-        <link rel="icon" href="{{asset('build/assets/images/brand-logos/favicon.ico')}}" type="image/x-icon">
+        <link rel="icon" href="{{asset('build/assets/images/brand-logos/fav-icon.png')}}" type="image/x-icon">
     
         <!-- Main Theme Js -->
         <script src="{{asset('build/assets/main.js')}}"></script>
