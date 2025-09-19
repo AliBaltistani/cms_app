@@ -213,6 +213,43 @@ Route::middleware('auth')->group(function () {
                 Route::delete('/{id}/delete-image', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'deleteImage'])->name('admin.nutrition-plans.meals.delete-image');
             });
         });
+        
+        /**
+         * SCHEDULING & BOOKING MANAGEMENT
+         * Complete booking management system for administrators
+         */
+        Route::prefix('bookings')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\BookingController::class, 'index'])->name('admin.bookings.index');
+            Route::get('/dashboard', [\App\Http\Controllers\Admin\BookingController::class, 'dashboard'])->name('admin.bookings.dashboard');
+            Route::get('/create', [\App\Http\Controllers\Admin\BookingController::class, 'create'])->name('admin.bookings.create');
+            Route::post('/store', [\App\Http\Controllers\Admin\BookingController::class, 'store'])->name('admin.bookings.store');
+            Route::get('/{id}/show', [\App\Http\Controllers\Admin\BookingController::class, 'show'])->name('admin.bookings.show');
+            Route::get('/{id}/edit', [\App\Http\Controllers\Admin\BookingController::class, 'edit'])->name('admin.bookings.edit');
+            Route::put('/{id}', [\App\Http\Controllers\Admin\BookingController::class, 'update'])->name('admin.bookings.update');
+            Route::delete('/{id}', [\App\Http\Controllers\Admin\BookingController::class, 'destroy'])->name('admin.bookings.destroy');
+            Route::patch('/bulk-update', [\App\Http\Controllers\Admin\BookingController::class, 'bulkUpdate'])->name('admin.bookings.bulk-update');
+            Route::get('/export', [\App\Http\Controllers\Admin\BookingController::class, 'export'])->name('admin.bookings.export');
+            
+            // Scheduling & Booking Management Routes
+            Route::get('/schedule', [\App\Http\Controllers\Admin\BookingController::class, 'schedule'])->name('admin.bookings.schedule');
+            
+            // Full Calendar API endpoints
+            Route::get('/events', [\App\Http\Controllers\Admin\BookingController::class, 'getEvents'])->name('admin.bookings.events');
+            Route::post('/events', [\App\Http\Controllers\Admin\BookingController::class, 'createEvent'])->name('admin.bookings.create-event');
+            Route::put('/events/{id}', [\App\Http\Controllers\Admin\BookingController::class, 'updateEvent'])->name('admin.bookings.update-event');
+            Route::delete('/events/{id}', [\App\Http\Controllers\Admin\BookingController::class, 'deleteEvent'])->name('admin.bookings.delete-event');
+            
+            Route::get('/scheduling-menu', [\App\Http\Controllers\Admin\BookingController::class, 'schedulingMenu'])->name('admin.bookings.scheduling-menu');
+            Route::get('/availability', [\App\Http\Controllers\Admin\BookingController::class, 'availability'])->name('admin.bookings.availability');
+            Route::post('/availability', [\App\Http\Controllers\Admin\BookingController::class, 'updateAvailability'])->name('admin.bookings.availability.update');
+            Route::get('/blocked-times', [\App\Http\Controllers\Admin\BookingController::class, 'blockedTimes'])->name('admin.bookings.blocked-times');
+            Route::post('/blocked-times', [\App\Http\Controllers\Admin\BookingController::class, 'storeBlockedTime'])->name('admin.bookings.blocked-times.store');
+            Route::delete('/blocked-times/{id}', [\App\Http\Controllers\Admin\BookingController::class, 'destroyBlockedTime'])->name('admin.bookings.blocked-times.destroy');
+            Route::get('/session-capacity', [\App\Http\Controllers\Admin\BookingController::class, 'sessionCapacity'])->name('admin.bookings.session-capacity');
+            Route::post('/session-capacity', [\App\Http\Controllers\Admin\BookingController::class, 'updateSessionCapacity'])->name('admin.bookings.session-capacity.update');
+            Route::get('/booking-approval', [\App\Http\Controllers\Admin\BookingController::class, 'bookingApproval'])->name('admin.bookings.booking-approval');
+            Route::post('/booking-approval', [\App\Http\Controllers\Admin\BookingController::class, 'updateBookingApproval'])->name('admin.bookings.booking-approval.update');
+        });
     });
 
     /**

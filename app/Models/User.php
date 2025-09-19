@@ -164,4 +164,80 @@ class User extends Authenticatable
     {
         return $this->hasMany(Workout::class);
     }
+    
+    /**
+     * Get schedules where user is the trainer.
+     * 
+     * @return HasMany
+     */
+    public function trainerSchedules(): HasMany
+    {
+        return $this->hasMany(Schedule::class, 'trainer_id');
+    }
+    
+    /**
+     * Get schedules where user is the client.
+     * 
+     * @return HasMany
+     */
+    public function clientSchedules(): HasMany
+    {
+        return $this->hasMany(Schedule::class, 'client_id');
+    }
+    
+    /**
+     * Get all schedules for the user (trainer or client).
+     * 
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getAllSchedules()
+    {
+        if ($this->isTrainerRole()) {
+            return $this->trainerSchedules;
+        } elseif ($this->isClientRole()) {
+            return $this->clientSchedules;
+        }
+        
+        return collect();
+    }
+    
+    /**
+     * Get trainer availability settings.
+     * 
+     * @return HasMany
+     */
+    public function availabilities(): HasMany
+    {
+        return $this->hasMany(Availability::class, 'trainer_id');
+    }
+    
+    /**
+     * Get trainer blocked times.
+     * 
+     * @return HasMany
+     */
+    public function blockedTimes(): HasMany
+    {
+        return $this->hasMany(BlockedTime::class, 'trainer_id');
+    }
+    
+    /**
+     * Get trainer session capacity settings.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
+    public function sessionCapacity()
+    {
+        return $this->hasOne(SessionCapacity::class, 'trainer_id');
+    }
+    
+    /**
+     * Get trainer booking settings.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
+    public function bookingSettings()
+    {
+        return $this->hasOne(BookingSetting::class, 'trainer_id');
+    }
 }

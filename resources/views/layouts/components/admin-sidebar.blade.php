@@ -156,6 +156,55 @@
 				</li>
 				<!-- End::slide Nutrition Management -->
 
+
+				<!-- Start::slide Scheduling & Booking -->
+				<li class="slide has-sub {{ request()->is('admin/bookings*') ? 'open' : '' }}">
+					<a href="javascript:void(0);" class="side-menu__item">
+						<svg xmlns="http://www.w3.org/2000/svg" class="side-menu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,208,32Z" opacity="0.2"/><rect x="32" y="48" width="192" height="160" rx="16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="16" x2="128" y2="48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="176" y1="16" x2="176" y2="48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="80" y1="16" x2="80" y2="48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="32" y1="80" x2="224" y2="80" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="68" cy="116" r="10" fill="currentColor"/><circle cx="108" cy="116" r="10" fill="currentColor"/><circle cx="148" cy="116" r="10" fill="currentColor"/><circle cx="188" cy="116" r="10" fill="currentColor"/><circle cx="68" cy="156" r="10" fill="currentColor"/><circle cx="108" cy="156" r="10" fill="currentColor"/><circle cx="148" cy="156" r="10" fill="currentColor"/><circle cx="188" cy="156" r="10" fill="currentColor"/></svg>
+						<span class="side-menu__label">Scheduling & Booking</span>
+						<i class="ri-arrow-right-s-line side-menu__angle"></i>
+					</a>
+					<ul class="slide-menu child1">
+						<li class="slide side-menu__label1">
+							<a href="javascript:void(0)">Scheduling & Booking</a>
+						</li>
+						<li class="slide {{ request()->is('admin/bookings/dashboard') ? 'active' : '' }}">
+							<a href="{{ route('admin.bookings.dashboard') }}" class="side-menu__item">
+								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><rect x="32" y="48" width="192" height="160" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="m68,88 L188,88" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="68" cy="128" r="8" fill="currentColor"/><path d="m88,128 L188,128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="68" cy="168" r="8" fill="currentColor"/><path d="m88,168 L188,168" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+								Dashboard
+							</a>
+						</li>
+
+						<li class="slide {{ request()->is('admin/bookings/scheduling-menu*') ? 'active' : '' }}">
+							<a href="{{ route('admin.bookings.scheduling-menu') }}" class="side-menu__item">
+								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><circle cx="128" cy="128" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="m70.7,70.7,33.6,33.6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="m151.7,151.7,33.6,33.6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="m185.3,70.7-33.6,33.6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="m104.3,151.7-33.6,33.6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="40" x2="128" y2="56" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="40" y1="128" x2="56" y2="128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="200" x2="128" y2="216" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="200" y1="128" x2="216" y2="128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+								Scheduling Settings
+							</a>
+						</li>
+						{{-- <li class="slide {{ request()->is('admin/bookings/schedule') ? 'active' : '' }}">
+							<a href="{{ route('admin.bookings.schedule') }}" class="side-menu__item">
+								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,208,32Z" opacity="0.2"/><rect x="32" y="48" width="192" height="160" rx="16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="16" x2="128" y2="48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="176" y1="16" x2="176" y2="48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="80" y1="16" x2="80" y2="48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="32" y1="80" x2="224" y2="80" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+								Schedule Calendar
+							</a>
+						</li> --}}
+						<li class="slide {{ request()->is('admin/bookings') && !request()->is('admin/bookings/*') ? 'active' : '' }}">
+							<a href="{{ route('admin.bookings.index') }}" class="side-menu__item">
+								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><rect x="40" y="40" width="176" height="176" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="40" y1="88" x2="216" y2="88" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="40" x2="128" y2="216" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+								All Bookings
+							</a>
+						</li>
+						<li class="slide {{ request()->is('admin/bookings/create') ? 'active' : '' }}">
+							<a href="{{ route('admin.bookings.create') }}" class="side-menu__item">
+								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><line x1="40" y1="128" x2="216" y2="128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="40" x2="128" y2="216" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+								Create Booking
+							</a>
+						</li>
+						
+					</ul>
+				</li>
+				<!-- End::slide Scheduling & Booking -->
+				
+
 			</ul>
 			<ul class="doublemenu_bottom-menu main-menu mb-0 border-top">
 				<!-- Start::slide -->

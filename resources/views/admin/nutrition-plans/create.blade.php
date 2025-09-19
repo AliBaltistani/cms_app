@@ -5,7 +5,7 @@
 <link rel="stylesheet" href="{{asset('build/assets/libs/filepond/filepond.min.css')}}">
 <link rel="stylesheet" href="{{asset('build/assets/libs/filepond-plugin-image-preview/filepond-plugin-image-preview.min.css')}}">
 <!-- Select2 CSS -->
-<link rel="stylesheet" href="{{asset('build/assets/libs/select2/css/select2.min.css')}}">
+{{-- <link rel="stylesheet" href="{{asset('build/assets/libs/select2/css/select2.min.css')}}"> --}}
 <!-- Flatpickr CSS -->
 <link rel="stylesheet" href="{{asset('build/assets/libs/flatpickr/flatpickr.min.css')}}">
 @endsection
@@ -336,7 +336,7 @@
 <script src="{{asset('build/assets/libs/filepond-plugin-image-transform/filepond-plugin-image-transform.min.js')}}"></script>
 
 <!-- Select2 JS -->
-<script src="{{asset('build/assets/libs/select2/js/select2.min.js')}}"></script>
+{{-- <script src="{{asset('build/assets/libs/select2/js/select2.min.js')}}"></script> --}}
 
 <!-- Sweet Alert -->
 <script src="{{asset('build/assets/libs/sweetalert2/sweetalert2.min.js')}}"></script>

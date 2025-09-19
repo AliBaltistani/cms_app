@@ -3,7 +3,7 @@
 /**
  * API Routes for Go Globe CMS Application
  * 
- * Complete API endpoints for authentication, user management, goals, workouts, and workout videos
+ * Complete API endpoints organized by user roles (Admin, Trainer, Client)
  * All protected routes require Sanctum authentication token
  * 
  * @package     Laravel CMS App
@@ -11,7 +11,8 @@
  * @category    API Routes
  * @author      Go Globe CMS Team
  * @since       1.0.0
- * @version     1.0.0
+ * @version     2.0.0
+ * @updated     2025-01-19
  */
 
 use Illuminate\Http\Request;
@@ -34,17 +35,66 @@ use App\Http\Controllers\Api\ClientController;
 
 /**
  * Authentication Routes
- * Handle user registration, login, and password reset
+ * Handle user registration, login, and password reset operations
  */
-Route::prefix('auth')->group(function () {
-    Route::post('/register', [ApiAuthController::class, 'register'])->name('api.auth.register');
-    Route::post('/login', [ApiAuthController::class, 'login'])->name('api.auth.login');
+Route::prefix('auth')->name('api.auth.')->group(function () {
+    // User Registration & Login
+    Route::post('/register', [ApiAuthController::class, 'register'])->name('register');
+    Route::post('/login', [ApiAuthController::class, 'login'])->name('login');
     
-    // Password Reset Routes
-    Route::post('/forgot-password', [ApiAuthController::class, 'forgotPassword'])->name('api.auth.forgot-password');
-    Route::post('/verify-otp', [ApiAuthController::class, 'verifyOTP'])->name('api.auth.verify-otp');
-    Route::post('/reset-password', [ApiAuthController::class, 'resetPassword'])->name('api.auth.reset-password');
-    Route::post('/resend-otp', [ApiAuthController::class, 'resendOTP'])->name('api.auth.resend-otp');
+    // Password Reset Flow
+    Route::post('/forgot-password', [ApiAuthController::class, 'forgotPassword'])->name('forgot-password');
+    Route::post('/verify-otp', [ApiAuthController::class, 'verifyOTP'])->name('verify-otp');
+    Route::post('/reset-password', [ApiAuthController::class, 'resetPassword'])->name('reset-password');
+    Route::post('/resend-otp', [ApiAuthController::class, 'resendOTP'])->name('resend-otp');
+});
+
+/**
+ * System Information Routes (Public)
+ * Provide system status and configuration information
+ */
+Route::prefix('system')->name('api.system.')->group(function () {
+    Route::get('/status', function () {
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'status' => 'online',
+                'version' => '2.0.0',
+                'timestamp' => now()->toISOString(),
+                'laravel_version' => app()->version()
+            ],
+            'message' => 'System is operational'
+        ]);
+    })->name('status');
+    
+    Route::get('/config', function () {
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'app_name' => config('app.name'),
+                'app_env' => config('app.env'),
+                'timezone' => config('app.timezone'),
+                'locale' => config('app.locale')
+            ],
+            'message' => 'System configuration retrieved'
+        ]);
+    })->name('config');
+});
+
+/**
+ * API Documentation Routes
+ * Complete API documentation with detailed request/response examples
+ * Organized by user roles and functionality
+ */
+Route::prefix('docs')->name('api.docs.')->group(function () {
+    // Complete API documentation (public access)
+    Route::get('/', [App\Http\Controllers\ApiDocumentationController::class, 'index'])->name('index');
+    
+    // Specific endpoint documentation
+    Route::get('/{endpoint}', [App\Http\Controllers\ApiDocumentationController::class, 'getEndpoint'])->name('endpoint');
+    
+    // OpenAPI/Swagger schema
+    Route::get('/schema/openapi', [App\Http\Controllers\ApiDocumentationController::class, 'getSchema'])->name('schema');
 });
 
 /**
@@ -56,264 +106,360 @@ Route::prefix('auth')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     
     /**
+     * =========================================================================
+     * COMMON AUTHENTICATED ROUTES (All Roles)
+     * =========================================================================
+     */
+    
+    /**
      * Authentication Management Routes
      * Handle logout, token refresh, and user verification
      */
-    Route::prefix('auth')->group(function () {
-        Route::post('/logout', [ApiAuthController::class, 'logout'])->name('api.auth.logout');
-        Route::post('/refresh', [ApiAuthController::class, 'refreshToken'])->name('api.auth.refresh');
-        Route::get('/me', [ApiAuthController::class, 'me'])->name('api.auth.me');
-        Route::post('/verify-token', [ApiAuthController::class, 'verifyToken'])->name('api.auth.verify-token');
+    Route::prefix('auth')->name('api.auth.')->group(function () {
+        Route::post('/logout', [ApiAuthController::class, 'logout'])->name('logout');
+        Route::post('/refresh', [ApiAuthController::class, 'refreshToken'])->name('refresh');
+        Route::get('/me', [ApiAuthController::class, 'me'])->name('me');
+        Route::post('/verify-token', [ApiAuthController::class, 'verifyToken'])->name('verify-token');
     });
     
     /**
-     * User Management Routes
+     * User Profile Management Routes (All Authenticated Users)
      * Handle user profile operations and account management
      */
-    Route::prefix('user')->group(function () {
-        Route::get('/profile', [ApiUserController::class, 'profile'])->name('api.user.profile');
-        Route::put('/profile', [ApiUserController::class, 'updateProfile'])->name('api.user.update-profile');
-        Route::post('/change-password', [ApiUserController::class, 'changePassword'])->name('api.user.change-password');
-        Route::post('/upload-avatar', [ApiUserController::class, 'uploadAvatar'])->name('api.user.upload-avatar');
-        Route::delete('/delete-avatar', [ApiUserController::class, 'deleteAvatar'])->name('api.user.delete-avatar');
-        Route::get('/activity-log', [ApiUserController::class, 'activityLog'])->name('api.user.activity-log');
-        Route::delete('/account', [ApiUserController::class, 'deleteAccount'])->name('api.user.delete-account');
+    Route::prefix('user')->name('api.user.')->group(function () {
+        Route::get('/profile', [ApiUserController::class, 'profile'])->name('profile');
+        Route::put('/profile', [ApiUserController::class, 'updateProfile'])->name('update-profile');
+        Route::post('/change-password', [ApiUserController::class, 'changePassword'])->name('change-password');
+        Route::post('/upload-avatar', [ApiUserController::class, 'uploadAvatar'])->name('upload-avatar');
+        Route::delete('/delete-avatar', [ApiUserController::class, 'deleteAvatar'])->name('delete-avatar');
+        Route::get('/activity-log', [ApiUserController::class, 'activityLog'])->name('activity-log');
+        Route::delete('/account', [ApiUserController::class, 'deleteAccount'])->name('delete-account');
     });
     
     /**
-     * ADMIN API ROUTES - Admin Role Required
-     * Complete user and trainer management via API
-     */
-    Route::middleware('admin')->prefix('admin')->group(function () {
-        
-        // Admin User Management API
-        Route::prefix('users')->group(function () {
-            Route::get('/', [\App\Http\Controllers\Api\AdminUserController::class, 'index'])->name('api.admin.users.index');
-            Route::post('/', [\App\Http\Controllers\Api\AdminUserController::class, 'store'])->name('api.admin.users.store');
-            Route::get('/statistics', [\App\Http\Controllers\Api\AdminUserController::class, 'statistics'])->name('api.admin.users.statistics');
-            Route::get('/{id}', [\App\Http\Controllers\Api\AdminUserController::class, 'show'])->name('api.admin.users.show');
-            Route::put('/{id}', [\App\Http\Controllers\Api\AdminUserController::class, 'update'])->name('api.admin.users.update');
-            Route::delete('/{id}', [\App\Http\Controllers\Api\AdminUserController::class, 'destroy'])->name('api.admin.users.destroy');
-            Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\AdminUserController::class, 'toggleStatus'])->name('api.admin.users.toggle-status');
-            Route::delete('/{id}/delete-image', [\App\Http\Controllers\Api\AdminUserController::class, 'deleteImage'])->name('api.admin.users.delete-image');
-        });
-        
-        // Admin Trainer Management API
-        // Route::prefix('trainers')->group(function () {
-        //     Route::get('/', [\App\Http\Controllers\Api\AdminTrainerController::class, 'index'])->name('api.admin.trainers.index');
-        //     Route::get('/{id}', [\App\Http\Controllers\Api\AdminTrainerController::class, 'show'])->name('api.admin.trainers.show');
-        //     Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\AdminTrainerController::class, 'toggleStatus'])->name('api.admin.trainers.toggle-status');
-        //     Route::get('/{id}/analytics', [\App\Http\Controllers\Api\AdminTrainerController::class, 'getAnalytics'])->name('api.admin.trainers.analytics');
-            
-        //     // Admin Trainer Certifications Management API
-        //     Route::get('/{id}/certifications', [\App\Http\Controllers\Api\AdminTrainerController::class, 'getCertifications'])->name('api.admin.trainers.certifications.index');
-        //     Route::post('/{id}/certifications', [\App\Http\Controllers\Api\AdminTrainerController::class, 'storeCertification'])->name('api.admin.trainers.certifications.store');
-        //     Route::put('/{trainerId}/certifications/{certificationId}', [\App\Http\Controllers\Api\AdminTrainerController::class, 'updateCertification'])->name('api.admin.trainers.certifications.update');
-        //     Route::delete('/{trainerId}/certifications/{certificationId}', [\App\Http\Controllers\Api\AdminTrainerController::class, 'deleteCertification'])->name('api.admin.trainers.certifications.destroy');
-            
-        //     // Admin Trainer Testimonials Management API
-        //     Route::get('/{id}/testimonials', [\App\Http\Controllers\Api\AdminTrainerController::class, 'getTestimonials'])->name('api.admin.trainers.testimonials.index');
-        // });
-    });
-    
-    /**
-     * Goals Management Routes
+     * Goals Management Routes (All Authenticated Users)
      * Complete CRUD operations for user goals
      */
-    Route::prefix('goals')->group(function () {
-        Route::get('/', [ApiGoalController::class, 'index'])->name('api.goals.index');
-        Route::post('/', [ApiGoalController::class, 'store'])->name('api.goals.store');
-        Route::get('/search', [ApiGoalController::class, 'search'])->name('api.goals.search');
+    Route::prefix('goals')->name('api.goals.')->group(function () {
+        Route::get('/', [ApiGoalController::class, 'index'])->name('index');
+        Route::post('/', [ApiGoalController::class, 'store'])->name('store');
+        Route::get('/search', [ApiGoalController::class, 'search'])->name('search');
         
         Route::prefix('{goal}')->group(function () {
-            Route::get('/', [ApiGoalController::class, 'show'])->name('api.goals.show');
-            Route::put('/', [ApiGoalController::class, 'update'])->name('api.goals.update');
-            Route::delete('/', [ApiGoalController::class, 'destroy'])->name('api.goals.destroy');
-            Route::patch('/toggle-status', [ApiGoalController::class, 'toggleStatus'])->name('api.goals.toggle-status');
+            Route::get('/', [ApiGoalController::class, 'show'])->name('show');
+            Route::put('/', [ApiGoalController::class, 'update'])->name('update');
+            Route::delete('/', [ApiGoalController::class, 'destroy'])->name('destroy');
+            Route::patch('/toggle-status', [ApiGoalController::class, 'toggleStatus'])->name('toggle-status');
         });
         
         // Bulk operations for goals
         Route::prefix('bulk')->group(function () {
-            Route::patch('/', [ApiGoalController::class, 'bulkUpdate'])->name('api.goals.bulk-update');
-            Route::delete('/', [ApiGoalController::class, 'bulkDelete'])->name('api.goals.bulk-delete');
+            Route::patch('/', [ApiGoalController::class, 'bulkUpdate'])->name('bulk-update');
+            Route::delete('/', [ApiGoalController::class, 'bulkDelete'])->name('bulk-delete');
         });
     });
     
     /**
-     * CLIENT WORKOUT ROUTES - Client Role Required
-     * Read-only access to active workouts for clients
+     * Public Trainer Information Routes (All Authenticated Users)
+     * Public access to trainer information for browsing
      */
-    Route::middleware('client')->prefix('client')->group(function () {
-        // Client Dashboard
-        Route::get('/dashboard', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'getDashboard'])->name('api.client.dashboard');
-        
-        // Client Workout Routes
-        Route::prefix('workouts')->group(function () {
-            Route::get('/', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'index'])->name('api.client.workouts.index');
-            Route::get('/search', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'search'])->name('api.client.workouts.search');
-            Route::get('/statistics', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'getStatistics'])->name('api.client.workouts.statistics');
-            Route::get('/featured', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'getFeatured'])->name('api.client.workouts.featured');
-            
-            Route::prefix('{id}')->group(function () {
-                Route::get('/', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'show'])->name('api.client.workouts.show');
-                Route::get('/videos', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'getVideos'])->name('api.client.workouts.videos');
-                Route::get('/videos/{videoId}', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'showVideo'])->name('api.client.workouts.videos.show');
-            });
-        });
+    Route::prefix('trainers')->name('api.trainers.')->group(function () {
+        Route::get('/', [TrainerController::class, 'index'])->name('index');
+        Route::get('/{id}', [TrainerController::class, 'show'])->name('show');
+        Route::get('/{id}/certifications', [TrainerController::class, 'getTrainerCertifications'])->name('certifications');
+        Route::get('/{id}/testimonials', [TrainerController::class, 'getTrainerTestimonials'])->name('testimonials');
     });
     
     /**
-     * TRAINER API ROUTES - Trainer Role Required
-     * Handle trainer profile management, certifications, and workouts
+     * Testimonial Reaction Routes (All Authenticated Users)
+     * Handle likes and dislikes for testimonials
      */
-    Route::middleware('trainer')->prefix('trainer')->group(function () {
-        // Trainer Profile Management
-        Route::get('/profile', [TrainerController::class, 'getProfile'])->name('api.trainer.profile');
-        Route::put('/profile', [TrainerController::class, 'updateProfile'])->name('api.trainer.update-profile');
-        
-        // Trainer Certification Management
-        Route::prefix('certifications')->group(function () {
-            Route::get('/', [TrainerController::class, 'getCertifications'])->name('api.trainer.certifications.index');
-            Route::post('/', [TrainerController::class, 'storeCertification'])->name('api.trainer.certifications.store');
-            Route::get('/{id}', [TrainerController::class, 'showCertification'])->name('api.trainer.certifications.show');
-            Route::put('/{id}', [TrainerController::class, 'updateCertification'])->name('api.trainer.certifications.update');
-            Route::delete('/{id}', [TrainerController::class, 'destroyCertification'])->name('api.trainer.certifications.destroy');
-        });
-        
-        // Trainer Testimonials (Read Only)
-        Route::get('/testimonials', [TrainerController::class, 'getMyTestimonials'])->name('api.trainer.testimonials.index');
+    Route::prefix('testimonials')->name('api.testimonials.')->group(function () {
+        Route::post('/{id}/like', [TrainerController::class, 'likeTestimonial'])->name('like');
+        Route::post('/{id}/dislike', [TrainerController::class, 'dislikeTestimonial'])->name('dislike');
+    });
+    
+    /**
+     * =========================================================================
+     * ADMIN ROLE ROUTES (Admin Access Only)
+     * =========================================================================
+     */
+    
+    Route::middleware('admin')->prefix('admin')->name('api.admin.')->group(function () {
         
         /**
-         * TRAINER WORKOUT MANAGEMENT - Complete CRUD operations
-         * Trainers can manage their own workouts and videos
+         * Admin User Management API
+         * Complete user management operations for administrators
          */
-        Route::prefix('workouts')->group(function () {
-            Route::get('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'index'])->name('api.trainer.workouts.index');
-            Route::post('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'store'])->name('api.trainer.workouts.store');
+        Route::prefix('users')->name('users.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\AdminUserController::class, 'index'])->name('index');
+            Route::post('/', [\App\Http\Controllers\Api\AdminUserController::class, 'store'])->name('store');
+            Route::get('/statistics', [\App\Http\Controllers\Api\AdminUserController::class, 'statistics'])->name('statistics');
+            Route::get('/{id}', [\App\Http\Controllers\Api\AdminUserController::class, 'show'])->name('show');
+            Route::put('/{id}', [\App\Http\Controllers\Api\AdminUserController::class, 'update'])->name('update');
+            Route::delete('/{id}', [\App\Http\Controllers\Api\AdminUserController::class, 'destroy'])->name('destroy');
+            Route::get('/role/{role}', [\App\Http\Controllers\Api\AdminUserController::class, 'getUsersByRole'])->name('by-role');
+            Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\AdminUserController::class, 'toggleStatus'])->name('toggle-status');
+            Route::delete('/{id}/delete-image', [\App\Http\Controllers\Api\AdminUserController::class, 'deleteImage'])->name('delete-image');
+        });
+        
+        /**
+         * Admin Trainer Management API
+         * Complete trainer oversight and management for administrators
+         */
+        Route::prefix('trainers')->name('trainers.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\AdminTrainerController::class, 'index'])->name('index');
+            Route::get('/{id}', [\App\Http\Controllers\Api\AdminTrainerController::class, 'show'])->name('show');
+            Route::put('/{id}', [\App\Http\Controllers\Api\AdminTrainerController::class, 'update'])->name('update');
+            Route::delete('/{id}', [\App\Http\Controllers\Api\AdminTrainerController::class, 'destroy'])->name('destroy');
+            Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\AdminTrainerController::class, 'toggleStatus'])->name('toggle-status');
+            Route::get('/{id}/analytics', [\App\Http\Controllers\Api\AdminTrainerController::class, 'getAnalytics'])->name('analytics');
+            
+            // Admin Trainer Certifications Management
+            Route::get('/{id}/certifications', [\App\Http\Controllers\Api\AdminTrainerController::class, 'getCertifications'])->name('certifications.index');
+            Route::post('/{id}/certifications', [\App\Http\Controllers\Api\AdminTrainerController::class, 'storeCertification'])->name('certifications.store');
+            Route::put('/{trainerId}/certifications/{certificationId}', [\App\Http\Controllers\Api\AdminTrainerController::class, 'updateCertification'])->name('certifications.update');
+            Route::post('/{id}/certifications/{certificationId}/approve', [\App\Http\Controllers\Api\AdminTrainerController::class, 'approveCertification'])->name('certifications.approve');
+            Route::delete('/{trainerId}/certifications/{certificationId}', [\App\Http\Controllers\Api\AdminTrainerController::class, 'deleteCertification'])->name('certifications.destroy');
+            
+            // Admin Trainer Testimonials Management
+            Route::get('/{id}/testimonials', [\App\Http\Controllers\Api\AdminTrainerController::class, 'getTestimonials'])->name('testimonials.index');
+        });
+        
+        /**
+         * Admin Booking Management API
+         * Complete booking oversight and management for administrators
+         * Note: AdminBookingController needs to be created for admin API access
+         */
+        Route::prefix('bookings')->name('bookings.')->group(function () {
+            // These routes are commented out until AdminBookingController is implemented
+            /*
+            Route::get('/', [\App\Http\Controllers\Api\AdminBookingController::class, 'index'])->name('index');
+            Route::post('/', [\App\Http\Controllers\Api\AdminBookingController::class, 'store'])->name('store');
+            Route::get('/statistics', [\App\Http\Controllers\Api\AdminBookingController::class, 'getStatistics'])->name('statistics');
+            Route::get('/{id}', [\App\Http\Controllers\Api\AdminBookingController::class, 'show'])->name('show');
+            Route::put('/{id}', [\App\Http\Controllers\Api\AdminBookingController::class, 'update'])->name('update');
+            Route::delete('/{id}', [\App\Http\Controllers\Api\AdminBookingController::class, 'destroy'])->name('destroy');
+            Route::patch('/bulk-update', [\App\Http\Controllers\Api\AdminBookingController::class, 'bulkUpdate'])->name('bulk-update');
+            */
+        });
+        
+        /**
+         * Admin Workout Management API
+         * Complete workout oversight for administrators
+         * Note: AdminWorkoutController needs to be created for admin API access
+         */
+        Route::prefix('workouts')->name('workouts.')->group(function () {
+            // These routes are commented out until AdminWorkoutController is implemented
+            /*
+            Route::get('/', [\App\Http\Controllers\Api\AdminWorkoutController::class, 'index'])->name('index');
+            Route::get('/statistics', [\App\Http\Controllers\Api\AdminWorkoutController::class, 'getStatistics'])->name('statistics');
+            Route::get('/{id}', [\App\Http\Controllers\Api\AdminWorkoutController::class, 'show'])->name('show');
+            Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\AdminWorkoutController::class, 'toggleStatus'])->name('toggle-status');
+            Route::delete('/{id}', [\App\Http\Controllers\Api\AdminWorkoutController::class, 'destroy'])->name('destroy');
+            */
+        });
+        
+        /**
+          * Admin Nutrition Management API
+          * Complete nutrition plan oversight for administrators
+          * Note: AdminNutritionController needs to be created for admin API access
+          */
+         Route::prefix('nutrition')->name('nutrition.')->group(function () {
+             // These routes are commented out until AdminNutritionController is implemented
+             /*
+             Route::get('/plans', [\App\Http\Controllers\Api\AdminNutritionController::class, 'index'])->name('plans.index');
+             Route::get('/plans/statistics', [\App\Http\Controllers\Api\AdminNutritionController::class, 'getStatistics'])->name('plans.statistics');
+             Route::get('/plans/{id}', [\App\Http\Controllers\Api\AdminNutritionController::class, 'show'])->name('plans.show');
+             Route::delete('/plans/{id}', [\App\Http\Controllers\Api\AdminNutritionController::class, 'destroy'])->name('plans.destroy');
+             */
+         });
+     });
+    
+    /**
+     * =========================================================================
+     * TRAINER ROLE ROUTES (Trainer Access Only)
+     * =========================================================================
+     */
+    
+    Route::middleware('trainer')->prefix('trainer')->name('api.trainer.')->group(function () {
+        
+        /**
+         * Trainer Profile Management
+         * Handle trainer profile operations and personal information
+         */
+        Route::get('/profile', [TrainerController::class, 'getProfile'])->name('profile');
+        Route::put('/profile', [TrainerController::class, 'updateProfile'])->name('update-profile');
+        
+        /**
+         * Trainer Certification Management
+         * Complete CRUD operations for trainer certifications
+         */
+        Route::prefix('certifications')->name('certifications.')->group(function () {
+            Route::get('/', [TrainerController::class, 'getCertifications'])->name('index');
+            Route::post('/', [TrainerController::class, 'storeCertification'])->name('store');
+            Route::get('/{id}', [TrainerController::class, 'showCertification'])->name('show');
+            Route::put('/{id}', [TrainerController::class, 'updateCertification'])->name('update');
+            Route::delete('/{id}', [TrainerController::class, 'destroyCertification'])->name('destroy');
+        });
+        
+        /**
+         * Trainer Testimonials (Read Only)
+         * View testimonials received from clients
+         */
+        Route::get('/testimonials', [TrainerController::class, 'getMyTestimonials'])->name('testimonials.index');
+        
+        /**
+         * Trainer Scheduling & Availability Management
+         * Complete scheduling operations for trainers
+         */
+        Route::prefix('scheduling')->name('scheduling.')->group(function () {
+            // Availability Management
+            Route::post('/availability', [\App\Http\Controllers\Api\TrainerSchedulingController::class, 'setAvailability'])->name('availability.set');
+            Route::get('/availability', [\App\Http\Controllers\Api\TrainerSchedulingController::class, 'getAvailability'])->name('availability.get');
+            
+            // Blocked Times Management
+            Route::prefix('blocked-times')->name('blocked-times.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\TrainerSchedulingController::class, 'getBlockedTimes'])->name('index');
+                Route::post('/', [\App\Http\Controllers\Api\TrainerSchedulingController::class, 'addBlockedTime'])->name('store');
+                Route::delete('/{id}', [\App\Http\Controllers\Api\TrainerSchedulingController::class, 'deleteBlockedTime'])->name('destroy');
+            });
+            
+            // Session Capacity Management
+            Route::post('/session-capacity', [\App\Http\Controllers\Api\TrainerSchedulingController::class, 'setSessionCapacity'])->name('session-capacity.set');
+            Route::get('/session-capacity', [\App\Http\Controllers\Api\TrainerSchedulingController::class, 'getSessionCapacity'])->name('session-capacity.get');
+            
+            // Booking Settings Management
+            Route::post('/booking-settings', [\App\Http\Controllers\Api\TrainerSchedulingController::class, 'setBookingSettings'])->name('booking-settings.set');
+            Route::get('/booking-settings', [\App\Http\Controllers\Api\TrainerSchedulingController::class, 'getBookingSettings'])->name('booking-settings.get');
+        });
+        
+        /**
+         * Trainer Booking Management
+         * Handle trainer's booking operations and status updates
+         */
+        Route::prefix('bookings')->name('bookings.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\TrainerSchedulingController::class, 'getBookings'])->name('index');
+            Route::patch('/{id}/status', [\App\Http\Controllers\Api\TrainerSchedulingController::class, 'updateBookingStatus'])->name('update-status');
+        });
+        
+        /**
+         * Trainer Workout Management
+         * Complete CRUD operations for trainer's workouts and videos
+         */
+        Route::prefix('workouts')->name('workouts.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'index'])->name('index');
+            Route::post('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'store'])->name('store');
             
             Route::prefix('{id}')->group(function () {
-                Route::get('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'show'])->name('api.trainer.workouts.show');
-                Route::put('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'update'])->name('api.trainer.workouts.update');
-                Route::delete('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'destroy'])->name('api.trainer.workouts.destroy');
-                Route::patch('/toggle-status', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'toggleStatus'])->name('api.trainer.workouts.toggle-status');
+                Route::get('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'show'])->name('show');
+                Route::put('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'update'])->name('update');
+                Route::delete('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'destroy'])->name('destroy');
+                Route::patch('/toggle-status', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'toggleStatus'])->name('toggle-status');
                 
                 /**
                  * Trainer Workout Videos Management
                  * Nested routes for managing videos within trainer's workouts
                  */
-                Route::prefix('videos')->group(function () {
-                    Route::get('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'getVideos'])->name('api.trainer.workouts.videos.index');
-                    Route::post('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'storeVideo'])->name('api.trainer.workouts.videos.store');
-                    Route::patch('/reorder', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'reorderVideos'])->name('api.trainer.workouts.videos.reorder');
+                Route::prefix('videos')->name('videos.')->group(function () {
+                    Route::get('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'getVideos'])->name('index');
+                    Route::post('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'storeVideo'])->name('store');
+                    Route::patch('/reorder', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'reorderVideos'])->name('reorder');
                     
                     Route::prefix('{videoId}')->group(function () {
-                        Route::put('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'updateVideo'])->name('api.trainer.workouts.videos.update');
-                        Route::delete('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'destroyVideo'])->name('api.trainer.workouts.videos.destroy');
+                        Route::put('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'updateVideo'])->name('update');
+                        Route::delete('/', [\App\Http\Controllers\Api\TrainerWorkoutController::class, 'destroyVideo'])->name('destroy');
                     });
                 });
             });
         });
         
         /**
-         * TRAINER NUTRITION MANAGEMENT - Complete CRUD operations
-         * Trainers can create and manage nutrition plans for their trainees
+         * Trainer Nutrition Management
+         * Complete CRUD operations for nutrition plans and meal management
          */
-        Route::prefix('nutrition')->group(function () {
-            Route::get('/plans', [\App\Http\Controllers\Api\TrainerNutritionController::class, 'index'])->name('api.trainer.nutrition.plans.index');
-            Route::post('/plans', [\App\Http\Controllers\Api\TrainerNutritionController::class, 'store'])->name('api.trainer.nutrition.plans.store');
-            Route::get('/plans/{id}', [\App\Http\Controllers\Api\TrainerNutritionController::class, 'show'])->name('api.trainer.nutrition.plans.show');
-            Route::get('/clients', [\App\Http\Controllers\Api\TrainerNutritionController::class, 'getClients'])->name('api.trainer.nutrition.clients');
+        Route::prefix('nutrition')->name('nutrition.')->group(function () {
+            Route::get('/plans', [\App\Http\Controllers\Api\TrainerNutritionController::class, 'index'])->name('plans.index');
+            Route::post('/plans', [\App\Http\Controllers\Api\TrainerNutritionController::class, 'store'])->name('plans.store');
+            Route::get('/plans/{id}', [\App\Http\Controllers\Api\TrainerNutritionController::class, 'show'])->name('plans.show');
+            Route::get('/clients', [\App\Http\Controllers\Api\TrainerNutritionController::class, 'getClients'])->name('clients');
             
             // Meal management for nutrition plans
-            Route::post('/plans/{planId}/meals', [\App\Http\Controllers\Api\TrainerNutritionController::class, 'addMeal'])->name('api.trainer.nutrition.plans.meals.store');
+            Route::post('/plans/{planId}/meals', [\App\Http\Controllers\Api\TrainerNutritionController::class, 'addMeal'])->name('plans.meals.store');
             
             // Macros and restrictions management
-            Route::put('/plans/{planId}/macros', [\App\Http\Controllers\Api\TrainerNutritionController::class, 'updateMacros'])->name('api.trainer.nutrition.plans.macros.update');
-            Route::put('/plans/{planId}/restrictions', [\App\Http\Controllers\Api\TrainerNutritionController::class, 'updateRestrictions'])->name('api.trainer.nutrition.plans.restrictions.update');
+            Route::put('/plans/{planId}/macros', [\App\Http\Controllers\Api\TrainerNutritionController::class, 'updateMacros'])->name('plans.macros.update');
+            Route::put('/plans/{planId}/restrictions', [\App\Http\Controllers\Api\TrainerNutritionController::class, 'updateRestrictions'])->name('plans.restrictions.update');
         });
     });
     
     /**
-     * PUBLIC TRAINER ROUTES (No Role Restriction)
-     * Public access to trainer information for browsing
+     * =========================================================================
+     * CLIENT ROLE ROUTES (Client Access Only)
+     * =========================================================================
      */
-    Route::prefix('trainers')->group(function () {
-        // Public trainer listing and profile viewing
-        Route::get('/', [TrainerController::class, 'index'])->name('api.trainers.index');
-        Route::get('/{id}', [TrainerController::class, 'show'])->name('api.trainers.show');
-        // Route::get('/{id}/certifications', [TrainerController::class, 'getTrainerCertifications'])->name('api.trainers.certifications');
-        // Route::get('/{id}/testimonials', [TrainerController::class, 'getTrainerTestimonials'])->name('api.trainers.testimonials');
-        
-        // Client can add testimonials for trainers
-        // Route::post('/{id}/testimonials', [TrainerController::class, 'addTestimonial'])->name('api.trainers.add-testimonial');
-    });
     
-    /**
-     * Testimonial Reaction Routes
-     * Handle likes and dislikes for testimonials
-     */
-    Route::prefix('testimonials')->group(function () {
-        Route::post('/{id}/like', [TrainerController::class, 'likeTestimonial'])->name('api.testimonials.like');
-        Route::post('/{id}/dislike', [TrainerController::class, 'dislikeTestimonial'])->name('api.testimonials.dislike');
-    });
-    
-    /**
-     * CLIENT API ROUTES - Client Role Required
-     * Find trainers and view trainer profiles with comprehensive details
-     */
-    Route::middleware('client')->prefix('client')->group(function () {
+    Route::middleware('client')->prefix('client')->name('api.client.')->group(function () {
         
-        // Find Trainers Routes
-        Route::prefix('trainers')->group(function () {
-            Route::get('/find', [ClientController::class, 'findTrainers'])->name('api.client.trainers.find');
-            Route::get('/{trainerId}/profile', [ClientController::class, 'getTrainerProfile'])->name('api.client.trainers.profile');
-            Route::get('/{trainerId}/certifications', [ClientController::class, 'getTrainerCertifications'])->name('api.client.trainers.certifications');
-            Route::get('/{trainerId}/testimonials', [ClientController::class, 'getTrainerTestimonials'])->name('api.client.trainers.testimonials');
+        /**
+         * Client Dashboard
+         * Main dashboard with overview information
+         */
+        Route::get('/dashboard', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'getDashboard'])->name('dashboard');
+        
+        /**
+         * Client Workout Access (Read-Only)
+         * Access to active workouts assigned by trainers
+         */
+        Route::prefix('workouts')->name('workouts.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'index'])->name('index');
+            Route::get('/search', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'search'])->name('search');
+            Route::get('/statistics', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'getStatistics'])->name('statistics');
+            Route::get('/featured', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'getFeatured'])->name('featured');
+            
+            Route::prefix('{id}')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'show'])->name('show');
+                Route::get('/videos', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'getVideos'])->name('videos');
+                Route::get('/videos/{videoId}', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'showVideo'])->name('videos.show');
+            });
         });
         
         /**
-         * CLIENT NUTRITION MANAGEMENT - Read-only access
-         * Trainees can view their assigned nutrition plans and meals
+         * Client Trainer Discovery & Interaction
+         * Find trainers, view profiles, and manage trainer relationships
          */
-        Route::prefix('nutrition')->group(function () {
-            Route::get('/plans', [\App\Http\Controllers\Api\TraineeNutritionController::class, 'index'])->name('api.client.nutrition.plans.index');
-            Route::get('/plans/{id}', [\App\Http\Controllers\Api\TraineeNutritionController::class, 'show'])->name('api.client.nutrition.plans.show');
-            Route::get('/plans/{planId}/meals/{mealId}', [\App\Http\Controllers\Api\TraineeNutritionController::class, 'getMeal'])->name('api.client.nutrition.plans.meals.show');
-            Route::get('/plans/{planId}/meals/type/{mealType}', [\App\Http\Controllers\Api\TraineeNutritionController::class, 'getMealsByType'])->name('api.client.nutrition.plans.meals.by-type');
-            Route::get('/summary', [\App\Http\Controllers\Api\TraineeNutritionController::class, 'getNutritionSummary'])->name('api.client.nutrition.summary');
+        Route::prefix('trainers')->name('trainers.')->group(function () {
+            Route::get('/find', [ClientController::class, 'findTrainers'])->name('find');
+            Route::get('/{trainerId}/profile', [ClientController::class, 'getTrainerProfile'])->name('profile');
+            Route::get('/{trainerId}/certifications', [ClientController::class, 'getTrainerCertifications'])->name('certifications');
+            Route::get('/{trainerId}/testimonials', [ClientController::class, 'getTrainerTestimonials'])->name('testimonials');
+            Route::post('/{trainerId}/testimonials', [ClientController::class, 'addTestimonial'])->name('add-testimonial');
+            
+            // Client Booking Routes - View trainer availability
+            Route::get('/{trainerId}/availability', [\App\Http\Controllers\Api\ClientBookingController::class, 'getTrainerAvailability'])->name('availability');
         });
-    });
-    
-    /**
-     * System Information Routes
-     * Provide system status and configuration information
-     */
-    Route::prefix('system')->group(function () {
-        Route::get('/status', function () {
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'status' => 'online',
-                    'version' => '1.0.0',
-                    'timestamp' => now()->toISOString(),
-                    'laravel_version' => app()->version()
-                ],
-                'message' => 'System is operational'
-            ]);
-        })->name('api.system.status');
         
-        Route::get('/config', function () {
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'app_name' => config('app.name'),
-                    'app_env' => config('app.env'),
-                    'timezone' => config('app.timezone'),
-                    'locale' => config('app.locale')
-                ],
-                'message' => 'System configuration retrieved'
-            ]);
-        })->name('api.system.config');
+        /**
+         * Client Booking Management
+         * Complete booking operations for clients
+         */
+        Route::prefix('bookings')->name('bookings.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\ClientBookingController::class, 'getClientBookings'])->name('index');
+            Route::post('/', [\App\Http\Controllers\Api\ClientBookingController::class, 'requestBooking'])->name('store');
+            Route::delete('/{id}', [\App\Http\Controllers\Api\ClientBookingController::class, 'cancelBooking'])->name('cancel');
+        });
+        
+        /**
+         * Client Nutrition Management (Read-Only)
+         * Access to assigned nutrition plans and meal information
+         */
+        Route::prefix('nutrition')->name('nutrition.')->group(function () {
+            Route::get('/plans', [\App\Http\Controllers\Api\TraineeNutritionController::class, 'index'])->name('plans.index');
+            Route::get('/plans/{id}', [\App\Http\Controllers\Api\TraineeNutritionController::class, 'show'])->name('plans.show');
+            Route::get('/plans/{planId}/meals/{mealId}', [\App\Http\Controllers\Api\TraineeNutritionController::class, 'getMeal'])->name('plans.meals.show');
+            Route::get('/plans/{planId}/meals/type/{mealType}', [\App\Http\Controllers\Api\TraineeNutritionController::class, 'getMealsByType'])->name('plans.meals.by-type');
+            Route::get('/summary', [\App\Http\Controllers\Api\TraineeNutritionController::class, 'getNutritionSummary'])->name('summary');
+        });
     });
 });
 
@@ -330,15 +476,17 @@ Route::fallback(function () {
         'message' => 'API endpoint not found',
         'data' => [
             'error' => 'The requested API endpoint does not exist',
-            'available_endpoints' => [
+            'documentation' => 'Please refer to the API documentation for available endpoints',
+            'available_sections' => [
                 'auth' => '/api/auth/*',
-                // 'user' => '/api/user/*',
-                // 'goals' => '/api/goals/*',
-                // 'workouts' => '/api/workouts/*',
-                // 'videos' => '/api/videos/*',
+                'user' => '/api/user/*',
+                'goals' => '/api/goals/*',
                 'trainers' => '/api/trainers/*',
                 'testimonials' => '/api/testimonials/*',
-                // 'system' => '/api/system/*'
+                'admin' => '/api/admin/*',
+                'trainer' => '/api/trainer/*',
+                'client' => '/api/client/*',
+                'system' => '/api/system/*'
             ]
         ]
     ], 404);
