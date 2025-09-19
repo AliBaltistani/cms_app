@@ -143,6 +143,32 @@ Route::middleware('auth')->group(function () {
             Route::delete('/{id}/delete-image', [\App\Http\Controllers\Admin\TraineesController::class, 'deleteImage'])->name('admin.trainees.delete-image');
         });
         
+        // Specializations Management Routes
+        Route::prefix('specializations')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\SpecializationsController::class, 'index'])->name('admin.specializations.index');
+            Route::get('/create', [\App\Http\Controllers\Admin\SpecializationsController::class, 'create'])->name('admin.specializations.create');
+            Route::post('/store', [\App\Http\Controllers\Admin\SpecializationsController::class, 'store'])->name('admin.specializations.store');
+            Route::get('/{id}', [\App\Http\Controllers\Admin\SpecializationsController::class, 'show'])->name('admin.specializations.show');
+            Route::get('/{specialization}/edit', [\App\Http\Controllers\Admin\SpecializationsController::class, 'edit'])->name('admin.specializations.edit');
+            Route::put('/{specialization}', [\App\Http\Controllers\Admin\SpecializationsController::class, 'update'])->name('admin.specializations.update');
+            Route::delete('/{specialization}', [\App\Http\Controllers\Admin\SpecializationsController::class, 'destroy'])->name('admin.specializations.destroy');
+            Route::patch('/{specialization}/toggle-status', [\App\Http\Controllers\Admin\SpecializationsController::class, 'toggleStatus'])->name('admin.specializations.toggle-status');
+            Route::post('/bulk-delete', [\App\Http\Controllers\Admin\SpecializationsController::class, 'bulkDelete'])->name('admin.specializations.bulk-delete');
+            Route::get('/export', [\App\Http\Controllers\Admin\SpecializationsController::class, 'export'])->name('admin.specializations.export');
+        });
+        
+        // User Locations Management Routes
+        Route::prefix('user-locations')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\UserLocationsController::class, 'index'])->name('admin.user-locations.index');
+            Route::get('/create', [\App\Http\Controllers\Admin\UserLocationsController::class, 'create'])->name('admin.user-locations.create');
+            Route::post('/store', [\App\Http\Controllers\Admin\UserLocationsController::class, 'store'])->name('admin.user-locations.store');
+            Route::get('/{userLocation}', [\App\Http\Controllers\Admin\UserLocationsController::class, 'show'])->name('admin.user-locations.show');
+            Route::get('/{userLocation}/edit', [\App\Http\Controllers\Admin\UserLocationsController::class, 'edit'])->name('admin.user-locations.edit');
+            Route::put('/{userLocation}', [\App\Http\Controllers\Admin\UserLocationsController::class, 'update'])->name('admin.user-locations.update');
+            Route::delete('/{userLocation}', [\App\Http\Controllers\Admin\UserLocationsController::class, 'destroy'])->name('admin.user-locations.destroy');
+            Route::post('/bulk-delete', [\App\Http\Controllers\Admin\UserLocationsController::class, 'bulkDelete'])->name('admin.user-locations.bulk-delete');
+            Route::get('/user/{userId}', [\App\Http\Controllers\Admin\UserLocationsController::class, 'getLocationsByUser'])->name('admin.user-locations.by-user');
+        });
         
          Route::prefix('profile')->group(function () {
             Route::get('/', [UserProfileController::class, 'index'])->name('admin.profile');
@@ -186,6 +212,70 @@ Route::middleware('auth')->group(function () {
         // Workout Video Additional Routes
         Route::get('workouts/{workout}/videos/reorder', [WorkoutVideoController::class, 'reorderForm'])->name('workout-videos.reorder-form');
         Route::patch('workouts/{workout}/videos/reorder', [WorkoutVideoController::class, 'reorder'])->name('workout-videos.reorder');
+        
+        // Nutrition Plans Management
+        Route::prefix('nutrition-plans')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'index'])->name('admin.nutrition-plans.index');
+            Route::get('/create', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'create'])->name('admin.nutrition-plans.create');
+            Route::post('/store', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'store'])->name('admin.nutrition-plans.store');
+            Route::get('/{id}', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'show'])->name('admin.nutrition-plans.show');
+            Route::get('/{id}/edit', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'edit'])->name('admin.nutrition-plans.edit');
+            Route::put('/{id}', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'update'])->name('admin.nutrition-plans.update');
+            Route::delete('/{id}', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'destroy'])->name('admin.nutrition-plans.destroy');
+            Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'toggleStatus'])->name('admin.nutrition-plans.toggle-status');
+            Route::post('/{id}/duplicate', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'duplicate'])->name('admin.nutrition-plans.duplicate');
+            Route::delete('/{id}/delete-media', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'deleteMedia'])->name('admin.nutrition-plans.delete-media');
+            
+            // Nutrition Meals Management
+            Route::prefix('{planId}/meals')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'index'])->name('admin.nutrition-plans.meals.index');
+                Route::get('/create', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'create'])->name('admin.nutrition-plans.meals.create');
+                Route::post('/store', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'store'])->name('admin.nutrition-plans.meals.store');
+                Route::get('/{id}', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'show'])->name('admin.nutrition-plans.meals.show');
+                Route::get('/{id}/edit', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'edit'])->name('admin.nutrition-plans.meals.edit');
+                Route::put('/{id}', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'update'])->name('admin.nutrition-plans.meals.update');
+                Route::delete('/{id}', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'destroy'])->name('admin.nutrition-plans.meals.destroy');
+                Route::patch('/reorder', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'reorder'])->name('admin.nutrition-plans.meals.reorder');
+                Route::delete('/{id}/delete-image', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'deleteImage'])->name('admin.nutrition-plans.meals.delete-image');
+            });
+        });
+        
+        /**
+         * SCHEDULING & BOOKING MANAGEMENT
+         * Complete booking management system for administrators
+         */
+        Route::prefix('bookings')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\BookingController::class, 'index'])->name('admin.bookings.index');
+            Route::get('/dashboard', [\App\Http\Controllers\Admin\BookingController::class, 'dashboard'])->name('admin.bookings.dashboard');
+            Route::get('/create', [\App\Http\Controllers\Admin\BookingController::class, 'create'])->name('admin.bookings.create');
+            Route::post('/store', [\App\Http\Controllers\Admin\BookingController::class, 'store'])->name('admin.bookings.store');
+            Route::get('/{id}/show', [\App\Http\Controllers\Admin\BookingController::class, 'show'])->name('admin.bookings.show');
+            Route::get('/{id}/edit', [\App\Http\Controllers\Admin\BookingController::class, 'edit'])->name('admin.bookings.edit');
+            Route::put('/{id}', [\App\Http\Controllers\Admin\BookingController::class, 'update'])->name('admin.bookings.update');
+            Route::delete('/{id}', [\App\Http\Controllers\Admin\BookingController::class, 'destroy'])->name('admin.bookings.destroy');
+            Route::patch('/bulk-update', [\App\Http\Controllers\Admin\BookingController::class, 'bulkUpdate'])->name('admin.bookings.bulk-update');
+            Route::get('/export', [\App\Http\Controllers\Admin\BookingController::class, 'export'])->name('admin.bookings.export');
+            
+            // Scheduling & Booking Management Routes
+            Route::get('/schedule', [\App\Http\Controllers\Admin\BookingController::class, 'schedule'])->name('admin.bookings.schedule');
+            
+            // Full Calendar API endpoints
+            Route::get('/events', [\App\Http\Controllers\Admin\BookingController::class, 'getEvents'])->name('admin.bookings.events');
+            Route::post('/events', [\App\Http\Controllers\Admin\BookingController::class, 'createEvent'])->name('admin.bookings.create-event');
+            Route::put('/events/{id}', [\App\Http\Controllers\Admin\BookingController::class, 'updateEvent'])->name('admin.bookings.update-event');
+            Route::delete('/events/{id}', [\App\Http\Controllers\Admin\BookingController::class, 'deleteEvent'])->name('admin.bookings.delete-event');
+            
+            Route::get('/scheduling-menu', [\App\Http\Controllers\Admin\BookingController::class, 'schedulingMenu'])->name('admin.bookings.scheduling-menu');
+            Route::get('/availability', [\App\Http\Controllers\Admin\BookingController::class, 'availability'])->name('admin.bookings.availability');
+            Route::post('/availability', [\App\Http\Controllers\Admin\BookingController::class, 'updateAvailability'])->name('admin.bookings.availability.update');
+            Route::get('/blocked-times', [\App\Http\Controllers\Admin\BookingController::class, 'blockedTimes'])->name('admin.bookings.blocked-times');
+            Route::post('/blocked-times', [\App\Http\Controllers\Admin\BookingController::class, 'storeBlockedTime'])->name('admin.bookings.blocked-times.store');
+            Route::delete('/blocked-times/{id}', [\App\Http\Controllers\Admin\BookingController::class, 'destroyBlockedTime'])->name('admin.bookings.blocked-times.destroy');
+            Route::get('/session-capacity', [\App\Http\Controllers\Admin\BookingController::class, 'sessionCapacity'])->name('admin.bookings.session-capacity');
+            Route::post('/session-capacity', [\App\Http\Controllers\Admin\BookingController::class, 'updateSessionCapacity'])->name('admin.bookings.session-capacity.update');
+            Route::get('/booking-approval', [\App\Http\Controllers\Admin\BookingController::class, 'bookingApproval'])->name('admin.bookings.booking-approval');
+            Route::post('/booking-approval', [\App\Http\Controllers\Admin\BookingController::class, 'updateBookingApproval'])->name('admin.bookings.booking-approval.update');
+        });
     });
 
     /**

@@ -35,9 +35,14 @@ class ClientWorkoutController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            // Only show active workouts to clients
+            // Only show active workouts to clients - include videos by default
             $query = Workout::where('is_active', true)
-                           ->with(['user:id,name,email']);
+                           ->with([
+                               'user:id,name,email,profile_image',
+                               'videos' => function ($q) {
+                                   $q->orderBy('order');
+                               }
+                           ]);
             
             // Apply search
             if ($request->filled('search')) {
@@ -62,11 +67,31 @@ class ClientWorkoutController extends Controller
                 $query->where('duration', '<=', $request->duration_max);
             }
             
-            // Include videos if requested
-            if ($request->boolean('include_videos')) {
-                $query->with(['videos' => function ($q) {
-                    $q->orderBy('order');
-                }]);
+            // Option to exclude videos if specifically requested (opposite of before)
+            if ($request->boolean('exclude_videos')) {
+                $query = Workout::where('is_active', true)
+                               ->with(['user:id,name,email,profile_image']);
+                
+                // Re-apply filters if videos are excluded
+                if ($request->filled('search')) {
+                    $search = $request->search;
+                    $query->where(function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%")
+                          ->orWhere('description', 'like', "%{$search}%");
+                    });
+                }
+                
+                if ($request->filled('trainer_id')) {
+                    $query->where('user_id', $request->trainer_id);
+                }
+                
+                if ($request->filled('duration_min')) {
+                    $query->where('duration', '>=', $request->duration_min);
+                }
+                
+                if ($request->filled('duration_max')) {
+                    $query->where('duration', '<=', $request->duration_max);
+                }
             }
             
             // Apply sorting
@@ -133,7 +158,7 @@ class ClientWorkoutController extends Controller
             $workout = Workout::where('is_active', true)
                              ->where('id', $id)
                              ->with([
-                                 'user:id,name,email',
+                                 'user:id,name,email,profile_image',
                                  'videos' => function ($q) {
                                      $q->orderBy('order');
                                  }
@@ -194,7 +219,12 @@ class ClientWorkoutController extends Controller
             }
             
             $query = Workout::where('is_active', true)
-                           ->with(['user:id,name,email']);
+                           ->with([
+                               'user:id,name,email,profile_image',
+                               'videos' => function ($q) {
+                                   $q->orderBy('order');
+                               }
+                           ]);
             
             // Apply search query
             $searchTerm = $request->query;
@@ -415,7 +445,12 @@ class ClientWorkoutController extends Controller
             
             // Get recently created active workouts as featured
             $featuredWorkouts = Workout::where('is_active', true)
-                                      ->with(['user:id,name,email'])
+                                      ->with([
+                                          'user:id,name,email,profile_image',
+                                          'videos' => function ($q) {
+                                              $q->orderBy('order');
+                                          }
+                                      ])
                                       ->orderBy('created_at', 'desc')
                                       ->limit($limit)
                                       ->get();

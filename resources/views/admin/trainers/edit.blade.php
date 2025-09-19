@@ -185,7 +185,21 @@ function togglePassword(fieldId) {
                         
                         <div class="col-xl-6 mb-3">
                             <label for="experience" class="form-label">Experience (Years) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control @error('experience') is-invalid @enderror" id="experience" name="experience" value="{{ old('experience', $trainer->experience) }}" placeholder="Enter years of experience" min="0" max="50" required>
+                            <select class="form-select @error('experience') is-invalid @enderror" id="experience" name="experience" required>
+                                <option value="">Select Experience Level</option>
+                                <option value="less_than_1_year" {{ old('experience', $trainer->experience) == 'less_than_1_year' ? 'selected' : '' }}>Less than 1 year</option>
+                                <option value="1_year" {{ old('experience', $trainer->experience) == '1_year' ? 'selected' : '' }}>1 year</option>
+                                <option value="2_years" {{ old('experience', $trainer->experience) == '2_years' ? 'selected' : '' }}>2 years</option>
+                                <option value="3_years" {{ old('experience', $trainer->experience) == '3_years' ? 'selected' : '' }}>3 years</option>
+                                <option value="4_years" {{ old('experience', $trainer->experience) == '4_years' ? 'selected' : '' }}>4 years</option>
+                                <option value="5_years" {{ old('experience', $trainer->experience) == '5_years' ? 'selected' : '' }}>5 years</option>
+                                <option value="6_years" {{ old('experience', $trainer->experience) == '6_years' ? 'selected' : '' }}>6 years</option>
+                                <option value="7_years" {{ old('experience', $trainer->experience) == '7_years' ? 'selected' : '' }}>7 years</option>
+                                <option value="8_years" {{ old('experience', $trainer->experience) == '8_years' ? 'selected' : '' }}>8 years</option>
+                                <option value="9_years" {{ old('experience', $trainer->experience) == '9_years' ? 'selected' : '' }}>9 years</option>
+                                <option value="10_years" {{ old('experience', $trainer->experience) == '10_years' ? 'selected' : '' }}>10 years</option>
+                                <option value="more_than_10_years" {{ old('experience', $trainer->experience) == 'more_than_10_years' ? 'selected' : '' }}>More than 10 years</option>
+                            </select>
                             @error('experience')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -217,6 +231,97 @@ function togglePassword(fieldId) {
                             @error('training_philosophy')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
+                        </div>
+                        
+                        <!-- Specializations -->
+                        <div class="col-xl-12 mb-3">
+                            <label for="specializations" class="form-label">Specializations</label>
+                            <select class="form-select @error('specializations') is-invalid @enderror" id="specializations" name="specializations">
+                                <option value="" disabled>Select Specialization</option>
+                                @php
+                                    $specializations = \App\Models\Specialization::where('status', 1)->orderBy('name')->get();
+                                    $trainerSpecialization = $trainer->specializations->first();
+                                @endphp
+                                @foreach($specializations as $specialization)
+                                    <option value="{{ $specialization->id }}" 
+                                        {{ old('specializations', $trainerSpecialization?->id) == $specialization->id ? 'selected' : '' }}>
+                                        {{ $specialization->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('specializations')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <!-- Location Management Section -->
+                        <div class="col-xl-12 mb-4">
+                            <div class="card border">
+                                <div class="card-header bg-light">
+                                    <h6 class="card-title mb-0">
+                                        <i class="ri-map-pin-line me-2"></i>Location Information
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    @if($trainer->location)
+                                        <div class="row align-items-center">
+                                            <div class="col-md-8">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <span class="badge bg-success-transparent me-2">
+                                                        <i class="ri-map-pin-fill me-1"></i>Location Set
+                                                    </span>
+                                                    @if($trainer->location->country && $trainer->location->state && $trainer->location->city)
+                                                        <span class="badge bg-info-transparent">Complete</span>
+                                                    @else
+                                                        <span class="badge bg-warning-transparent">Incomplete</span>
+                                                    @endif
+                                                </div>
+                                                <div class="text-muted">
+                                                    <strong>Address:</strong>
+                                                    @if($trainer->location->address)
+                                                        {{ $trainer->location->address }},
+                                                    @endif
+                                                    @if($trainer->location->city)
+                                                        {{ $trainer->location->city }},
+                                                    @endif
+                                                    @if($trainer->location->state)
+                                                        {{ $trainer->location->state }},
+                                                    @endif
+                                                    @if($trainer->location->country)
+                                                        {{ $trainer->location->country }}
+                                                    @endif
+                                                    @if($trainer->location->zipcode)
+                                                        - {{ $trainer->location->zipcode }}
+                                                    @endif
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4 text-end">
+                                                <div class="btn-group" role="group">
+                                                    <a href="{{ route('admin.user-locations.show', $trainer->location->id) }}" 
+                                                       class="btn btn-sm btn-outline-info" title="View Location">
+                                                        <i class="ri-eye-line"></i>
+                                                    </a>
+                                                    <a href="{{ route('admin.user-locations.edit', $trainer->location->id) }}" 
+                                                       class="btn btn-sm btn-outline-primary" title="Edit Location">
+                                                        <i class="ri-edit-line"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <div class="text-center py-3">
+                                            <div class="mb-3">
+                                                <i class="ri-map-pin-line fs-24 text-muted"></i>
+                                            </div>
+                                            <p class="text-muted mb-3">No location information available for this trainer.</p>
+                                            <a href="{{ route('admin.user-locations.create', ['user_id' => $trainer->id]) }}" 
+                                               class="btn btn-primary btn-sm">
+                                                <i class="ri-add-line me-1"></i>Add Location
+                                            </a>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
                         </div>
                         
                         <!-- Password Fields -->

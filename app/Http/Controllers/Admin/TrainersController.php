@@ -237,10 +237,11 @@ class TrainersController extends Controller
                 'password' => 'required|string|min:8|confirmed',
                 'phone' => 'nullable|string|max:20|unique:users,phone',
                 'designation' => 'required|string|max:255',
-                'experience' => 'required|integer|min:0|max:50',
+                'experience' => 'required|in:less_than_1_year,1_year,2_years,3_years,4_years,5_years,6_years,7_years,8_years,9_years,10_years,more_than_10_years',
                 'about' => 'required|string|max:1000',
                 'training_philosophy' => 'nullable|string|max:1000',
-                'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+                'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'specializations' => 'nullable|exists:specializations,id'
             ];
             
             // Validate input
@@ -279,11 +280,17 @@ class TrainersController extends Controller
                 $trainer->update(['profile_image' => $imagePath]);
             }
             
+            // Handle specialization assignment
+            if ($request->filled('specializations')) {
+                $trainer->specializations()->sync([$request->specializations]);
+            }
+            
             // Log trainer creation
             Log::info('New trainer created by admin', [
                 'admin_id' => Auth::id(),
                 'trainer_id' => $trainer->id,
-                'trainer_email' => $trainer->email
+                'trainer_email' => $trainer->email,
+                'specialization_id' => $request->specializations
             ]);
             
             if ($request->ajax()) {
@@ -405,10 +412,11 @@ class TrainersController extends Controller
                 'email' => 'required|email|unique:users,email,' . $trainer->id,
                 'phone' => 'nullable|string|max:20|unique:users,phone,' . $trainer->id,
                 'designation' => 'required|string|max:255',
-                'experience' => 'required|integer|min:0|max:50',
+                'experience' => 'required|in:less_than_1_year,1_year,2_years,3_years,4_years,5_years,6_years,7_years,8_years,9_years,10_years,more_than_10_years',
                 'about' => 'required|string|max:1000',
                 'training_philosophy' => 'nullable|string|max:1000',
-                'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+                'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'specializations' => 'nullable|exists:specializations,id'
             ];
             
             // Add password validation if provided
@@ -459,12 +467,21 @@ class TrainersController extends Controller
             
             $trainer->update($trainerData);
             
+            // Handle specialization assignment
+            if ($request->filled('specializations')) {
+                $trainer->specializations()->sync([$request->specializations]);
+            } else {
+                // If no specialization selected, remove all existing specializations
+                $trainer->specializations()->detach();
+            }
+            
             // Log trainer update
             Log::info('Trainer updated by admin', [
                 'admin_id' => Auth::id(),
                 'trainer_id' => $trainer->id,
                 'trainer_email' => $trainer->email,
-                'changes' => $request->except(['password', 'password_confirmation'])
+                'changes' => $request->except(['password', 'password_confirmation']),
+                'specialization_id' => $request->specializations
             ]);
             
             if ($request->ajax()) {

@@ -38,10 +38,11 @@
                                             @enderror
                                         </div>
                                         
-                                        <div class="col-md-12 mb-3">
-                                            <label class="form-label">Description</label>
-                                            <textarea class="form-control @error('description') is-invalid @enderror" name="description" rows="3" placeholder="Enter workout description">{{ old('description', $workout->description) }}</textarea>
-                                            @error('description')
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Price ($)</label>
+                                            <input type="number" step="0.01" min="0" max="9999999.99" class="form-control @error('price') is-invalid @enderror" name="price" placeholder="Enter price (leave empty for free)" value="{{ old('price', $workout->price) }}">
+                                            <small class="text-muted">Leave empty or enter 0 for free workout</small>
+                                            @error('price')
                                                 <div class="invalid-feedback">
                                                     {{ $message }}
                                                 </div>
@@ -59,6 +60,16 @@
                                                 @endforeach
                                             </select>
                                             @error('user_id')
+                                                <div class="invalid-feedback">
+                                                    {{ $message }}
+                                                </div>
+                                            @enderror
+                                        </div>
+                                        
+                                        <div class="col-md-12 mb-3">
+                                            <label class="form-label">Description</label>
+                                            <textarea class="form-control @error('description') is-invalid @enderror" name="description" rows="3" placeholder="Enter workout description">{{ old('description', $workout->description) }}</textarea>
+                                            @error('description')
                                                 <div class="invalid-feedback">
                                                     {{ $message }}
                                                 </div>

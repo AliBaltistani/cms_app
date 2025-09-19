@@ -10,11 +10,15 @@ use App\Models\User;
 use App\Models\UserCertification;
 use App\Models\Testimonial;
 use App\Models\TestimonialLikesDislike;
+use App\Models\Availability;
+use App\Models\BlockedTime;
+use App\Models\Schedule;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 /**
  * TrainerController
@@ -24,30 +28,223 @@ use Illuminate\Support\Facades\DB;
 class TrainerController extends Controller
 {
     /**
-     * Display a listing of trainers.
+     * Display a listing of trainers with advanced filtering options.
      * 
+     * Supports filtering by:
+     * - search: Search in trainer name, email, designation, about, and training_philosophy
+     * - specializations: Filter by specialization IDs (comma-separated or array)
+     * - locations: Filter by country, state, or city (comma-separated or array)
+     * - price: Sort by workout prices (lowest_first, highest_first)
+     * 
+     * @param Request $request
      * @return JsonResponse
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
-            $trainers = User::where('role', 'trainer')
-                ->with(['certifications', 'receivedTestimonials.client'])
-                ->select('id', 'name', 'email', 'designation', 'profile_image', 'phone', 'experience', 'about', 'training_philosophy', 'created_at')
-                ->paginate(10);
-            
+            // Validate filter parameters
+            $validated = $request->validate([
+                'search' => 'nullable|string|max:255',
+                'specializations' => 'nullable|string',
+                'locations' => 'nullable|string',
+                'price' => 'nullable|string|in:lowest_first,highest_first',
+                'per_page' => 'nullable|integer|min:1|max:100',
+                'page' => 'nullable|integer|min:1'
+            ]);
+
+            // Initialize query builder
+            $query = User::where('users.role', 'trainer')
+                ->with([
+                    'certifications', 
+                    'receivedTestimonials.client',
+                    'specializations:id,name',
+                    'location:id,user_id,country,state,city',
+                    'workouts:id,user_id,name,price',
+                    'availabilities' => function ($query) {
+                        $query->select('id', 'trainer_id', 'day_of_week', 'morning_available', 'evening_available', 
+                                     'morning_start_time', 'morning_end_time', 'evening_start_time', 'evening_end_time');
+                    }
+                ])
+                ->select('users.id', 'users.name', 'users.email', 'users.designation', 'users.profile_image', 'users.phone', 'users.experience', 'users.about', 'users.training_philosophy', 'users.created_at');
+
+            // Apply search filter
+            if (!empty($validated['search'])) {
+                $searchTerm = trim($validated['search']);
+                $query->where(function ($q) use ($searchTerm) {
+                    $q->where('users.name', 'LIKE', "%{$searchTerm}%")
+                      ->orWhere('users.email', 'LIKE', "%{$searchTerm}%")
+                      ->orWhere('users.designation', 'LIKE', "%{$searchTerm}%")
+                      ->orWhere('users.about', 'LIKE', "%{$searchTerm}%")
+                      ->orWhere('users.training_philosophy', 'LIKE', "%{$searchTerm}%");
+                });
+            }
+
+            // Apply specializations filter
+            if (!empty($validated['specializations'])) {
+                $specializationIds = $this->parseFilterValues($validated['specializations']);
+                
+                if (!empty($specializationIds)) {
+                    // Validate specialization IDs exist
+                    $validSpecializations = \App\Models\Specialization::whereIn('id', $specializationIds)
+                        ->where('status', 'active')
+                        ->pluck('id')
+                        ->toArray();
+                    
+                    if (!empty($validSpecializations)) {
+                        $query->whereHas('specializations', function ($q) use ($validSpecializations) {
+                            $q->whereIn('specializations.id', $validSpecializations);
+                        });
+                    }
+                }
+            }
+
+            // Apply location filter
+            if (!empty($validated['locations'])) {
+                $locationValues = $this->parseFilterValues($validated['locations']);
+                
+                if (!empty($locationValues)) {
+                    $query->whereHas('location', function ($q) use ($locationValues) {
+                        $q->where(function ($subQ) use ($locationValues) {
+                            foreach ($locationValues as $location) {
+                                $location = trim($location);
+                                $subQ->orWhere('country', 'LIKE', "%{$location}%")
+                                     ->orWhere('state', 'LIKE', "%{$location}%")
+                                     ->orWhere('city', 'LIKE', "%{$location}%");
+                            }
+                        });
+                    });
+                }
+            }
+
+            // Apply price sorting based on trainer's workout prices
+            if (!empty($validated['price'])) {
+                $priceOrder = $validated['price'];
+                
+                // Add subquery to get minimum workout price for each trainer
+                $query->leftJoin('workouts', 'users.id', '=', 'workouts.user_id')
+                      ->selectRaw('MIN(workouts.price) as min_workout_price')
+                      ->groupBy('users.id', 'users.name', 'users.email', 'users.designation', 
+                               'users.profile_image', 'users.phone', 'users.experience', 
+                               'users.about', 'users.training_philosophy', 'users.created_at');
+                
+                if ($priceOrder === 'lowest_first') {
+                    $query->orderByRaw('min_workout_price IS NULL, min_workout_price ASC');
+                } elseif ($priceOrder === 'highest_first') {
+                    $query->orderByRaw('min_workout_price IS NULL, min_workout_price DESC');
+                }
+            } else {
+                // Default sorting by creation date (newest first)
+                $query->orderBy('users.created_at', 'desc');
+            }
+
+            // Set pagination parameters
+            $perPage = $validated['per_page'] ?? 10;
+            $perPage = min($perPage, 100); // Ensure maximum limit
+
+            // Execute query with pagination
+            $trainers = $query->paginate($perPage);
+
+            // Transform the data to include additional computed fields
+            $trainers->getCollection()->transform(function ($trainer) {
+                // Add computed fields
+                $trainer->specialization_names = $trainer->specializations->pluck('name')->implode(', ');
+                $trainer->location_display = $this->formatLocationDisplay($trainer->location);
+                $trainer->workout_count = $trainer->workouts->count();
+                $trainer->min_workout_price = $trainer->workouts->min('price') ?? 0;
+                $trainer->max_workout_price = $trainer->workouts->max('price') ?? 0;
+                $trainer->avg_workout_price = $trainer->workouts->avg('price') ?? 0;
+                $trainer->testimonial_count = $trainer->receivedTestimonials->count();
+                
+                // Format prices
+                $trainer->formatted_min_price = $trainer->min_workout_price == 0 ? 'Free' : '$' . number_format($trainer->min_workout_price, 2);
+                $trainer->formatted_max_price = $trainer->max_workout_price == 0 ? 'Free' : '$' . number_format($trainer->max_workout_price, 2);
+                $trainer->formatted_avg_price = $trainer->avg_workout_price == 0 ? 'Free' : '$' . number_format($trainer->avg_workout_price, 2);
+                
+                // Add availability summary
+                $trainer->availability_summary = $this->formatAvailabilitySummary($trainer->availabilities);
+                $trainer->is_available_today = $this->isAvailableToday($trainer->availabilities);
+                $trainer->next_available_slot = $this->getNextAvailableSlot($trainer->availabilities);
+                
+                return $trainer;
+            });
+
             return response()->json([
                 'success' => true,
                 'message' => 'Trainers retrieved successfully',
-                'data' => $trainers
+                'data' => $trainers,
+                'filters_applied' => [
+                    'search' => $validated['search'] ?? null,
+                    'specializations' => $validated['specializations'] ?? null,
+                    'locations' => $validated['locations'] ?? null,
+                    'price_sort' => $validated['price'] ?? null
+                ]
             ]);
-        } catch (\Exception $e) {
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to retrieve trainers',
-                'error' => $e->getMessage()
+                'message' => 'Invalid filter parameters provided',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            // Log the error for debugging
+            \Log::error('TrainerController@index failed: ' . $e->getMessage(), [
+                'request_data' => $request->all(),
+                'user_id' => auth()->id(),
+                'timestamp' => now(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve trainers. Please try again later.',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
             ], 500);
         }
+    }
+
+    /**
+     * Parse filter values from comma-separated string or array format.
+     * 
+     * @param string $filterValues
+     * @return array
+     */
+    private function parseFilterValues(string $filterValues): array
+    {
+        if (empty($filterValues)) {
+            return [];
+        }
+
+        // Handle comma-separated values
+        $values = explode(',', $filterValues);
+        
+        // Clean and filter values
+        $cleanValues = array_filter(array_map('trim', $values), function ($value) {
+            return !empty($value);
+        });
+
+        return array_values($cleanValues);
+    }
+
+    /**
+     * Format location display string from UserLocation model.
+     * 
+     * @param \App\Models\UserLocation|null $location
+     * @return string
+     */
+    private function formatLocationDisplay($location): string
+    {
+        if (!$location) {
+            return 'Location not specified';
+        }
+
+        $parts = array_filter([
+            $location->city,
+            $location->state,
+            $location->country
+        ]);
+
+        return !empty($parts) ? implode(', ', $parts) : 'Location not specified';
     }
 
     /**
@@ -66,6 +263,11 @@ class TrainerController extends Controller
                     'receivedTestimonials' => function ($query) {
                         $query->with('client:id,name')
                               ->orderBy('created_at', 'desc');
+                    },
+                    'availabilities' => function ($query) {
+                        $query->select('id', 'trainer_id', 'day_of_week', 'morning_available', 'evening_available', 
+                                     'morning_start_time', 'morning_end_time', 'evening_start_time', 'evening_end_time')
+                              ->orderBy('day_of_week');
                     }
                 ])
                 ->select('id', 'name', 'email', 'phone', 'profile_image', 'designation', 'experience', 'about', 'training_philosophy', 'created_at')
@@ -77,6 +279,11 @@ class TrainerController extends Controller
                     'message' => 'Trainer not found'
                 ], 404);
             }
+            
+            // Add availability summary to trainer data
+            $trainer->availability_summary = $this->formatAvailabilitySummary($trainer->availabilities);
+            $trainer->is_available_today = $this->isAvailableToday($trainer->availabilities);
+            $trainer->next_available_slot = $this->getNextAvailableSlot($trainer->availabilities);
             
             return response()->json([
                 'success' => true,
@@ -554,6 +761,400 @@ class TrainerController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Get trainer availability for specific dates with time slots.
+     * 
+     * @param Request $request
+     * @param string $id Trainer ID
+     * @return JsonResponse
+     */
+    public function getAvailability(Request $request, string $id): JsonResponse
+    {
+        try {
+            // Validate trainer exists and is a trainer
+            $trainer = User::where('id', $id)
+                ->where('role', 'trainer')
+                ->first();
+
+            if (!$trainer) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Trainer not found'
+                ], 404);
+            }
+
+            // Get date parameters or default to today and next 7 days
+            $dateFrom = $request->get('date_from', now()->format('Y-m-d'));
+            $dateTo = $request->get('date_to', now()->addDays(7)->format('Y-m-d'));
+
+            // Validate date format
+            try {
+                $startDate = Carbon::createFromFormat('Y-m-d', $dateFrom);
+                $endDate = Carbon::createFromFormat('Y-m-d', $dateTo);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid date format. Use Y-m-d format.'
+                ], 400);
+            }
+
+            // Get trainer's weekly availability settings
+            $weeklyAvailability = Availability::forTrainer($id)
+                ->orderBy('day_of_week')
+                ->get()
+                ->keyBy('day_of_week');
+
+            // Get blocked times for the date range
+            $blockedTimes = BlockedTime::forTrainer($id)
+                ->whereBetween('date', [$dateFrom, $dateTo])
+                ->get()
+                ->groupBy('date');
+
+            // Get existing bookings for the date range
+            $existingBookings = Schedule::forTrainer($id)
+                ->whereBetween('date', [$dateFrom, $dateTo])
+                ->where('status', '!=', Schedule::STATUS_CANCELLED)
+                ->get()
+                ->groupBy('date');
+
+            $availabilityData = [];
+            $currentDate = $startDate->copy();
+
+            while ($currentDate->lte($endDate)) {
+                $dateString = $currentDate->format('Y-m-d');
+                $dayOfWeek = $currentDate->dayOfWeek;
+                
+                // Get weekly availability for this day
+                $dayAvailability = $weeklyAvailability->get($dayOfWeek);
+                
+                $dayData = [
+                    'date' => $dateString,
+                    'day_name' => $currentDate->format('l'),
+                    'available' => false,
+                    'time_slots' => []
+                ];
+
+                if ($dayAvailability) {
+                    $timeSlots = [];
+                    
+                    // Generate morning slots if available
+                    if ($dayAvailability->isMorningAvailable()) {
+                        $morningSlots = $this->generateTimeSlots(
+                            $dayAvailability->morning_start_time,
+                            $dayAvailability->morning_end_time,
+                            60 // 60 minutes per slot
+                        );
+                        $timeSlots = array_merge($timeSlots, $morningSlots);
+                    }
+                    
+                    // Generate evening slots if available
+                    if ($dayAvailability->isEveningAvailable()) {
+                        $eveningSlots = $this->generateTimeSlots(
+                            $dayAvailability->evening_start_time,
+                            $dayAvailability->evening_end_time,
+                            60 // 60 minutes per slot
+                        );
+                        $timeSlots = array_merge($timeSlots, $eveningSlots);
+                    }
+                    
+                    // Filter out blocked times and existing bookings
+                    $dayBlockedTimes = $blockedTimes->get($dateString, collect());
+                    $dayBookings = $existingBookings->get($dateString, collect());
+                    
+                    foreach ($timeSlots as &$slot) {
+                        $slot['available'] = true;
+                        $slot['reason'] = null;
+                        
+                        // Check against blocked times
+                        foreach ($dayBlockedTimes as $blockedTime) {
+                            if ($this->isTimeSlotBlocked($slot, $blockedTime)) {
+                                $slot['available'] = false;
+                                $slot['reason'] = $blockedTime->reason ?: 'Blocked';
+                                break;
+                            }
+                        }
+                        
+                        // Check against existing bookings
+                        if ($slot['available']) {
+                            foreach ($dayBookings as $booking) {
+                                if ($this->isTimeSlotBooked($slot, $booking)) {
+                                    $slot['available'] = false;
+                                    $slot['reason'] = 'Booked';
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    
+                    $dayData['time_slots'] = $timeSlots;
+                    $dayData['available'] = collect($timeSlots)->contains('available', true);
+                }
+
+                $availabilityData[] = $dayData;
+                $currentDate->addDay();
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Trainer availability retrieved successfully',
+                'data' => [
+                    'trainer' => [
+                        'id' => $trainer->id,
+                        'name' => $trainer->name,
+                        'profile_image' => $trainer->profile_image ? asset('storage/' . $trainer->profile_image) : null
+                    ],
+                    'date_range' => [
+                        'from' => $dateFrom,
+                        'to' => $dateTo
+                    ],
+                    'availability' => $availabilityData
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve trainer availability',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Generate time slots for a given time range.
+     * 
+     * @param string $startTime
+     * @param string $endTime
+     * @param int $slotDuration Duration in minutes
+     * @return array
+     */
+    private function generateTimeSlots(string $startTime, string $endTime, int $slotDuration = 60): array
+    {
+        $slots = [];
+        $start = Carbon::createFromFormat('H:i', $startTime);
+        $end = Carbon::createFromFormat('H:i', $endTime);
+        
+        while ($start->lt($end)) {
+            $slotEnd = $start->copy()->addMinutes($slotDuration);
+            
+            if ($slotEnd->lte($end)) {
+                $slots[] = [
+                    'start_time' => $start->format('H:i'),
+                    'end_time' => $slotEnd->format('H:i'),
+                    'duration_minutes' => $slotDuration
+                ];
+            }
+            
+            $start->addMinutes($slotDuration);
+        }
+        
+        return $slots;
+    }
+
+    /**
+     * Check if a time slot is blocked by a blocked time.
+     * 
+     * @param array $slot
+     * @param BlockedTime $blockedTime
+     * @return bool
+     */
+    private function isTimeSlotBlocked(array $slot, BlockedTime $blockedTime): bool
+    {
+        $slotStart = Carbon::createFromFormat('H:i', $slot['start_time']);
+        $slotEnd = Carbon::createFromFormat('H:i', $slot['end_time']);
+        $blockedStart = Carbon::createFromFormat('H:i', $blockedTime->start_time);
+        $blockedEnd = Carbon::createFromFormat('H:i', $blockedTime->end_time);
+        
+        // Check if slot overlaps with blocked time
+        return $slotStart->lt($blockedEnd) && $slotEnd->gt($blockedStart);
+    }
+
+    /**
+     * Check if a time slot is booked by an existing booking.
+     * 
+     * @param array $slot
+     * @param Schedule $booking
+     * @return bool
+     */
+    private function isTimeSlotBooked(array $slot, Schedule $booking): bool
+    {
+        $slotStart = Carbon::createFromFormat('H:i', $slot['start_time']);
+        $slotEnd = Carbon::createFromFormat('H:i', $slot['end_time']);
+        $bookingStart = Carbon::createFromFormat('H:i', $booking->start_time);
+        $bookingEnd = Carbon::createFromFormat('H:i', $booking->end_time);
+        
+        // Check if slot overlaps with booking
+        return $slotStart->lt($bookingEnd) && $slotEnd->gt($bookingStart);
+    }
+
+    /**
+     * Format availability data for API responses.
+     * 
+     * @param \Illuminate\Database\Eloquent\Collection $availability
+     * @return array
+     */
+    private function formatAvailabilitySummary($availability): array
+    {
+        $summary = [];
+        $dayNames = [
+            0 => 'Sunday',
+            1 => 'Monday', 
+            2 => 'Tuesday',
+            3 => 'Wednesday',
+            4 => 'Thursday',
+            5 => 'Friday',
+            6 => 'Saturday'
+        ];
+
+        foreach ($availability as $slot) {
+            $dayName = $dayNames[$slot->day_of_week] ?? 'Unknown';
+            
+            // Add morning availability
+            if ($slot->morning_available && $slot->morning_start_time && $slot->morning_end_time) {
+                // Convert datetime objects to Carbon instances for formatting
+                $morningStart = Carbon::parse($slot->morning_start_time);
+                $morningEnd = Carbon::parse($slot->morning_end_time);
+                
+                $summary[] = [
+                    'day' => $dayName,
+                    'day_number' => $slot->day_of_week,
+                    'period' => 'morning',
+                    'start_time' => $morningStart->format('H:i:s'),
+                    'end_time' => $morningEnd->format('H:i:s'),
+                    'formatted_time' => $morningStart->format('g:i A') . ' - ' . $morningEnd->format('g:i A')
+                ];
+            }
+            
+            // Add evening availability
+            if ($slot->evening_available && $slot->evening_start_time && $slot->evening_end_time) {
+                // Convert datetime objects to Carbon instances for formatting
+                $eveningStart = Carbon::parse($slot->evening_start_time);
+                $eveningEnd = Carbon::parse($slot->evening_end_time);
+                
+                $summary[] = [
+                    'day' => $dayName,
+                    'day_number' => $slot->day_of_week,
+                    'period' => 'evening',
+                    'start_time' => $eveningStart->format('H:i:s'),
+                    'end_time' => $eveningEnd->format('H:i:s'),
+                    'formatted_time' => $eveningStart->format('g:i A') . ' - ' . $eveningEnd->format('g:i A')
+                ];
+            }
+        }
+
+        return $summary;
+    }
+
+    /**
+     * Check if trainer is available today.
+     * 
+     * @param \Illuminate\Database\Eloquent\Collection $availability
+     * @return bool
+     */
+    private function isAvailableToday($availability): bool
+    {
+        $today = Carbon::now()->dayOfWeek;
+        
+        return $availability->where('day_of_week', $today)
+                           ->where(function($slot) {
+                               return $slot->morning_available || $slot->evening_available;
+                           })
+                           ->isNotEmpty();
+    }
+
+    /**
+     * Get the next available time slot for the trainer.
+     * 
+     * @param \Illuminate\Database\Eloquent\Collection $availability
+     * @return array|null
+     */
+    private function getNextAvailableSlot($availability): ?array
+    {
+        $now = Carbon::now();
+        $currentDay = $now->dayOfWeek;
+        $currentTime = $now->format('H:i:s');
+        
+        $dayNames = [
+            0 => 'Sunday',
+            1 => 'Monday', 
+            2 => 'Tuesday',
+            3 => 'Wednesday',
+            4 => 'Thursday',
+            5 => 'Friday',
+            6 => 'Saturday'
+        ];
+
+        // First, check if there's availability later today
+        $todaySlot = $availability->where('day_of_week', $currentDay)->first();
+        
+        if ($todaySlot) {
+            // Check evening availability if current time is before evening start
+            if ($todaySlot->evening_available && 
+                $todaySlot->evening_start_time) {
+                
+                $eveningStart = Carbon::parse($todaySlot->evening_start_time);
+                
+                if ($eveningStart->format('H:i:s') > $currentTime) {
+                    $eveningEnd = Carbon::parse($todaySlot->evening_end_time);
+                    
+                    return [
+                        'day' => $dayNames[$todaySlot->day_of_week],
+                        'day_number' => $todaySlot->day_of_week,
+                        'date' => $now->format('Y-m-d'),
+                        'period' => 'evening',
+                        'start_time' => $eveningStart->format('H:i:s'),
+                        'end_time' => $eveningEnd->format('H:i:s'),
+                        'formatted_time' => $eveningStart->format('g:i A') . ' - ' . $eveningEnd->format('g:i A')
+                    ];
+                }
+            }
+        }
+
+        // Look for next available day within the next 7 days
+        for ($i = 1; $i <= 7; $i++) {
+            $checkDay = ($currentDay + $i) % 7;
+            $checkDate = $now->copy()->addDays($i);
+            
+            $daySlot = $availability->where('day_of_week', $checkDay)->first();
+            
+            if ($daySlot) {
+                // Check morning availability first
+                if ($daySlot->morning_available && $daySlot->morning_start_time) {
+                    $morningStart = Carbon::parse($daySlot->morning_start_time);
+                    $morningEnd = Carbon::parse($daySlot->morning_end_time);
+                    
+                    return [
+                        'day' => $dayNames[$daySlot->day_of_week],
+                        'day_number' => $daySlot->day_of_week,
+                        'date' => $checkDate->format('Y-m-d'),
+                        'period' => 'morning',
+                        'start_time' => $morningStart->format('H:i:s'),
+                        'end_time' => $morningEnd->format('H:i:s'),
+                        'formatted_time' => $morningStart->format('g:i A') . ' - ' . $morningEnd->format('g:i A')
+                    ];
+                }
+                
+                // Check evening availability if no morning availability
+                if ($daySlot->evening_available && $daySlot->evening_start_time) {
+                    $eveningStart = Carbon::parse($daySlot->evening_start_time);
+                    $eveningEnd = Carbon::parse($daySlot->evening_end_time);
+                    
+                    return [
+                        'day' => $dayNames[$daySlot->day_of_week],
+                        'day_number' => $daySlot->day_of_week,
+                        'date' => $checkDate->format('Y-m-d'),
+                        'period' => 'evening',
+                        'start_time' => $eveningStart->format('H:i:s'),
+                        'end_time' => $eveningEnd->format('H:i:s'),
+                        'formatted_time' => $eveningStart->format('g:i A') . ' - ' . $eveningEnd->format('g:i A')
+                    ];
+                }
+            }
+        }
+
+        return null; // No availability found in the next 7 days
     }
 
 }

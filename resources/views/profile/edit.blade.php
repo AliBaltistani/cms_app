@@ -189,6 +189,30 @@
                                     <small class="text-muted">Explain your training approach and philosophy (max 1000 characters)</small>
                                 </div>
                             </div>
+                            
+                            <div class="col-xl-12">
+                                <label for="profile-specializations" class="form-label">Specializations :</label>
+                                <select class="form-select @error('specializations') is-invalid @enderror" id="profile-specializations" name="specializations[]" multiple>
+                                    @php
+                                        $specializations = \App\Models\Specialization::where('status', 1)->orderBy('name')->get();
+                                        $userSpecializations = $user->specializations->pluck('id')->toArray();
+                                    @endphp
+                                    @foreach($specializations as $specialization)
+                                        <option value="{{ $specialization->id }}" 
+                                            {{ in_array($specialization->id, old('specializations', $userSpecializations)) ? 'selected' : '' }}>
+                                            {{ $specialization->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('specializations')
+                                    <div class="invalid-feedback">
+                                        {{ $message }}
+                                    </div>
+                                @enderror
+                                <div class="form-text">
+                                    <small class="text-muted">Select your areas of expertise and specialization (hold Ctrl/Cmd to select multiple)</small>
+                                </div>
+                            </div>
                         @endif
                     </div>
                     <div class="mt-4">

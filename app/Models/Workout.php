@@ -19,16 +19,19 @@ class Workout extends Model
         'is_active',
         'thumbnail',
         'user_id',
+        'price',
     ];
 
     protected $casts = [
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
+        'price' => 'decimal:2'
     ];
 
     protected $appends = [
         'formatted_duration',
         'total_videos',
-        'total_duration_seconds'
+        'total_duration_seconds',
+        'formatted_price'
     ];
 
     // Relationships
@@ -78,6 +81,20 @@ class Workout extends Model
     public function getTotalDurationSecondsAttribute(): int
     {
         return $this->videos()->sum('duration') ?? 0;
+    }
+
+    /**
+     * Get formatted price with currency symbol
+     * 
+     * @return string
+     */
+    public function getFormattedPriceAttribute(): string
+    {
+        if ($this->price == 0) {
+            return 'Free';
+        }
+        
+        return '$' . number_format($this->price, 2);
     }
 
     // Methods
