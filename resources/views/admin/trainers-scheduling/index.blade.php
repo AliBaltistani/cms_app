@@ -100,7 +100,7 @@
                     <div class="d-flex align-items-start justify-content-between">
                         <div>
                             <span class="avatar avatar-md avatar-rounded bg-success">
-                                <i class="ti ti-check-circle fs-16"></i>
+                                <i class="ti ti-check fs-16"></i>
                             </span>
                         </div>
                         <div class="flex-fill ms-3">
@@ -184,8 +184,8 @@
                 </div>
                 <div class="card-body">
                     <!-- Filters -->
-                    <div class="row mb-3">
-                        <div class="col-md-3">
+                    <div class="row ">
+                        {{-- <div class="col-md-3">
                             <select class="form-select" id="setupStatusFilter">
                                 <option value="">All Setup Status</option>
                                 <option value="complete">Complete Setup</option>
@@ -200,7 +200,7 @@
                                 <option value="busy">Busy</option>
                                 <option value="unavailable">Unavailable</option>
                             </select>
-                        </div>
+                        </div> --}}
                         <!-- <div class="col-md-3">
                             <button class="btn btn-success btn-sm" id="exportBtn">
                                 <i class="ri-download-2-line me-1"></i>Export
@@ -213,7 +213,7 @@
 
                     <!-- Data Table -->
                     <div class="table-responsive">
-                        <table id="trainers-scheduling-table" class="table text-nowrap table-striped table-bordered">
+                        <table id="trainers-scheduling-table" class="table text-nowrap table-striped table-bordered w-100">
                             <thead>
                                 <tr>
                                     <th>ID</th>

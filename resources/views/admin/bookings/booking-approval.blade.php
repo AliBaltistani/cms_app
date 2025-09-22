@@ -217,8 +217,13 @@
         @if($trainer)
             <!-- Trainer Info -->
             <div class="trainer-info">
-                <img src="{{ $trainer->profile_image ? asset('storage/' . $trainer->profile_image) : asset('assets/images/faces/9.jpg') }}" 
-                     alt="{{ $trainer->name }}">
+                 @if($trainer->profile_image && file_exists(public_path('storage/' . $trainer->profile_image)))
+                    <img src="{{ asset('storage/' . $trainer->profile_image) }}" alt="{{ $trainer->name }}">
+                @else
+                    <div style="width:48px;height:48px;border-radius:50%;background:#e0e0e0;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;color:#666;">
+                        {{ strtoupper(substr($trainer->name, 0, 1)) }}
+                    </div>
+                @endif
                 <div>
                     <div class="name">{{ $trainer->name }}</div>
                     <div class="role">Personal Trainer</div>
