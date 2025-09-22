@@ -274,7 +274,6 @@
 								<img src="{{ asset('storage/' . Auth::user()->profile_image) }}" alt="{{ Auth::user()->name }}">
 							@else
 							<div class="header-link-icon avatar bg-primary-transparent avatar-rounded">
-									{{-- <img src="{{asset('build/assets/images/faces/10.jpg')}}" alt="{{ Auth::user()->name }}"> --}}
 								{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
 								</div>
 								
