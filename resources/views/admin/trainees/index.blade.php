@@ -85,6 +85,7 @@ $(document).ready(function() {
                 width: '15%',
                 render: function(data, type, row) {
                     return `
+                      <div class="d-flex justify-content-end">
                         <div class="btn-group" role="group">
                             <button type="button" class="btn btn-sm btn-info btn-wave" onclick="viewTrainee(${data})" title="View">
                                 <i class="ri-eye-line"></i>
@@ -98,6 +99,7 @@ $(document).ready(function() {
                             <button type="button" class="btn btn-sm btn-danger btn-wave" onclick="deleteTrainee(${data})" title="Delete">
                                 <i class="ri-delete-bin-5-line"></i>
                             </button>
+                        </div>
                         </div>
                     `;
                 }

@@ -192,7 +192,13 @@ Route::middleware('auth')->group(function () {
             Route::delete('/destroy/{id}', [GoalsController::class, 'delete'])->name('goals.destroy');
         });
 
-        // Workouts Management
+        // Workouts Management - Additional routes MUST come before resource routes
+        Route::get('workouts/stats', [WorkoutController::class, 'stats'])->name('workouts.stats');
+        Route::get('workouts/{workout}/videos-list', [WorkoutController::class, 'videosList'])->name('workouts.videos-list');
+        Route::post('workouts/{workout}/duplicate', [WorkoutController::class, 'duplicate'])->name('workouts.duplicate');
+        Route::patch('workouts/{workout}/toggle-status', [WorkoutController::class, 'toggleStatus'])->name('workouts.toggle-status');
+        
+        // Resource routes (must come after specific routes to avoid conflicts)
         Route::resource('workouts', WorkoutController::class);
         Route::resource('workouts.videos', WorkoutVideoController::class)
             ->names([
@@ -204,10 +210,6 @@ Route::middleware('auth')->group(function () {
                 'update' => 'workout-videos.update',
                 'destroy' => 'workout-videos.destroy',
             ]);
-            
-        // Additional Workout Routes
-        Route::post('workouts/{workout}/duplicate', [WorkoutController::class, 'duplicate'])->name('workouts.duplicate');
-        Route::patch('workouts/{workout}/toggle-status', [WorkoutController::class, 'toggleStatus'])->name('workouts.toggle-status');
         
         // Workout Video Additional Routes
         Route::get('workouts/{workout}/videos/reorder', [WorkoutVideoController::class, 'reorderForm'])->name('workout-videos.reorder-form');
@@ -276,6 +278,12 @@ Route::middleware('auth')->group(function () {
             Route::get('/booking-approval', [\App\Http\Controllers\Admin\BookingController::class, 'bookingApproval'])->name('admin.bookings.booking-approval');
             Route::post('/booking-approval', [\App\Http\Controllers\Admin\BookingController::class, 'updateBookingApproval'])->name('admin.bookings.booking-approval.update');
         });
+
+        /**
+         * TRAINERS SCHEDULING MANAGEMENT
+         * Admin overview of all trainers' scheduling settings
+         */
+        Route::get('/trainers-scheduling', [\App\Http\Controllers\Admin\BookingController::class, 'trainersScheduling'])->name('admin.trainers-scheduling.index');
     });
 
     /**

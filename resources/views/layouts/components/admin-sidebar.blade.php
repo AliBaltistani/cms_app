@@ -3,10 +3,10 @@
 	<!-- Start::main-sidebar-header -->
 	<div class="main-sidebar-header">
 		<a href="{{route('admin.dashboard')}}" class="header-logo">
-			<img src="{{asset('build/assets/images/brand-logos/desktop-logo.png')}}" alt="logo" class="desktop-logo">
-			<img src="{{asset('build/assets/images/brand-logos/toggle-dark.png')}}" alt="logo" class="toggle-dark">
-			<img src="{{asset('build/assets/images/brand-logos/desktop-dark.png')}}" alt="logo" class="desktop-dark">
-			<img src="{{asset('build/assets/images/brand-logos/toggle-logo.png')}}" alt="logo" class="toggle-logo">
+			<img src="{{asset('build/assets/images/brand-logos/fav-icon.png')}}" alt="logo" class="desktop-logo">
+			<img src="{{asset('build/assets/images/brand-logos/fav-icon.png')}}" alt="logo" class="toggle-dark">
+			<img src="{{asset('build/assets/images/brand-logos/fav-icon.png')}}" alt="logo" class="desktop-dark">
+			<img src="{{asset('build/assets/images/brand-logos/fav-icon.png')}}" alt="logo" class="toggle-logo">
 		</a>
 	</div>
 	<!-- End::main-sidebar-header -->
@@ -200,19 +200,25 @@
 							</a>
 						</li> -->
 
+						<li class="slide {{ request()->is('admin/trainers-scheduling*') ? 'active' : '' }}">
+							<a href="{{ route('admin.trainers-scheduling.index') }}" class="side-menu__item">
+								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M224,128a96,96,0,1,1-96-96A96,96,0,0,1,224,128Z" opacity="0.2"/><circle cx="128" cy="128" r="96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="120" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="m63.8,199.37a72,72,0,0,1,128.4,0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="176" y1="56" x2="200" y2="32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="200" y1="56" x2="176" y2="32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+								Trainers Overview
+							</a>
+						</li>
 						<li class="slide {{ request()->is('admin/bookings/scheduling-menu*') ? 'active' : '' }}">
 							<a href="{{ route('admin.bookings.scheduling-menu') }}" class="side-menu__item">
 								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><circle cx="128" cy="128" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="m70.7,70.7,33.6,33.6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="m151.7,151.7,33.6,33.6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="m185.3,70.7-33.6,33.6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="m104.3,151.7-33.6,33.6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="40" x2="128" y2="56" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="40" y1="128" x2="56" y2="128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="200" x2="128" y2="216" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="200" y1="128" x2="216" y2="128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
 								Scheduling Settings
 							</a>
 						</li>
-						{{-- <li class="slide {{ request()->is('admin/bookings/schedule') ? 'active' : '' }}">
+						<!-- <li class="slide {{ request()->is('admin/bookings/schedule') ? 'active' : '' }}">
 							<a href="{{ route('admin.bookings.schedule') }}" class="side-menu__item">
 								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,208,32Z" opacity="0.2"/><rect x="32" y="48" width="192" height="160" rx="16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="16" x2="128" y2="48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="176" y1="16" x2="176" y2="48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="80" y1="16" x2="80" y2="48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="32" y1="80" x2="224" y2="80" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
 								Schedule Calendar
 							</a>
-						</li> --}}
-						<!-- <li class="slide {{ request()->is('admin/bookings') && !request()->is('admin/bookings/*') ? 'active' : '' }}">
+						</li> 
+						 <li class="slide {{ request()->is('admin/bookings') && !request()->is('admin/bookings/*') ? 'active' : '' }}">
 							<a href="{{ route('admin.bookings.index') }}" class="side-menu__item">
 								<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><rect x="40" y="40" width="176" height="176" rx="8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="40" y1="88" x2="216" y2="88" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="40" x2="128" y2="216" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
 								All Bookings
@@ -267,7 +273,10 @@
 							@if(Auth::user()->profile_image)
 								<img src="{{ asset('storage/' . Auth::user()->profile_image) }}" alt="{{ Auth::user()->name }}">
 							@else
-								<img src="{{asset('build/assets/images/faces/10.jpg')}}" alt="{{ Auth::user()->name }}">
+							<div class="header-link-icon avatar bg-primary-transparent avatar-rounded">
+								{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+								</div>
+								
 							@endif
 						</span>
 					</a>

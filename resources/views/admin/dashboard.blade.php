@@ -177,7 +177,11 @@
                             @if($user->profile_image)
                                 <img src="{{ asset('storage/' . $user->profile_image) }}" alt="{{ $user->name }}">
                             @else
-                                <img src="{{asset('build/assets/images/faces/1.jpg')}}" alt="{{ $user->name }}">
+
+                            <div class="header-link-icon avatar bg-primary-transparent avatar-rounded">
+								     {{ strtoupper(substr($user->name, 0, 1)) }}
+								</div>
+                               
                             @endif
                         </span>
                         <div>
@@ -223,10 +227,16 @@
                     <div class="d-flex align-items-start justify-content-between mb-2">
                         <div class="d-flex align-items-center gap-2">
                             <span class="avatar avatar-sm avatar-rounded">
-                                <img src="{{asset('build/assets/images/faces/2.jpg')}}" alt="{{ $testimonial->name }}">
+                                @if($testimonial->trainer->profile_image)
+                                    <img src="{{ asset('storage/' . $testimonial->trainer->profile_image) }}" alt="{{ $testimonial->trainer->name }}">
+                                @else
+                                <div class="header-link-icon avatar bg-primary-transparent avatar-rounded">
+								    {{ strtoupper(substr($testimonial->trainer->name, 0, 1)) }}
+								</div>
+                                @endif
                             </span>
                             <div>
-                                <h6 class="fw-semibold mb-0">{{ $testimonial->name }}</h6>
+                                <h6 class="fw-semibold mb-0">{{ $testimonial->trainer->name }}</h6>
                                 <span class="text-muted fs-12">for {{ $testimonial->trainer->name }}</span>
                             </div>
                         </div>

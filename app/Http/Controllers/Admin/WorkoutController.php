@@ -86,7 +86,7 @@ class WorkoutController extends Controller
 
     /**
      * Display a listing of workouts
-     * Handles both web and API requests
+     * Handles both web and API requests, including DataTable AJAX requests
      * 
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\View\View|\Illuminate\Http\JsonResponse
@@ -94,6 +94,11 @@ class WorkoutController extends Controller
     public function index(Request $request)
     {
         try {
+            // Handle DataTable AJAX request
+            if ($request->ajax() || $request->has('draw')) {
+                return $this->getDataTableData($request);
+            }
+
             $query = Workout::query()->with(['user:id,name,email,role']);
 
             // Apply filters
@@ -180,6 +185,128 @@ class WorkoutController extends Controller
             
             return redirect()->back()->with('error', 'Failed to retrieve workouts');
         }
+    }
+
+    /**
+     * Handle DataTable AJAX requests
+     * 
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    private function getDataTableData(Request $request): JsonResponse
+    {
+        try {
+            $query = Workout::query()->with(['user:id,name,email,role', 'videos:id,workout_id']);
+
+            // Handle DataTable search
+            if ($request->filled('search.value')) {
+                $search = $request->input('search.value');
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%")
+                      ->orWhereHas('user', function ($userQuery) use ($search) {
+                          $userQuery->where('name', 'like', "%{$search}%");
+                      });
+                });
+            }
+
+            // Get total count before pagination
+            $totalRecords = Workout::count();
+            $filteredRecords = $query->count();
+
+            // Handle DataTable ordering
+            if ($request->filled('order.0.column')) {
+                $columns = ['id', 'name', 'trainer', 'duration', 'total_videos', 'price', 'is_active', 'thumbnail', 'created_at', 'actions'];
+                $orderColumn = $columns[$request->input('order.0.column')] ?? 'id';
+                $orderDirection = $request->input('order.0.dir', 'desc');
+                
+                if ($orderColumn === 'trainer') {
+                    $query->join('users', 'workouts.user_id', '=', 'users.id')
+                          ->orderBy('users.name', $orderDirection)
+                          ->select('workouts.*');
+                } else {
+                    $query->orderBy($orderColumn, $orderDirection);
+                }
+            } else {
+                $query->orderBy('created_at', 'desc');
+            }
+
+            // Handle pagination
+            $start = $request->input('start', 0);
+            $length = $request->input('length', 25);
+            $workouts = $query->skip($start)->take($length)->get();
+
+            // Format data for DataTable
+            $data = $workouts->map(function ($workout) {
+                return [
+                    'id' => $workout->id,
+                    'name' => $workout->name,
+                    'trainer' => $workout->user ? $workout->user->name : 'Unknown',
+                    'formatted_duration' => $workout->duration ? $workout->duration . ' min' : 'N/A',
+                    'total_videos' => $workout->videos->count(),
+                    'formatted_price' => $workout->price > 0 ? '$' . number_format($workout->price, 2) : 'Free',
+                    'is_active' => $workout->is_active ? 
+                        '<span class="badge bg-success">Active</span>' : 
+                        '<span class="badge bg-danger">Inactive</span>',
+                    'thumbnail' => $workout->thumbnail ? 
+                        '<img src="' . asset('storage/' . $workout->thumbnail) . '" alt="Thumbnail" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">' : 
+                        '',
+                    'created_at' => $workout->created_at->format('M d, Y'),
+                    'actions' => $this->getActionButtons($workout->id)
+                ];
+            });
+
+            return response()->json([
+                'draw' => intval($request->input('draw')),
+                'recordsTotal' => $totalRecords,
+                'recordsFiltered' => $filteredRecords,
+                'data' => $data
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('DataTable request failed: ' . $e->getMessage(), [
+                'user_id' => Auth::id(),
+                'request_params' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Retrieval Failed',
+                'data' => ['error' => 'Unable to retrieve workouts']
+            ], 500);
+        }
+    }
+
+    /**
+     * Generate action buttons for DataTable
+     * 
+     * @param  int  $workoutId
+     * @return string
+     */
+    private function getActionButtons(int $workoutId): string
+    {
+        return '
+            <div class="d-flex justify-content-end">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-sm btn-success" onclick="window.location.href=\'/admin/workouts/' . $workoutId . '\'" title="View">
+                    <i class="ri-eye-line"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-primary" onclick="window.location.href=\'/admin/workouts/' . $workoutId . '/edit\'" title="Edit">
+                    <i class="ri-edit-line"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-warning" onclick="showVideos(' . $workoutId . ')" title="Manage Videos">
+                    <i class="ri-video-line"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-info" onclick="toggleStatus(' . $workoutId . ')" title="Toggle Status">
+                    <i class="ri-toggle-line"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-danger" onclick="deleteWorkout(' . $workoutId . ')" title="Delete">
+                    <i class="ri-delete-bin-line"></i>
+                </button>
+            </div>
+            </div>
+        ';
     }
 
     /**
@@ -604,17 +731,104 @@ class WorkoutController extends Controller
     }
 
     /**
+     * Get workout statistics for dashboard
+     */
+    public function stats(Request $request)
+    {
+        try {
+            $stats = [
+                'total_workouts' => Workout::count(),
+                'active_workouts' => Workout::active()->count(),
+                'total_videos' => \App\Models\WorkoutVideo::count(),
+                'paid_workouts' => Workout::where('price', '>', 0)->count(),
+            ];
+            
+            if ($this->isApiRequest($request)) {
+                return $this->sendApiResponse($stats, 'Workout statistics retrieved successfully');
+            }
+            
+            return response()->json([
+                'success' => true,
+                'data' => $stats
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve workout statistics: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve statistics'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get videos list for a workout
+     */
+    public function videosList(Workout $workout, Request $request)
+    {
+        try {
+            $videos = $workout->videos()
+                ->orderBy('order')
+                ->get(['id', 'title', 'duration', 'video_type', 'video_url', 'thumbnail']);
+            
+            if ($this->isApiRequest($request)) {
+                return $this->sendApiResponse($videos, 'Workout videos retrieved successfully');
+            }
+            
+            return response()->json([
+                'success' => true,
+                'data' => $videos
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve workout videos: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve videos'
+            ], 500);
+        }
+    }
+
+    /**
      * Toggle workout active status
      */
-    public function toggleStatus(Workout $workout): RedirectResponse
+    public function toggleStatus(Workout $workout, Request $request)
     {
-        $workout->update(['is_active' => !$workout->is_active]);
+        try {
+            $workout->update(['is_active' => !$workout->is_active]);
+            $status = $workout->is_active ? 'activated' : 'deactivated';
+            
+            if ($this->isApiRequest($request) || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Workout {$status} successfully",
+                    'data' => [
+                        'is_active' => $workout->is_active,
+                        'status' => $status
+                    ]
+                ]);
+            }
 
-        $status = $workout->is_active ? 'activated' : 'deactivated';
-
-        return redirect()
-            ->back()
-            ->with('success', "Workout {$status} successfully");
+            return redirect()
+                ->back()
+                ->with('success', "Workout {$status} successfully");
+                
+        } catch (\Exception $e) {
+            Log::error('Failed to toggle workout status: ' . $e->getMessage());
+            
+            if ($this->isApiRequest($request) || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to toggle workout status'
+                ], 500);
+            }
+            
+            return redirect()
+                ->back()
+                ->with('error', 'Failed to toggle workout status');
+        }
     }
 
     /**

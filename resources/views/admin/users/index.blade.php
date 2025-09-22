@@ -90,19 +90,21 @@ $(document).ready(function() {
                 width: '22%',
                 render: function(data, type, row) {
                     return `
-                        <div class="btn-group" role="group">
-                            <button type="button" class="btn btn-sm btn-info btn-wave" onclick="viewUser(${data})" title="View">
-                                <i class="ri-eye-line"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-success btn-wave" onclick="editUser(${data})" title="Edit">
-                                <i class="ri-edit-2-line"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-warning btn-wave" onclick="toggleUserStatus(${data})" title="Toggle Status">
-                                <i class="ri-toggle-line"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-danger btn-wave" onclick="deleteUser(${data})" title="Delete">
-                                <i class="ri-delete-bin-5-line"></i>
-                            </button>
+                        <div class="d-flex justify-content-end">
+                            <div class="btn-group" role="group" style="align-self: end;">
+                                <button type="button" class="btn btn-sm btn-info btn-wave" onclick="viewUser(${data})" title="View">
+                                    <i class="ri-eye-line"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-success btn-wave" onclick="editUser(${data})" title="Edit">
+                                    <i class="ri-edit-2-line"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-warning btn-wave" onclick="toggleUserStatus(${data})" title="Toggle Status">
+                                    <i class="ri-toggle-line"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger btn-wave" onclick="deleteUser(${data})" title="Delete">
+                                    <i class="ri-delete-bin-5-line"></i>
+                                </button>
+                            </div>
                         </div>
                     `;
                 }

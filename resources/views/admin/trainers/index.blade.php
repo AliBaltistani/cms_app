@@ -455,6 +455,7 @@ $(document).ready(function() {
                 width: '13%',
                 render: function(data, type, row) {
                     return `
+                     <div class="d-flex justify-content-end">
                         <div class="btn-group" role="group">
                             <a href="/admin/trainers/${data}" class="btn btn-sm btn-info btn-wave" title="View">
                                 <i class="ri-eye-line"></i>
@@ -472,6 +473,7 @@ $(document).ready(function() {
                                 <i class="ri-delete-bin-5-line"></i>
                             </button>
                         </div>
+                    </div>
                     `;
                 }
             }

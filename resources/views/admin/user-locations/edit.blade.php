@@ -28,9 +28,9 @@
         </div>
     </div>
     <div class="ms-auto pageheader-btn">
-        <a href="{{ route('admin.user-locations.index') }}" class="btn btn-secondary btn-wave waves-effect waves-light">
+        {{-- <a href="{{ route('admin.user-locations.index') }}" class="btn btn-secondary btn-wave waves-effect waves-light">
             <i class="ri-arrow-left-line align-middle me-1"></i>Back to List
-        </a>
+        </a> --}}
         <a href="{{ route('admin.user-locations.show', $userLocation->id) }}" class="btn btn-info btn-wave waves-effect waves-light">
             <i class="ri-eye-line align-middle me-1"></i>View Details
         </a>
@@ -59,9 +59,15 @@
                                 <div class="card-body py-2">
                                     <div class="d-flex align-items-center">
                                         <div class="avatar avatar-md me-3">
-                                            <img src="{{ $userLocation->user->profile_image ?? '/assets/images/faces/default-avatar.png' }}" 
+                                            @if ($userLocation->user->profile_image)
+                                            <img src="{{ $userLocation->user->profile_image }}" 
                                                  alt="{{ $userLocation->user->name }}" 
                                                  class="rounded-circle">
+                                        @else
+                                            <div class="header-link-icon avatar bg-primary-transparent avatar-rounded d-flex align-items-center justify-content-center" style="width:48px;height:48px;font-size:1.5rem;">
+                                                {{ strtoupper(substr($userLocation->user->name, 0, 1)) }}
+                                            </div>
+                                        @endif
                                         </div>
                                         <div>
                                             <h6 class="mb-1">{{ $userLocation->user->name }}</h6>
