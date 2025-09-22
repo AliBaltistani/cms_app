@@ -278,6 +278,12 @@ Route::middleware('auth')->group(function () {
             Route::get('/booking-approval', [\App\Http\Controllers\Admin\BookingController::class, 'bookingApproval'])->name('admin.bookings.booking-approval');
             Route::post('/booking-approval', [\App\Http\Controllers\Admin\BookingController::class, 'updateBookingApproval'])->name('admin.bookings.booking-approval.update');
         });
+
+        /**
+         * TRAINERS SCHEDULING MANAGEMENT
+         * Admin overview of all trainers' scheduling settings
+         */
+        Route::get('/trainers-scheduling', [\App\Http\Controllers\Admin\BookingController::class, 'trainersScheduling'])->name('admin.trainers-scheduling.index');
     });
 
     /**

@@ -1195,4 +1195,97 @@ class BookingController extends Controller
         
         return $calendarDays;
     }
+
+    /**
+     * Display trainers scheduling overview
+     * 
+     * @param Request $request
+     * @return View
+     */
+    public function trainersScheduling(Request $request): View
+    {
+        // Get all trainers
+        $trainers = User::where('role', 'trainer')
+            ->with([
+                'availabilities',
+                'sessionCapacity',
+                'bookingSettings',
+                'blockedTimes'
+            ])
+            ->select('id', 'name', 'email', 'phone', 'profile_image', 'created_at')
+            ->orderBy('name')
+            ->get();
+
+        // Calculate statistics
+        $stats = [
+            'total_trainers' => $trainers->count(),
+            'active_trainers' => $trainers->count(), // All trainers are considered active since no status column exists
+            'inactive_trainers' => 0, // No inactive trainers since no status column exists
+            'with_availability' => $trainers->filter(function ($trainer) {
+                return $trainer->availabilities->count() > 0;
+            })->count(),
+            'with_session_capacity' => $trainers->filter(function ($trainer) {
+                return $trainer->sessionCapacity !== null;
+            })->count(),
+            'with_booking_settings' => $trainers->filter(function ($trainer) {
+                return $trainer->bookingSettings !== null;
+            })->count(),
+            'total_blocked_times' => BlockedTime::whereIn('trainer_id', $trainers->pluck('id'))->count(),
+        ];
+
+        // Get blocked times count for each trainer
+        $blockedTimesCount = BlockedTime::selectRaw('trainer_id, COUNT(*) as count')
+            ->whereIn('trainer_id', $trainers->pluck('id'))
+            ->groupBy('trainer_id')
+            ->pluck('count', 'trainer_id');
+
+        // Enhance trainers data with additional info
+        $trainers = $trainers->map(function ($trainer) use ($blockedTimesCount) {
+            $trainer->blocked_times_count = $trainer->blockedTimes->count();
+            $trainer->availability_days_count = $trainer->availabilities->count();
+            
+            // Check if trainer has complete scheduling setup
+            $trainer->has_complete_setup = $trainer->availabilities->count() > 0 && 
+                                         $trainer->sessionCapacity !== null && 
+                                         $trainer->bookingSettings !== null;
+            
+            // Add setup status for display
+            if ($trainer->has_complete_setup) {
+                $trainer->setup_status_text = 'Complete';
+                $trainer->setup_status_class = 'status-complete';
+            } elseif ($trainer->availabilities->count() > 0 || $trainer->sessionCapacity !== null || $trainer->bookingSettings !== null) {
+                $trainer->setup_status_text = 'Partial';
+                $trainer->setup_status_class = 'status-partial';
+            } else {
+                $trainer->setup_status_text = 'Not Set';
+                $trainer->setup_status_class = 'status-incomplete';
+            }
+            
+            // Calculate last scheduling update
+            $lastUpdates = collect([
+                $trainer->availabilities->max('updated_at'),
+                $trainer->sessionCapacity?->updated_at,
+                $trainer->bookingSettings?->updated_at
+            ])->filter()->max();
+            
+            $trainer->last_scheduling_update = $lastUpdates ? \Carbon\Carbon::parse($lastUpdates) : null;
+            
+            return $trainer;
+        });
+
+        // Update stats with proper calculations
+        $stats['complete_setup'] = $trainers->where('has_complete_setup', true)->count();
+        $stats['partial_setup'] = $trainers->filter(function ($trainer) {
+            return !$trainer->has_complete_setup && 
+                   ($trainer->availabilities->count() > 0 || $trainer->sessionCapacity !== null || $trainer->bookingSettings !== null);
+        })->count();
+        $stats['no_setup'] = $trainers->filter(function ($trainer) {
+            return $trainer->availabilities->count() == 0 && 
+                   $trainer->sessionCapacity === null && 
+                   $trainer->bookingSettings === null;
+        })->count();
+        $stats['total_blocked_times'] = $trainers->sum('blocked_times_count');
+
+        return view('admin.trainers-scheduling.index', compact('trainers', 'stats'));
+    }
 }
