@@ -25,8 +25,8 @@
         <div class="row">
             <div class="col-xl-12">
                 <div class="card custom-card profile-card">
-                    <div class="profile-banner-image">
-                        <img src="{{asset('build/assets/images/media/media-3.jpg')}}" class="card-img-top" alt="...">
+                    <div class="profile-banner-image" style="background-color: #f3f6fa;">
+                        {{-- <img src="{{ asset('build/assets/images/media/media-3.jpg') }}" class="card-img-top" alt="..." onerror="this.style.display='none'; this.parentElement.style.backgroundColor='#e0e7ef';"> --}}
                     </div>
                     <div class="card-body p-4 pb-0 position-relative">
                         <div class="d-flex align-items-end justify-content-between flex-wrap">

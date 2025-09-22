@@ -3,10 +3,10 @@
 	<!-- Start::main-sidebar-header -->
 	<div class="main-sidebar-header">
 		<a href="{{route('admin.dashboard')}}" class="header-logo">
-			<img src="{{asset('build/assets/images/brand-logos/desktop-logo.png')}}" alt="logo" class="desktop-logo">
-			<img src="{{asset('build/assets/images/brand-logos/toggle-dark.png')}}" alt="logo" class="toggle-dark">
-			<img src="{{asset('build/assets/images/brand-logos/desktop-dark.png')}}" alt="logo" class="desktop-dark">
-			<img src="{{asset('build/assets/images/brand-logos/toggle-logo.png')}}" alt="logo" class="toggle-logo">
+			<img src="{{asset('build/assets/images/brand-logos/fav-icon.png')}}" alt="logo" class="desktop-logo">
+			<img src="{{asset('build/assets/images/brand-logos/fav-icon.png')}}" alt="logo" class="toggle-dark">
+			<img src="{{asset('build/assets/images/brand-logos/fav-icon.png')}}" alt="logo" class="desktop-dark">
+			<img src="{{asset('build/assets/images/brand-logos/fav-icon.png')}}" alt="logo" class="toggle-logo">
 		</a>
 	</div>
 	<!-- End::main-sidebar-header -->
@@ -267,7 +267,11 @@
 							@if(Auth::user()->profile_image)
 								<img src="{{ asset('storage/' . Auth::user()->profile_image) }}" alt="{{ Auth::user()->name }}">
 							@else
-								<img src="{{asset('build/assets/images/faces/10.jpg')}}" alt="{{ Auth::user()->name }}">
+							<div class="header-link-icon avatar bg-primary-transparent avatar-rounded">
+									{{-- <img src="{{asset('build/assets/images/faces/10.jpg')}}" alt="{{ Auth::user()->name }}"> --}}
+								{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+								</div>
+								
 							@endif
 						</span>
 					</a>

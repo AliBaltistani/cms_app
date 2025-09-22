@@ -16,7 +16,7 @@
         </div>
     </div>
     <div class="ms-auto pageheader-btn">
-        <a href="{{ route('admin.user-locations.index') }}" class="btn btn-secondary btn-wave waves-effect waves-light">
+        <a href="{{ route('admin.trainers.index') }}" class="btn btn-secondary btn-wave waves-effect waves-light">
             <i class="ri-arrow-left-line align-middle me-1"></i>Back to List
         </a>
         <a href="{{ route('admin.user-locations.edit', $userLocation->id) }}" class="btn btn-primary btn-wave waves-effect waves-light">
@@ -52,9 +52,15 @@
                             <div class="card-body">
                                 <div class="d-flex align-items-center">
                                     <div class="avatar avatar-lg me-3">
-                                        <img src="{{ $userLocation->user->profile_image ?? '/assets/images/faces/default-avatar.png' }}" 
-                                             alt="{{ $userLocation->user->name }}" 
-                                             class="rounded-circle">
+                                        @if ($userLocation->user->profile_image)
+                                            <img src="{{ $userLocation->user->profile_image }}" 
+                                                 alt="{{ $userLocation->user->name }}" 
+                                                 class="rounded-circle">
+                                        @else
+                                            <div class="header-link-icon avatar bg-primary-transparent avatar-rounded d-flex align-items-center justify-content-center" style="width:48px;height:48px;font-size:1.5rem;">
+                                                {{ strtoupper(substr($userLocation->user->name, 0, 1)) }}
+                                            </div>
+                                        @endif
                                     </div>
                                     <div class="flex-grow-1">
                                         <h5 class="mb-1">{{ $userLocation->user->name }}</h5>
