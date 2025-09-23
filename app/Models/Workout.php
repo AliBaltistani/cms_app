@@ -45,6 +45,16 @@ class Workout extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function workoutExercises(): HasMany
+    {
+        return $this->hasMany(WorkoutExercise::class)->orderBy('order');
+    }
+
+    public function exercises(): HasMany
+    {
+        return $this->hasMany(WorkoutExercise::class, 'workout_id')->orderBy('order');
+    }
+
     // Scopes
     public function scopeActive(Builder $query): Builder
     {

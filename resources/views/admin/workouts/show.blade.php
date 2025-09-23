@@ -210,6 +210,176 @@
                 @endif
             </div>
         </div>
+        
+        <!-- Exercises Section -->
+        <div class="card custom-card mt-4">
+            <div class="card-header justify-content-between">
+                <div class="card-title">
+                    Workout Exercises ({{ $workout->workoutExercises->count() }})
+                </div>
+                <div class="prism-toggle">
+                    <a href="{{ route('workout-exercises.create', $workout->id) }}" class="btn btn-sm btn-primary-light">Add Exercise</a>
+                </div>
+            </div>
+            <div class="card-body">
+                @if($workout->workoutExercises->count() > 0)
+                    <div class="exercises-container">
+                        @foreach($workout->workoutExercises as $workoutExercise)
+                            <div class="exercise-card mb-4 border rounded p-3">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div class="exercise-header">
+                                        <h6 class="mb-1">
+                                            <span class="badge bg-primary-transparent me-2">{{ $workoutExercise->order }}</span>
+                                            {{ $workoutExercise->exercise->name ?? 'Exercise #' . $workoutExercise->id }}
+                                        </h6>
+                                        @if($workoutExercise->notes)
+                                            <p class="text-muted small mb-0">{{ $workoutExercise->notes }}</p>
+                                        @endif
+                                    </div>
+                                    <div class="exercise-actions">
+                                        <a href="{{ route('workout-exercises.edit', [$workout->id, $workoutExercise->id]) }}" class="btn btn-sm btn-success me-1">
+                                            <i class="ri-edit-2-line"></i>
+                                        </a>
+                                        <form action="{{ route('workout-exercises.destroy', [$workout->id, $workoutExercise->id]) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this exercise?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-danger">
+                                                <i class="ri-delete-bin-5-line"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                                
+                                <!-- Exercise Details -->
+                                <div class="row g-3 mb-3">
+                                    @if($workoutExercise->sets)
+                                        <div class="col-md-2">
+                                            <small class="text-muted">Sets:</small>
+                                            <div class="fw-bold">{{ $workoutExercise->sets }}</div>
+                                        </div>
+                                    @endif
+                                    @if($workoutExercise->reps)
+                                        <div class="col-md-2">
+                                            <small class="text-muted">Reps:</small>
+                                            <div class="fw-bold">{{ $workoutExercise->reps }}</div>
+                                        </div>
+                                    @endif
+                                    @if($workoutExercise->weight)
+                                        <div class="col-md-2">
+                                            <small class="text-muted">Weight:</small>
+                                            <div class="fw-bold">{{ $workoutExercise->weight }} kg</div>
+                                        </div>
+                                    @endif
+                                    @if($workoutExercise->duration)
+                                        <div class="col-md-2">
+                                            <small class="text-muted">Duration:</small>
+                                            <div class="fw-bold">{{ $workoutExercise->duration }}s</div>
+                                        </div>
+                                    @endif
+                                    @if($workoutExercise->rest_interval)
+                                        <div class="col-md-2">
+                                            <small class="text-muted">Rest:</small>
+                                            <div class="fw-bold">{{ $workoutExercise->rest_interval }}s</div>
+                                        </div>
+                                    @endif
+                                    @if($workoutExercise->tempo)
+                                        <div class="col-md-2">
+                                            <small class="text-muted">Tempo:</small>
+                                            <div class="fw-bold">{{ $workoutExercise->tempo }}</div>
+                                        </div>
+                                    @endif
+                                </div>
+                                
+                                <!-- Exercise Sets -->
+                                @if($workoutExercise->exerciseSets->count() > 0)
+                                    <div class="sets-section">
+                                        <h6 class="mb-2">Sets Details:</h6>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-bordered">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>Set</th>
+                                                        <th>Reps</th>
+                                                        <th>Weight (kg)</th>
+                                                        <th>Duration (s)</th>
+                                                        <th>Rest (s)</th>
+                                                        <th>Notes</th>
+                                                        <th>Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach($workoutExercise->exerciseSets as $set)
+                                                        <tr>
+                                                            <td>{{ $set->set_number }}</td>
+                                                            <td>{{ $set->reps ?? '-' }}</td>
+                                                            <td>{{ $set->weight ?? '-' }}</td>
+                                                            <td>{{ $set->duration ?? '-' }}</td>
+                                                            <td>{{ $set->rest_time ?? '-' }}</td>
+                                                            <td>{{ $set->notes ?? '-' }}</td>
+                                                            <td>
+                                                                @if($set->is_completed)
+                                                                    <span class="badge bg-success-transparent">Completed</span>
+                                                                @else
+                                                                    <span class="badge bg-warning-transparent">Pending</span>
+                                                                @endif
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                @endif
+                                
+                                <!-- Exercise Status -->
+                                <div class="mt-2">
+                                    @if($workoutExercise->is_active)
+                                        <span class="badge bg-success-transparent">Active</span>
+                                    @else
+                                        <span class="badge bg-light text-dark">Inactive</span>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="text-center py-4">
+                        <i class="ri-fitness-line" style="font-size: 3rem; color: #ccc;"></i>
+                        <h5 class="mt-3 text-muted">No Exercises Added</h5>
+                        <p class="text-muted">This workout doesn't have any exercises yet.</p>
+                        <a href="{{ route('workout-exercises.create', $workout->id) }}" class="btn btn-primary">Add First Exercise</a>
+                    </div>
+                @endif
+            </div>
+        </div>
     </div>
 </div>
+
+<style>
+.exercise-card {
+    background: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+.exercise-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.exercise-header h6 {
+    color: #495057;
+    font-weight: 600;
+}
+
+.exercises-container .table th {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.exercises-container .table td {
+    font-size: 0.875rem;
+    vertical-align: middle;
+}
+</style>
+
 @endsection

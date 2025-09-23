@@ -52,9 +52,9 @@ class SpecializationsController extends Controller
             
             // Apply status filter
             if ($status === 'active') {
-                $query->where('status', 1);
+                $query->where('status', true);
             } elseif ($status === 'inactive') {
-                $query->where('status', 0);
+                $query->where('status', false);
             }
             
             $specializations = $query->orderBy('created_at', 'desc')->paginate(15);
@@ -62,10 +62,10 @@ class SpecializationsController extends Controller
             // Get statistics
             $stats = [
                 'total' => Specialization::count(),
-                'active' => Specialization::where('status', 1)->count(),
-                'inactive' => Specialization::where('status', 0)->count(),
+                'active' => Specialization::where('status', true)->count(),
+                'inactive' => Specialization::where('status', false)->count(),
                 'with_trainers' => Specialization::has('trainers')->count(),
-            ];
+            ];}]}
             
             return view('admin.specializations.index', compact('specializations', 'stats', 'status'));
             
