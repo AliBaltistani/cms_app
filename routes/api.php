@@ -172,6 +172,16 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     
     /**
+     * Specializations Routes (All Authenticated Users)
+     * Public access to specializations for filtering trainers
+     */
+    Route::prefix('specializations')->name('api.specializations.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\SpecializationController::class, 'index'])->name('index');
+        Route::get('/{id}', [\App\Http\Controllers\Api\SpecializationController::class, 'show'])->name('show');
+        Route::get('/{id}/trainers', [\App\Http\Controllers\Api\SpecializationController::class, 'getTrainers'])->name('trainers');
+    });
+    
+    /**
      * Testimonial Reaction Routes (All Authenticated Users)
      * Handle likes and dislikes for testimonials
      */
@@ -250,7 +260,7 @@ Route::middleware('auth:sanctum')->group(function () {
          * Complete workout oversight for administrators
          * Note: AdminWorkoutController needs to be created for admin API access
          */
-        Route::prefix('workouts')->name('workouts.')->group(function () {
+        // Route::prefix('workouts')->name('workouts.')->group(function () {
             // These routes are commented out until AdminWorkoutController is implemented
             /*
             Route::get('/', [\App\Http\Controllers\Api\AdminWorkoutController::class, 'index'])->name('index');
@@ -259,7 +269,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Api\AdminWorkoutController::class, 'toggleStatus'])->name('toggle-status');
             Route::delete('/{id}', [\App\Http\Controllers\Api\AdminWorkoutController::class, 'destroy'])->name('destroy');
             */
-        });
+        // });
         
         /**
           * Admin Nutrition Management API
@@ -418,26 +428,22 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/statistics', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'getStatistics'])->name('statistics');
             Route::get('/featured', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'getFeatured'])->name('featured');
             
+            // Assignment-related routes
+            Route::get('/assigned', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'getAssignedWorkouts'])->name('assigned');
+            
             Route::prefix('{id}')->group(function () {
                 Route::get('/', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'show'])->name('show');
                 Route::get('/videos', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'getVideos'])->name('videos');
                 Route::get('/videos/{videoId}', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'showVideo'])->name('videos.show');
-            });
-        });
-        
-        /**
-         * Client Trainer Discovery & Interaction
-         * Find trainers, view profiles, and manage trainer relationships
-         */
-        Route::prefix('trainers')->name('trainers.')->group(function () {
-            Route::get('/find', [ClientController::class, 'findTrainers'])->name('find');
-            Route::get('/{trainerId}/profile', [ClientController::class, 'getTrainerProfile'])->name('profile');
-            Route::get('/{trainerId}/certifications', [ClientController::class, 'getTrainerCertifications'])->name('certifications');
-            Route::get('/{trainerId}/testimonials', [ClientController::class, 'getTrainerTestimonials'])->name('testimonials');
-            Route::post('/{trainerId}/testimonials', [ClientController::class, 'addTestimonial'])->name('add-testimonial');
+                Route::get('/videos/{videoId}/progress', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'showVideoProgress'])->name('videos.progress.show');
+                
+                // Progress tracking routes
+                Route::get('/progress', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'getProgress'])->name('progress.show');
+                Route::patch('/progress', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'updateProgress'])->name('progress.update');
+                Route::patch('/videos/{videoId}/progress', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'updateVideoProgress'])->name('videos.progress.update');
+                Route::get('/videos/progress', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'getVideoProgress'])->name('videos.progress');
             
-            // Client Booking Routes - View trainer availability
-            Route::get('/{trainerId}/availability', [\App\Http\Controllers\Api\ClientBookingController::class, 'getTrainerAvailability'])->name('availability');
+            });
         });
         
         /**
@@ -455,12 +461,32 @@ Route::middleware('auth:sanctum')->group(function () {
          * Access to assigned nutrition plans and meal information
          */
         Route::prefix('nutrition')->name('nutrition.')->group(function () {
-            Route::get('/plans', [\App\Http\Controllers\Api\TraineeNutritionController::class, 'index'])->name('plans.index');
-            Route::get('/plans/{id}', [\App\Http\Controllers\Api\TraineeNutritionController::class, 'show'])->name('plans.show');
-            Route::get('/plans/{planId}/meals/{mealId}', [\App\Http\Controllers\Api\TraineeNutritionController::class, 'getMeal'])->name('plans.meals.show');
-            Route::get('/plans/{planId}/meals/type/{mealType}', [\App\Http\Controllers\Api\TraineeNutritionController::class, 'getMealsByType'])->name('plans.meals.by-type');
-            Route::get('/summary', [\App\Http\Controllers\Api\TraineeNutritionController::class, 'getNutritionSummary'])->name('summary');
+            Route::get('/my-plan', [\App\Http\Controllers\Api\ClientNutritionController::class, 'getMyPlan'])->name('my-plan');
+            Route::get('/recipes', [\App\Http\Controllers\Api\ClientNutritionController::class, 'getRecipes'])->name('recipes');
+            
+            // Food diary management
+            Route::post('/food-diary', [\App\Http\Controllers\Api\ClientNutritionController::class, 'logFoodDiary'])->name('food-diary.store');
+            Route::get('/food-diary', [\App\Http\Controllers\Api\ClientNutritionController::class, 'getFoodDiary'])->name('food-diary.index');
+            Route::put('/food-diary/{id}', [\App\Http\Controllers\Api\ClientNutritionController::class, 'updateFoodDiary'])->name('food-diary.update');
+            Route::delete('/food-diary/{id}', [\App\Http\Controllers\Api\ClientNutritionController::class, 'deleteFoodDiary'])->name('food-diary.destroy');
+            
+            // Nutrition recommendations management
+            Route::get('/recommendations', [\App\Http\Controllers\Api\ClientNutritionController::class, 'getCurrentRecommendations'])->name('recommendations.current');
+            Route::put('/recommendations', [\App\Http\Controllers\Api\ClientNutritionController::class, 'updateCurrentRecommendations'])->name('recommendations.update');
+            
+            // Nutrition goal types
+            Route::get('/goal-types', [\App\Http\Controllers\Api\ClientNutritionController::class, 'getNutritionGoalTypes'])->name('goal-types');
+        
         }); 
+        
+        /**
+         * Client Schedule Management
+         * Access to scheduled sessions and assigned workouts by date
+         */
+        Route::prefix('schedule')->name('schedule.')->group(function () {
+            Route::get('/date', [\App\Http\Controllers\Api\ClientScheduleController::class, 'getScheduleByDate'])->name('by-date');
+            Route::get('/range', [\App\Http\Controllers\Api\ClientScheduleController::class, 'getScheduleRange'])->name('range');
+        });
     });
 });
 
@@ -484,6 +510,7 @@ Route::fallback(function () {
                 'goals' => '/api/goals/*',
                 'trainers' => '/api/trainers/*',
                 'testimonials' => '/api/testimonials/*',
+                'specializations' => '/api/specializations/*',
                 'admin' => '/api/admin/*',
                 'trainer' => '/api/trainer/*',
                 'client' => '/api/client/*',

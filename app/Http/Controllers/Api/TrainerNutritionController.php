@@ -7,12 +7,16 @@ use App\Models\NutritionPlan;
 use App\Models\NutritionMeal;
 use App\Models\NutritionMacro;
 use App\Models\NutritionRestriction;
+use App\Models\NutritionRecommendation;
+use App\Models\FoodDiary;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
+
+use Illuminate\Support\Carbon;
 
 /**
  * TrainerNutritionController
@@ -660,6 +664,350 @@ class TrainerNutritionController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update restrictions',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Assign a nutrition plan to a client
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function assignPlan(Request $request): JsonResponse
+    {
+        try {
+            $trainer = Auth::user();
+            
+            // Validation rules
+            $validator = Validator::make($request->all(), [
+                'client_id' => 'required|exists:users,id',
+                'plan_id' => 'required|exists:nutrition_plans,id',
+            ]);
+            
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+            
+            // Verify client role
+            $client = User::where('id', $request->client_id)
+                         ->where('role', 'client')
+                         ->first();
+                         
+            if (!$client) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Client not found'
+                ], 404);
+            }
+            
+            // Verify plan ownership or global plan
+            $plan = NutritionPlan::where('id', $request->plan_id)
+                                ->where(function($query) use ($trainer) {
+                                    $query->where('trainer_id', $trainer->id)
+                                          ->orWhere('is_global', true);
+                                })
+                                ->first();
+                                
+            if (!$plan) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Plan not found or access denied'
+                ], 404);
+            }
+            
+            // Check if client already has this plan assigned
+            $existingAssignment = NutritionPlan::where('client_id', $client->id)
+                                              ->where('id', $plan->id)
+                                              ->first();
+                                              
+            if ($existingAssignment) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Plan already assigned to this client'
+                ], 409);
+            }
+            
+            // If it's a global plan, create a copy for the client
+            if ($plan->is_global) {
+                $assignedPlan = $plan->replicate();
+                $assignedPlan->is_global = false;
+                $assignedPlan->trainer_id = $trainer->id;
+                $assignedPlan->client_id = $client->id;
+                $assignedPlan->save();
+                
+                // Copy meals if any
+                foreach ($plan->meals as $meal) {
+                    $newMeal = $meal->replicate();
+                    $newMeal->plan_id = $assignedPlan->id;
+                    $newMeal->save();
+                }
+                
+                // Copy recommendations if any
+                if ($plan->recommendations) {
+                    $newRecommendation = $plan->recommendations->replicate();
+                    $newRecommendation->plan_id = $assignedPlan->id;
+                    $newRecommendation->save();
+                }
+                
+                $planId = $assignedPlan->id;
+            } else {
+                // Assign existing plan to client
+                $plan->client_id = $client->id;
+                $plan->save();
+                $planId = $plan->id;
+            }
+            
+            Log::info('Nutrition plan assigned successfully', [
+                'trainer_id' => $trainer->id,
+                'client_id' => $client->id,
+                'plan_id' => $planId,
+                'is_global_copy' => $plan->is_global
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Plan assigned successfully',
+                'data' => [
+                    'plan_id' => $planId,
+                    'client' => [
+                        'id' => $client->id,
+                        'name' => $client->name,
+                        'email' => $client->email
+                    ]
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to assign nutrition plan: ' . $e->getMessage(), [
+                'trainer_id' => Auth::id(),
+                'request_data' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to assign plan',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update macronutrient recommendations for a client's plan
+     * 
+     * @param Request $request
+     * @param int $planId
+     * @return JsonResponse
+     */
+    public function updateRecommendations(Request $request, int $planId): JsonResponse
+    {
+        try {
+            $trainer = Auth::user();
+            
+            // Verify plan ownership
+            $plan = NutritionPlan::where('trainer_id', $trainer->id)
+                                ->where('id', $planId)
+                                ->first();
+                                
+            if (!$plan) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Plan not found or access denied'
+                ], 404);
+            }
+            
+            // Validation rules
+            $validator = Validator::make($request->all(), [
+                'target_calories' => 'required|numeric|min:800|max:5000',
+                'protein' => 'required|numeric|min:0|max:500',
+                'carbs' => 'required|numeric|min:0|max:800',
+                'fats' => 'required|numeric|min:0|max:300',
+            ]);
+            
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+            
+            // Update or create recommendations
+            $recommendations = NutritionRecommendation::updateOrCreate(
+                ['plan_id' => $planId],
+                [
+                    'target_calories' => $request->target_calories,
+                    'protein' => $request->protein,
+                    'carbs' => $request->carbs,
+                    'fats' => $request->fats,
+                ]
+            );
+            
+            Log::info('Nutrition recommendations updated successfully', [
+                'trainer_id' => $trainer->id,
+                'plan_id' => $planId,
+                'recommendations' => $recommendations->toArray()
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Recommendations updated successfully',
+                'data' => [
+                    'plan_id' => $planId,
+                    'recommendations' => [
+                        'target_calories' => $recommendations->target_calories,
+                        'protein' => $recommendations->protein,
+                        'carbs' => $recommendations->carbs,
+                        'fats' => $recommendations->fats,
+                        'macro_distribution' => $recommendations->macro_distribution,
+                        'total_macro_calories' => $recommendations->total_macro_calories
+                    ]
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to update nutrition recommendations: ' . $e->getMessage(), [
+                'trainer_id' => Auth::id(),
+                'plan_id' => $planId,
+                'request_data' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update recommendations',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * View client's food diary
+     * 
+     * @param Request $request
+     * @param int $clientId
+     * @return JsonResponse
+     */
+    public function viewClientFoodDiary(Request $request, int $clientId): JsonResponse
+    {
+        try {
+            $trainer = Auth::user();
+            
+            // Verify client exists and has plans assigned by this trainer
+            $client = User::where('id', $clientId)
+                         ->where('role', 'client')
+                         ->first();
+                         
+            if (!$client) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Client not found'
+                ], 404);
+            }
+            
+            // Check if trainer has any plans assigned to this client
+            $hasAssignedPlans = NutritionPlan::where('trainer_id', $trainer->id)
+                                           ->where('client_id', $clientId)
+                                           ->exists();
+                                           
+            if (!$hasAssignedPlans) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied - no plans assigned to this client'
+                ], 403);
+            }
+            
+            // Get date range from request (default to last 7 days)
+            $startDate = $request->get('start_date', Carbon::now()->subDays(7)->format('Y-m-d'));
+            $endDate = $request->get('end_date', Carbon::now()->format('Y-m-d'));
+            
+            // Validate dates
+            try {
+                $startDate = Carbon::parse($startDate)->startOfDay();
+                $endDate = Carbon::parse($endDate)->endOfDay();
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid date format'
+                ], 422);
+            }
+            
+            // Get food diary entries
+            $entries = FoodDiary::byClient($clientId)
+                               ->byDateRange($startDate, $endDate)
+                               ->with('meal')
+                               ->orderBy('logged_at', 'desc')
+                               ->get()
+                               ->map(function($entry) {
+                                   return [
+                                       'id' => $entry->id,
+                                       'meal_name' => $entry->meal_name,
+                                       'calories' => $entry->calories,
+                                       'protein' => $entry->protein,
+                                       'carbs' => $entry->carbs,
+                                       'fats' => $entry->fats,
+                                       'meal_type' => $entry->meal_type,
+                                       'logged_at' => $entry->logged_at,
+                                       'formatted_date' => $entry->formatted_date,
+                                       'formatted_time' => $entry->formatted_time,
+                                       'meal' => $entry->meal ? [
+                                           'id' => $entry->meal->id,
+                                           'title' => $entry->meal->title,
+                                           'meal_type' => $entry->meal->meal_type,
+                                           'media_url' => $entry->meal->media_url ? asset('storage/' . $entry->meal->media_url) : null
+                                       ] : null
+                                   ];
+                               });
+            
+            // Calculate daily summaries
+            $dailySummaries = $entries->groupBy(function($entry) {
+                return Carbon::parse($entry['logged_at'])->format('Y-m-d');
+            })->map(function($dayEntries) {
+                return [
+                    'date' => $dayEntries->first()['formatted_date'],
+                    'total_calories' => $dayEntries->sum('calories'),
+                    'total_protein' => $dayEntries->sum('protein'),
+                    'total_carbs' => $dayEntries->sum('carbs'),
+                    'total_fats' => $dayEntries->sum('fats'),
+                    'meal_count' => $dayEntries->count(),
+                    'entries' => $dayEntries->values()
+                ];
+            })->values();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Food diary retrieved successfully',
+                'data' => [
+                    'client' => [
+                        'id' => $client->id,
+                        'name' => $client->name,
+                        'email' => $client->email
+                    ],
+                    'date_range' => [
+                        'start_date' => $startDate->format('Y-m-d'),
+                        'end_date' => $endDate->format('Y-m-d')
+                    ],
+                    'daily_summaries' => $dailySummaries,
+                    'total_entries' => $entries->count()
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve client food diary: ' . $e->getMessage(), [
+                'trainer_id' => Auth::id(),
+                'client_id' => $clientId,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve food diary',
                 'error' => $e->getMessage()
             ], 500);
         }

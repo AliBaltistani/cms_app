@@ -7,6 +7,8 @@ use App\Models\NutritionPlan;
 use App\Models\NutritionMeal;
 use App\Models\NutritionMacro;
 use App\Models\NutritionRestriction;
+use App\Models\NutritionRecommendation;
+use App\Models\FoodDiary;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -268,10 +270,11 @@ class NutritionPlansController extends Controller
             // Validation rules
             $rules = [
                 'plan_name' => 'required|string|max:255',
-                'description' => 'nullable|string|max:1000',
+                'description' => 'nullable|string',
+                'category' => 'nullable|string|max:100',
                 'trainer_id' => 'nullable|exists:users,id',
                 'client_id' => 'nullable|exists:users,id',
-                'goal_type' => 'nullable|in:weight_loss,weight_gain,maintenance,muscle_gain',
+                'goal_type' => 'nullable|in:weight_loss,weight_gain,muscle_gain,maintenance,cutting,bulking',
                 'duration_days' => 'nullable|integer|min:1|max:365',
                 'target_weight' => 'nullable|numeric|min:30|max:300',
                 'status' => 'required|in:active,inactive,draft',
@@ -310,7 +313,9 @@ class NutritionPlansController extends Controller
             // Create nutrition plan
             $plan = NutritionPlan::create([
                 'plan_name' => $request->plan_name,
+                'name' => $request->name,
                 'description' => $request->description,
+                'category' => $request->category,
                 'trainer_id' => $request->trainer_id,
                 'client_id' => $request->client_id,
                 'goal_type' => $request->goal_type,
@@ -319,7 +324,7 @@ class NutritionPlansController extends Controller
                 'status' => $request->status,
                 'is_global' => $request->boolean('is_global'),
                 'tags' => $request->tags,
-                'media_url' => $mediaUrl
+                'image_url' => $mediaUrl
             ]);
             
             // Create daily macros if provided
@@ -474,11 +479,13 @@ class NutritionPlansController extends Controller
             // Validation rules
             $rules = [
                 'plan_name' => 'required|string|max:255',
-                'description' => 'nullable|string|max:1000',
+                'name' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'category' => 'nullable|string|max:100',
                 'trainer_id' => 'nullable|exists:users,id',
                 'client_id' => 'nullable|exists:users,id',
-                'goal_type' => 'nullable|in:weight_loss,weight_gain,maintenance,muscle_gain',
-                'duration_days' => 'nullable|integer|min:1|max:365',
+                'goal_type' => 'required|in:weight_loss,weight_gain,muscle_gain,maintenance,cutting,bulking',
+                'duration_days' => 'required|integer|min:1|max:365',
                 'target_weight' => 'nullable|numeric|min:30|max:300',
                 'status' => 'required|in:active,inactive,draft',
                 'is_global' => 'boolean',
@@ -501,11 +508,11 @@ class NutritionPlansController extends Controller
             }
             
             // Handle media upload
-            $mediaUrl = $plan->media_url;
+            $mediaUrl = $plan->image_url;
             if ($request->hasFile('media_file')) {
                 // Delete old media file
-                if ($plan->media_url) {
-                    Storage::disk('public')->delete($plan->media_url);
+                if ($plan->image_url) {
+                    Storage::disk('public')->delete($plan->image_url);
                 }
                 
                 $mediaUrl = $request->file('media_file')->store('nutrition-plans', 'public');
@@ -515,6 +522,7 @@ class NutritionPlansController extends Controller
             $plan->update([
                 'plan_name' => $request->plan_name,
                 'description' => $request->description,
+                'category' => $request->category,
                 'trainer_id' => $request->trainer_id,
                 'client_id' => $request->client_id,
                 'goal_type' => $request->goal_type,
@@ -523,7 +531,7 @@ class NutritionPlansController extends Controller
                 'status' => $request->status,
                 'is_global' => $request->boolean('is_global'),
                 'tags' => $request->tags,
-                'media_url' => $mediaUrl
+                'image_url' => $mediaUrl
             ]);
             
             // Update or create daily macros if provided
@@ -781,6 +789,186 @@ class NutritionPlansController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete media file'
+            ], 500);
+        }
+    }
+
+    /**
+     * Manage nutrition recommendations for a plan
+     * 
+     * @param int $id
+     * @return View
+     */
+    public function recommendations(int $id)
+    {
+        try {
+            $plan = NutritionPlan::with(['client', 'trainer', 'recommendations'])->findOrFail($id);
+            
+            return view('admin.nutrition-plans.recommendations', compact('plan'));
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to load nutrition plan recommendations: ' . $e->getMessage());
+            return redirect()->route('admin.nutrition-plans.index')->with('error', 'Nutrition plan not found');
+        }
+    }
+
+    /**
+     * Update nutrition recommendations for a plan
+     * 
+     * @param Request $request
+     * @param int $id
+     * @return RedirectResponse|JsonResponse
+     */
+    public function updateRecommendations(Request $request, int $id)
+    {
+        try {
+            $plan = NutritionPlan::findOrFail($id);
+            
+            // Validation rules
+            $rules = [
+                'target_calories' => 'required|numeric|min:800|max:5000',
+                'protein' => 'required|numeric|min:0|max:500',
+                'carbs' => 'required|numeric|min:0|max:800',
+                'fats' => 'required|numeric|min:0|max:300'
+            ];
+            
+            $validator = Validator::make($request->all(), $rules);
+            
+            if ($validator->fails()) {
+                if ($request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Validation failed',
+                        'errors' => $validator->errors()
+                    ], 422);
+                }
+                
+                return back()->withErrors($validator)->withInput();
+            }
+            
+            // Update or create recommendations
+            NutritionRecommendation::updateOrCreate(
+                ['plan_id' => $plan->id],
+                [
+                    'target_calories' => $request->target_calories,
+                    'protein' => $request->protein,
+                    'carbs' => $request->carbs,
+                    'fats' => $request->fats
+                ]
+            );
+            
+            // Log the update
+            Log::info('Nutrition recommendations updated', [
+                'admin_id' => Auth::id(),
+                'plan_id' => $plan->id,
+                'recommendations' => $request->only(['target_calories', 'protein', 'carbs', 'fats'])
+            ]);
+            
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Nutrition recommendations updated successfully'
+                ]);
+            }
+            
+            return redirect()->route('admin.nutrition-plans.recommendations', $plan->id)
+                           ->with('success', 'Nutrition recommendations updated successfully');
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to update nutrition recommendations: ' . $e->getMessage());
+            
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to update recommendations'
+                ], 500);
+            }
+            
+            return back()->with('error', 'Failed to update recommendations');
+        }
+    }
+
+    /**
+     * View client food diary entries for a plan
+     * 
+     * @param int $id
+     * @param Request $request
+     * @return View
+     */
+    public function foodDiary(int $id, Request $request)
+    {
+        try {
+            $plan = NutritionPlan::with(['client', 'trainer'])->findOrFail($id);
+            
+            if (!$plan->client_id) {
+                return redirect()->route('admin.nutrition-plans.index')
+                               ->with('error', 'This plan is not assigned to a specific client');
+            }
+            
+            // Get date range from request or default to last 7 days
+            $startDate = $request->get('start_date', now()->subDays(7)->format('Y-m-d'));
+            $endDate = $request->get('end_date', now()->format('Y-m-d'));
+            
+            // Get food diary entries
+            $foodDiaryEntries = FoodDiary::where('client_id', $plan->client_id)
+                                        ->whereBetween('logged_at', [$startDate, $endDate])
+                                        ->with('meal')
+                                        ->orderBy('logged_at', 'desc')
+                                        ->get();
+            
+            // Group entries by date
+            $entriesByDate = $foodDiaryEntries->groupBy(function($entry) {
+                return $entry->logged_at->format('Y-m-d');
+            });
+            
+            // Calculate daily summaries
+            $dailySummaries = [];
+            foreach ($entriesByDate as $date => $entries) {
+                $dailySummaries[$date] = [
+                    'total_calories' => $entries->sum('calories'),
+                    'total_protein' => $entries->sum('protein'),
+                    'total_carbs' => $entries->sum('carbs'),
+                    'total_fats' => $entries->sum('fats'),
+                    'entry_count' => $entries->count()
+                ];
+            }
+            
+            return view('admin.nutrition-plans.food-diary', compact(
+                'plan', 
+                'foodDiaryEntries', 
+                'entriesByDate', 
+                'dailySummaries', 
+                'startDate', 
+                'endDate'
+            ));
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to load food diary: ' . $e->getMessage());
+            return redirect()->route('admin.nutrition-plans.index')->with('error', 'Nutrition plan not found');
+        }
+    }
+
+    /**
+     * Get available categories for nutrition plans
+     * 
+     * @return JsonResponse
+     */
+    public function getCategories()
+    {
+        try {
+            $categories = NutritionPlan::getCategories();
+            
+            return response()->json([
+                'success' => true,
+                'categories' => $categories
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to get nutrition plan categories: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load categories'
             ], 500);
         }
     }

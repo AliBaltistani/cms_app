@@ -196,6 +196,36 @@ class User extends Authenticatable
     {
         return $this->hasMany(Schedule::class, 'client_id');
     }
+
+    /**
+     * Get workout assignments where user is assigned.
+     * 
+     * @return HasMany
+     */
+    public function workoutAssignments(): HasMany
+    {
+        return $this->hasMany(WorkoutAssignment::class, 'assigned_to');
+    }
+
+    /**
+     * Get workout assignments made by this user.
+     * 
+     * @return HasMany
+     */
+    public function assignedWorkouts(): HasMany
+    {
+        return $this->hasMany(WorkoutAssignment::class, 'assigned_by');
+    }
+
+    /**
+     * Get video progress for this user.
+     * 
+     * @return HasMany
+     */
+    public function videoProgress(): HasMany
+    {
+        return $this->hasMany(WorkoutVideoProgress::class);
+    }
     
     /**
      * Get all schedules for the user (trainer or client).

@@ -480,4 +480,321 @@ class NutritionMealsController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Duplicate an existing meal within the same plan
+     * 
+     * @param int $planId
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function duplicate(int $planId, int $id): JsonResponse
+    {
+        try {
+            $originalMeal = NutritionMeal::where('plan_id', $planId)->findOrFail($id);
+            
+            // Get the highest sort order for the plan
+            $maxSortOrder = NutritionMeal::where('plan_id', $planId)->max('sort_order') ?? 0;
+            
+            // Create duplicate meal
+            $duplicatedMeal = $originalMeal->replicate();
+            $duplicatedMeal->title = $originalMeal->title . ' (Copy)';
+            $duplicatedMeal->sort_order = $maxSortOrder + 1;
+            $duplicatedMeal->save();
+            
+            // Log the duplication
+            Log::info('Nutrition meal duplicated successfully', [
+                'admin_id' => Auth::id(),
+                'plan_id' => $planId,
+                'original_meal_id' => $originalMeal->id,
+                'duplicated_meal_id' => $duplicatedMeal->id
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Meal duplicated successfully',
+                'meal' => $duplicatedMeal
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to duplicate nutrition meal: ' . $e->getMessage(), [
+                'admin_id' => Auth::id(),
+                'plan_id' => $planId,
+                'meal_id' => $id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to duplicate meal: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Copy meals from global plans to current plan
+     * 
+     * @param Request $request
+     * @param int $planId
+     * @return JsonResponse
+     */
+    public function copyFromGlobal(Request $request, int $planId): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'meal_ids' => 'required|array',
+                'meal_ids.*' => 'required|integer|exists:nutrition_meals,id'
+            ]);
+            
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+            
+            $plan = NutritionPlan::findOrFail($planId);
+            $copiedMeals = [];
+            
+            // Get the highest sort order for the plan
+            $maxSortOrder = NutritionMeal::where('plan_id', $planId)->max('sort_order') ?? 0;
+            
+            foreach ($request->meal_ids as $mealId) {
+                // Verify meal is from a global plan
+                $globalMeal = NutritionMeal::whereHas('plan', function($query) {
+                    $query->where('is_global', true);
+                })->findOrFail($mealId);
+                
+                // Create copy of the meal
+                $copiedMeal = $globalMeal->replicate();
+                $copiedMeal->plan_id = $planId;
+                $copiedMeal->sort_order = ++$maxSortOrder;
+                $copiedMeal->save();
+                
+                $copiedMeals[] = $copiedMeal;
+            }
+            
+            // Log the copy operation
+            Log::info('Meals copied from global plans successfully', [
+                'admin_id' => Auth::id(),
+                'target_plan_id' => $planId,
+                'copied_meal_ids' => collect($copiedMeals)->pluck('id')->toArray(),
+                'source_meal_ids' => $request->meal_ids
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => count($copiedMeals) . ' meals copied successfully',
+                'meals' => $copiedMeals
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to copy meals from global plans: ' . $e->getMessage(), [
+                'admin_id' => Auth::id(),
+                'plan_id' => $planId,
+                'meal_ids' => $request->meal_ids ?? [],
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to copy meals: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get available global meals for copying
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getGlobalMeals(Request $request): JsonResponse
+    {
+        try {
+            $query = NutritionMeal::with(['plan:id,name,category'])
+                ->whereHas('plan', function($q) {
+                    $q->where('is_global', true);
+                });
+            
+            // Filter by meal type if provided
+            if ($request->has('meal_type') && $request->meal_type) {
+                $query->where('meal_type', $request->meal_type);
+            }
+            
+            // Filter by category if provided
+            if ($request->has('category') && $request->category) {
+                $query->whereHas('plan', function($q) use ($request) {
+                    $q->where('category', $request->category);
+                });
+            }
+            
+            // Search by title or description
+            if ($request->has('search') && $request->search) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%");
+                });
+            }
+            
+            // Pagination
+            $perPage = $request->get('per_page', 15);
+            $meals = $query->orderBy('title')
+                          ->paginate($perPage);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $meals
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to get global meals: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load global meals'
+            ], 500);
+        }
+    }
+
+    /**
+     * Bulk delete meals
+     * 
+     * @param Request $request
+     * @param int $planId
+     * @return JsonResponse
+     */
+    public function bulkDelete(Request $request, int $planId): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'meal_ids' => 'required|array',
+                'meal_ids.*' => 'required|integer|exists:nutrition_meals,id'
+            ]);
+            
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+            
+            $deletedMeals = [];
+            
+            foreach ($request->meal_ids as $mealId) {
+                $meal = NutritionMeal::where('plan_id', $planId)->find($mealId);
+                
+                if ($meal) {
+                    // Delete associated image file
+                    if ($meal->image_url) {
+                        Storage::disk('public')->delete($meal->image_url);
+                    }
+                    
+                    $deletedMeals[] = [
+                        'id' => $meal->id,
+                        'title' => $meal->title,
+                        'meal_type' => $meal->meal_type
+                    ];
+                    
+                    $meal->delete();
+                }
+            }
+            
+            // Log the bulk deletion
+            Log::info('Nutrition meals bulk deleted successfully', [
+                'admin_id' => Auth::id(),
+                'plan_id' => $planId,
+                'deleted_meals' => $deletedMeals
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => count($deletedMeals) . ' meals deleted successfully',
+                'deleted_count' => count($deletedMeals)
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to bulk delete nutrition meals: ' . $e->getMessage(), [
+                'admin_id' => Auth::id(),
+                'plan_id' => $planId,
+                'meal_ids' => $request->meal_ids ?? [],
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete meals: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update meal macros based on new field names
+     * 
+     * @param Request $request
+     * @param int $planId
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function updateMacros(Request $request, int $planId, int $id): JsonResponse
+    {
+        try {
+            $meal = NutritionMeal::where('plan_id', $planId)->findOrFail($id);
+            
+            $validator = Validator::make($request->all(), [
+                'calories' => 'nullable|numeric|min:0|max:2000',
+                'protein' => 'nullable|numeric|min:0|max:200',
+                'carbs' => 'nullable|numeric|min:0|max:300',
+                'fats' => 'nullable|numeric|min:0|max:100',
+                'servings' => 'required|integer|min:1|max:20'
+            ]);
+            
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+            
+            // Update meal macros
+            $meal->update([
+                'calories' => $request->calories,
+                'protein' => $request->protein,
+                'carbs' => $request->carbs,
+                'fats' => $request->fats,
+                'servings' => $request->servings
+            ]);
+            
+            // Log the update
+            Log::info('Nutrition meal macros updated successfully', [
+                'admin_id' => Auth::id(),
+                'plan_id' => $planId,
+                'meal_id' => $meal->id,
+                'macros' => $request->only(['calories', 'protein', 'carbs', 'fats', 'servings'])
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Meal macros updated successfully',
+                'meal' => $meal->fresh()
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to update nutrition meal macros: ' . $e->getMessage(), [
+                'admin_id' => Auth::id(),
+                'plan_id' => $planId,
+                'meal_id' => $id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update meal macros: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
