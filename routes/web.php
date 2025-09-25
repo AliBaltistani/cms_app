@@ -215,6 +215,12 @@ Route::middleware('auth')->group(function () {
         Route::get('workouts/{workout}/videos/reorder', [WorkoutVideoController::class, 'reorderForm'])->name('workout-videos.reorder-form');
         Route::patch('workouts/{workout}/videos/reorder', [WorkoutVideoController::class, 'reorder'])->name('workout-videos.reorder');
         
+        // Workout Assignment Routes
+        Route::post('workouts/{workout}/assign', [WorkoutController::class, 'assignWorkout'])->name('workouts.assign');
+        Route::get('workouts/users/{type}', [WorkoutController::class, 'getUsersByType'])->name('workouts.users-by-type');
+        Route::patch('workout-assignments/{assignment}/status', [\App\Http\Controllers\Admin\WorkoutAssignmentController::class, 'updateStatus'])->name('workout-assignments.update-status');
+        Route::delete('workout-assignments/{assignment}', [\App\Http\Controllers\Admin\WorkoutAssignmentController::class, 'destroy'])->name('workout-assignments.destroy');
+        
         // Workout Exercises Management Routes
         Route::resource('workouts.exercises', \App\Http\Controllers\Admin\WorkoutExerciseController::class)
             ->names([
@@ -305,6 +311,12 @@ Route::middleware('auth')->group(function () {
             Route::post('/{id}/duplicate', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'duplicate'])->name('admin.nutrition-plans.duplicate');
             Route::delete('/{id}/delete-media', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'deleteMedia'])->name('admin.nutrition-plans.delete-media');
             
+            // Enhanced nutrition plan management routes
+            Route::get('/{id}/recommendations', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'recommendations'])->name('admin.nutrition-plans.recommendations');
+            Route::put('/{id}/recommendations', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'updateRecommendations'])->name('admin.nutrition-plans.update-recommendations');
+            Route::get('/{id}/food-diary', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'foodDiary'])->name('admin.nutrition-plans.food-diary');
+            Route::get('/categories', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'getCategories'])->name('admin.nutrition-plans.categories');
+            
             // Nutrition Meals Management
             Route::prefix('{planId}/meals')->group(function () {
                 Route::get('/', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'index'])->name('admin.nutrition-plans.meals.index');
@@ -316,6 +328,13 @@ Route::middleware('auth')->group(function () {
                 Route::delete('/{id}', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'destroy'])->name('admin.nutrition-plans.meals.destroy');
                 Route::patch('/reorder', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'reorder'])->name('admin.nutrition-plans.meals.reorder');
                 Route::delete('/{id}/delete-image', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'deleteImage'])->name('admin.nutrition-plans.meals.delete-image');
+                
+                // Enhanced meal management routes
+                Route::post('/{id}/duplicate', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'duplicate'])->name('admin.nutrition-plans.meals.duplicate');
+                Route::post('/copy-from-global', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'copyFromGlobal'])->name('admin.nutrition-plans.meals.copy-from-global');
+                Route::get('/global-meals', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'getGlobalMeals'])->name('admin.nutrition-plans.meals.global-meals');
+                Route::delete('/bulk-delete', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'bulkDelete'])->name('admin.nutrition-plans.meals.bulk-delete');
+                Route::put('/{id}/macros', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'updateMacros'])->name('admin.nutrition-plans.meals.update-macros');
             });
         });
         

@@ -65,7 +65,7 @@ class SpecializationsController extends Controller
                 'active' => Specialization::where('status', true)->count(),
                 'inactive' => Specialization::where('status', false)->count(),
                 'with_trainers' => Specialization::has('trainers')->count(),
-            ];}]}
+            ];
             
             return view('admin.specializations.index', compact('specializations', 'stats', 'status'));
             

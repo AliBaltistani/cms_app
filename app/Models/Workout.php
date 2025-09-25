@@ -20,11 +20,13 @@ class Workout extends Model
         'thumbnail',
         'user_id',
         'price',
+        'progress',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
-        'price' => 'decimal:2'
+        'price' => 'decimal:2',
+        'progress' => 'decimal:2'
     ];
 
     protected $appends = [
@@ -53,6 +55,16 @@ class Workout extends Model
     public function exercises(): HasMany
     {
         return $this->hasMany(WorkoutExercise::class, 'workout_id')->orderBy('order');
+    }
+
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(WorkoutAssignment::class);
+    }
+
+    public function videoProgress(): HasMany
+    {
+        return $this->hasMany(WorkoutVideoProgress::class);
     }
 
     // Scopes
@@ -122,6 +134,67 @@ class Workout extends Model
         foreach ($videoIds as $index => $videoId) {
             $this->videos()->where('id', $videoId)->update(['order' => $index + 1]);
         }
+    }
+
+    /**
+     * Calculate workout progress for a specific user
+     * 
+     * @param int $userId
+     * @return float
+     */
+    public function calculateProgressForUser(int $userId): float
+    {
+        $totalVideos = $this->videos()->count();
+        
+        if ($totalVideos === 0) {
+            return 0.0;
+        }
+        
+        $completedVideos = $this->videoProgress()
+            ->where('user_id', $userId)
+            ->where('is_completed', true)
+            ->count();
+            
+        return round(($completedVideos / $totalVideos) * 100, 2);
+    }
+
+    /**
+     * Get assigned users for this workout
+     * 
+     * @param string $type 'trainer' or 'client'
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getAssignedUsers(string $type = null)
+    {
+        $query = $this->assignments()->with('assignedTo');
+        
+        if ($type) {
+            $query->where('assigned_to_type', $type);
+        }
+        
+        return $query->get()->pluck('assignedTo');
+    }
+
+    /**
+     * Assign workout to a user
+     * 
+     * @param int $userId
+     * @param int $assignedBy
+     * @param string $type
+     * @param array $options
+     * @return WorkoutAssignment
+     */
+    public function assignToUser(int $userId, int $assignedBy, string $type, array $options = []): WorkoutAssignment
+    {
+        return $this->assignments()->create([
+            'assigned_to' => $userId,
+            'assigned_by' => $assignedBy,
+            'assigned_to_type' => $type,
+            'assigned_at' => now(),
+            'due_date' => $options['due_date'] ?? null,
+            'notes' => $options['notes'] ?? null,
+            'status' => $options['status'] ?? 'assigned',
+        ]);
     }
 
     

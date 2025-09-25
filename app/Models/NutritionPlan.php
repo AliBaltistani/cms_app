@@ -35,9 +35,11 @@ class NutritionPlan extends Model
     protected $fillable = [
         'trainer_id',
         'client_id',
+        'category',
         'plan_name',
+        'name',
         'description',
-        'media_url',
+        'image_url',
         'status',
         'is_global',
         'tags',
@@ -99,11 +101,57 @@ class NutritionPlan extends Model
     }
 
     /**
-     * Get dietary restrictions for this plan
+     * Get restrictions for this nutrition plan
      */
     public function restrictions(): HasOne
     {
         return $this->hasOne(NutritionRestriction::class, 'plan_id');
+    }
+
+    /**
+     * Get nutrition recommendations for this plan
+     */
+    public function recommendations(): HasOne
+    {
+        return $this->hasOne(NutritionRecommendation::class, 'plan_id');
+    }
+
+    /**
+     * Get food diary entries for this plan's client
+     */
+    public function foodDiaryEntries(): HasMany
+    {
+        return $this->hasMany(FoodDiary::class, 'client_id', 'client_id');
+    }
+
+    /**
+     * Scope to filter by category
+     */
+    public function scopeByCategory($query, $category)
+    {
+        return $query->where('category', $category);
+    }
+
+    /**
+     * Scope to get global plans
+     */
+    public function scopeGlobal($query)
+    {
+        return $query->where('is_global', true);
+    }
+
+    /**
+     * Get available categories
+     */
+    public static function getCategories(): array
+    {
+        return [
+            'weight_loss' => 'Weight Loss',
+            'muscle_gain' => 'Muscle Gain',
+            'wellness' => 'Wellness',
+            'maintenance' => 'Maintenance',
+            'athletic_performance' => 'Athletic Performance'
+        ];
     }
 
     /**
@@ -112,14 +160,6 @@ class NutritionPlan extends Model
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
-    }
-
-    /**
-     * Scope to get global plans (admin-created)
-     */
-    public function scopeGlobal($query)
-    {
-        return $query->where('is_global', true);
     }
 
     /**

@@ -108,12 +108,24 @@
                     </div>
                 </div>
                 
-                @if($plan->tags && count($plan->tags) > 0)
+                @if($plan->tags && is_array($plan->tags) && count($plan->tags) > 0)
                     <div class="mt-3">
                         <h6 class="fw-semibold mb-2">Tags</h6>
                         @foreach($plan->tags as $tag)
                             <span class="badge bg-light text-dark me-1">{{ $tag }}</span>
                         @endforeach
+                    </div>
+                @elseif($plan->tags && is_string($plan->tags))
+                    <div class="mt-3">
+                        <h6 class="fw-semibold mb-2">Tags</h6>
+                        @php
+                            $tagsArray = json_decode($plan->tags, true) ?: [];
+                        @endphp
+                        @if(count($tagsArray) > 0)
+                            @foreach($tagsArray as $tag)
+                                <span class="badge bg-light text-dark me-1">{{ $tag }}</span>
+                            @endforeach
+                        @endif
                     </div>
                 @endif
             </div>

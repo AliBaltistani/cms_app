@@ -47,7 +47,7 @@ class TrainerController extends Controller
                 'search' => 'nullable|string|max:255',
                 'specializations' => 'nullable|string',
                 'locations' => 'nullable|string',
-                'price' => 'nullable|string|in:lowest_first,highest_first',
+                'price_sort' => 'nullable|string|in:lowest_first,highest_first',
                 'per_page' => 'nullable|integer|min:1|max:100',
                 'page' => 'nullable|integer|min:1'
             ]);
@@ -84,16 +84,21 @@ class TrainerController extends Controller
                 $specializationIds = $this->parseFilterValues($validated['specializations']);
                 
                 if (!empty($specializationIds)) {
-                    // Validate specialization IDs exist
-                    $validSpecializations = \App\Models\Specialization::whereIn('id', $specializationIds)
-                        ->where('status', 'active')
-                        ->pluck('id')
-                        ->toArray();
+                    // Convert string IDs to integers for proper validation
+                    $specializationIds = array_map('intval', array_filter($specializationIds, 'is_numeric'));
                     
-                    if (!empty($validSpecializations)) {
-                        $query->whereHas('specializations', function ($q) use ($validSpecializations) {
-                            $q->whereIn('specializations.id', $validSpecializations);
-                        });
+                    if (!empty($specializationIds)) {
+                        // Validate specialization IDs exist and are active
+                        $validSpecializations = \App\Models\Specialization::whereIn('id', $specializationIds)
+                            ->where('status', 'active')
+                            ->pluck('id')
+                            ->toArray();
+                        
+                        if (!empty($validSpecializations)) {
+                            $query->whereHas('specializations', function ($q) use ($validSpecializations) {
+                                $q->whereIn('specialization_id', $validSpecializations);
+                            });
+                        }
                     }
                 }
             }
@@ -117,8 +122,8 @@ class TrainerController extends Controller
             }
 
             // Apply price sorting based on trainer's workout prices
-            if (!empty($validated['price'])) {
-                $priceOrder = $validated['price'];
+            if (!empty($validated['price_sort'])) {
+                $priceOrder = $validated['price_sort'];
                 
                 // Add subquery to get minimum workout price for each trainer
                 $query->leftJoin('workouts', 'users.id', '=', 'workouts.user_id')
@@ -176,7 +181,7 @@ class TrainerController extends Controller
                     'search' => $validated['search'] ?? null,
                     'specializations' => $validated['specializations'] ?? null,
                     'locations' => $validated['locations'] ?? null,
-                    'price_sort' => $validated['price'] ?? null
+                    'price_sort' => $validated['price_sort'] ?? null
                 ]
             ]);
 
@@ -188,12 +193,12 @@ class TrainerController extends Controller
             ], 422);
         } catch (\Exception $e) {
             // Log the error for debugging
-            \Log::error('TrainerController@index failed: ' . $e->getMessage(), [
-                'request_data' => $request->all(),
-                'user_id' => auth()->id(),
-                'timestamp' => now(),
-                'trace' => $e->getTraceAsString()
-            ]);
+            // \Log::error('TrainerController@index failed: ' . $e->getMessage(), [
+            //     'request_data' => $request->all(),
+            //     'user_id' => auth()->id(),
+            //     'timestamp' => now(),
+            //     'trace' => $e->getTraceAsString()
+            // ]);
 
             return response()->json([
                 'success' => false,

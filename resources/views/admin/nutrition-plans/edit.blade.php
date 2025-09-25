@@ -147,17 +147,24 @@
                     <div class="row">
                         <div class="col-xl-12 mb-3">
                             <label for="tags" class="form-label">Tags</label>
+                            @php
+                                // Ensure tags is always an array for in_array() function
+                                $planTags = $plan->tags ?? [];
+                                if (is_string($planTags)) {
+                                    $planTags = json_decode($planTags, true) ?? [];
+                                }
+                            @endphp
                             <select class="form-select select2-tags" id="tags" name="tags[]" multiple>
-                                <option value="beginner" {{ in_array('beginner', old('tags', $plan->tags ?? [])) ? 'selected' : '' }}>Beginner</option>
-                                <option value="intermediate" {{ in_array('intermediate', old('tags', $plan->tags ?? [])) ? 'selected' : '' }}>Intermediate</option>
-                                <option value="advanced" {{ in_array('advanced', old('tags', $plan->tags ?? [])) ? 'selected' : '' }}>Advanced</option>
-                                <option value="vegetarian" {{ in_array('vegetarian', old('tags', $plan->tags ?? [])) ? 'selected' : '' }}>Vegetarian</option>
-                                <option value="vegan" {{ in_array('vegan', old('tags', $plan->tags ?? [])) ? 'selected' : '' }}>Vegan</option>
-                                <option value="keto" {{ in_array('keto', old('tags', $plan->tags ?? [])) ? 'selected' : '' }}>Keto</option>
-                                <option value="low-carb" {{ in_array('low-carb', old('tags', $plan->tags ?? [])) ? 'selected' : '' }}>Low Carb</option>
-                                <option value="high-protein" {{ in_array('high-protein', old('tags', $plan->tags ?? [])) ? 'selected' : '' }}>High Protein</option>
-                                <option value="gluten-free" {{ in_array('gluten-free', old('tags', $plan->tags ?? [])) ? 'selected' : '' }}>Gluten Free</option>
-                                <option value="dairy-free" {{ in_array('dairy-free', old('tags', $plan->tags ?? [])) ? 'selected' : '' }}>Dairy Free</option>
+                                <option value="beginner" {{ in_array('beginner', old('tags', $planTags)) ? 'selected' : '' }}>Beginner</option>
+                                <option value="intermediate" {{ in_array('intermediate', old('tags', $planTags)) ? 'selected' : '' }}>Intermediate</option>
+                                <option value="advanced" {{ in_array('advanced', old('tags', $planTags)) ? 'selected' : '' }}>Advanced</option>
+                                <option value="vegetarian" {{ in_array('vegetarian', old('tags', $planTags)) ? 'selected' : '' }}>Vegetarian</option>
+                                <option value="vegan" {{ in_array('vegan', old('tags', $planTags)) ? 'selected' : '' }}>Vegan</option>
+                                <option value="keto" {{ in_array('keto', old('tags', $planTags)) ? 'selected' : '' }}>Keto</option>
+                                <option value="low-carb" {{ in_array('low-carb', old('tags', $planTags)) ? 'selected' : '' }}>Low Carb</option>
+                                <option value="high-protein" {{ in_array('high-protein', old('tags', $planTags)) ? 'selected' : '' }}>High Protein</option>
+                                <option value="gluten-free" {{ in_array('gluten-free', old('tags', $planTags)) ? 'selected' : '' }}>Gluten Free</option>
+                                <option value="dairy-free" {{ in_array('dairy-free', old('tags', $planTags)) ? 'selected' : '' }}>Dairy Free</option>
                             </select>
                             <div class="invalid-feedback"></div>
                             <small class="text-muted">Add tags to categorize and filter plans easily</small>

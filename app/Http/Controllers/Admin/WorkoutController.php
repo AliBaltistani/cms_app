@@ -848,4 +848,119 @@ class WorkoutController extends Controller
                 ->with('error', 'Failed to duplicate workout: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Assign workout to user
+     */
+    public function assignWorkout(Request $request, Workout $workout)
+    {
+        try {
+            $request->validate([
+                'user_type' => 'required|in:trainer,client',
+                'user_id' => 'required|exists:users,id',
+                'due_date' => 'nullable|date|after:today',
+                'status' => 'required|in:assigned,in_progress,completed',
+                'notes' => 'nullable|string|max:1000'
+            ]);
+
+            // Check if user has the correct role
+            $user = \App\Models\User::findOrFail($request->user_id);
+            if ($user->role !== $request->user_type) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Selected user does not have the required role'
+                ], 422);
+            }
+
+            // Check if assignment already exists
+            $existingAssignment = \App\Models\WorkoutAssignment::where([
+                'workout_id' => $workout->id,
+                'assigned_to' => $request->user_id,
+                'assigned_to_type' => $request->user_type
+            ])->first();
+
+            if ($existingAssignment) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This workout is already assigned to the selected user'
+                ], 422);
+            }
+
+            // Create assignment
+            $assignment = \App\Models\WorkoutAssignment::create([
+                'workout_id' => $workout->id,
+                'assigned_to' => $request->user_id,
+                'assigned_by' => Auth::id(),
+                'assigned_to_type' => $request->user_type,
+                'assigned_at' => now(),
+                'due_date' => $request->due_date,
+                'status' => $request->status,
+                'notes' => $request->notes
+            ]);
+
+            Log::info('Workout assigned successfully', [
+                'workout_id' => $workout->id,
+                'assigned_to' => $request->user_id,
+                'assigned_by' => Auth::id(),
+                'assignment_id' => $assignment->id
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Workout assigned to {$user->name} successfully",
+                'data' => $assignment
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Failed to assign workout: ' . $e->getMessage(), [
+                'workout_id' => $workout->id,
+                'request_data' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to assign workout'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get users by type for assignment dropdown
+     */
+    public function getUsersByType(Request $request, $type)
+    {
+        try {
+            if (!in_array($type, ['trainer', 'client'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid user type'
+                ], 422);
+            }
+
+            $users = \App\Models\User::where('role', $type)
+                ->select('id', 'name', 'email')
+                ->orderBy('name')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'users' => $users
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch users by type: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch users'
+            ], 500);
+        }
+    }
 }
