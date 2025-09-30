@@ -127,7 +127,7 @@ class TrainerSchedulingController extends ApiBaseController
                 'date' => 'required|date|after_or_equal:today',
                 'start_time' => 'required|date_format:H:i',
                 'end_time' => 'required|date_format:H:i|after:start_time',
-                'reason' => 'nullable|string|max:255',
+                'reason' => 'required|string|max:255',
                 'is_recurring' => 'boolean',
                 'recurring_type' => 'nullable|in:daily,weekly,monthly',
                 'recurring_end_date' => 'nullable|date|after:date',
@@ -245,8 +245,8 @@ class TrainerSchedulingController extends ApiBaseController
             $validator = Validator::make($request->all(), [
                 'max_daily_sessions' => 'required|integer|min:1|max:24',
                 'max_weekly_sessions' => 'required|integer|min:1|max:168',
-                'session_duration_minutes' => 'required|integer|min:15|max:480',
-                'break_between_sessions_minutes' => 'required|integer|min:0|max:120',
+                'session_duration_minutes' => 'nullable|integer|min:15|max:480',
+                'break_between_sessions_minutes' => 'nullable|integer|min:0|max:120',
             ]);
 
             if ($validator->fails()) {
@@ -265,12 +265,21 @@ class TrainerSchedulingController extends ApiBaseController
                 [
                     'max_daily_sessions' => $request->max_daily_sessions,
                     'max_weekly_sessions' => $request->max_weekly_sessions,
-                    'session_duration_minutes' => $request->session_duration_minutes,
-                    'break_between_sessions_minutes' => $request->break_between_sessions_minutes,
+                    'session_duration_minutes' => $request->session_duration_minutes ?? 45,
+                    'break_between_sessions_minutes' => $request->break_between_sessions_minutes ?? 10,
                 ]
             );
 
-            return $this->sendResponse($sessionCapacity, 'Session capacity updated successfully');
+             $reposeData = [
+                "trainer_id" => $sessionCapacity->trainer_id,
+                "max_daily_sessions" => $sessionCapacity->max_daily_sessions,
+                "max_weekly_sessions" => $sessionCapacity->max_weekly_sessions,
+                "updated_at" => $sessionCapacity->updated_at,
+                "created_at" => $sessionCapacity->created_at,
+                "id" => $sessionCapacity->id
+             ];
+
+            return $this->sendResponse($reposeData, 'Session capacity updated successfully');
 
         } catch (\Exception $e) {
             return $this->sendError('Server Error', ['error' => $e->getMessage()], 500);
@@ -288,7 +297,15 @@ class TrainerSchedulingController extends ApiBaseController
             $trainerId = Auth::id();
             $sessionCapacity = SessionCapacity::getOrCreateForTrainer($trainerId);
 
-            return $this->sendResponse($sessionCapacity, 'Session capacity retrieved successfully');
+             $reposeData = [
+                "trainer_id" => $sessionCapacity->trainer_id,
+                "max_daily_sessions" => $sessionCapacity->max_daily_sessions,
+                "max_weekly_sessions" => $sessionCapacity->max_weekly_sessions,
+                "updated_at" => $sessionCapacity->updated_at,
+                "created_at" => $sessionCapacity->created_at,
+                "id" => $sessionCapacity->id
+             ];
+            return $this->sendResponse($reposeData, 'Session capacity retrieved successfully');
 
         } catch (\Exception $e) {
             return $this->sendError('Server Error', ['error' => $e->getMessage()], 500);
@@ -333,7 +350,15 @@ class TrainerSchedulingController extends ApiBaseController
                 ]
             );
 
-            return $this->sendResponse($bookingSettings, 'Booking settings updated successfully');
+             $reposeData = [
+                "trainer_id" => $bookingSettings->trainer_id,
+                "allow_self_booking" => $bookingSettings->allow_self_booking,
+                "require_approval" => $bookingSettings->require_approval,
+                "updated_at" => $bookingSettings->updated_at,
+                "created_at" => $bookingSettings->created_at,
+                "id" => $bookingSettings->id
+             ];
+            return $this->sendResponse($reposeData, 'Booking settings updated successfully');
 
         } catch (\Exception $e) {
             return $this->sendError('Server Error', ['error' => $e->getMessage()], 500);
@@ -351,7 +376,15 @@ class TrainerSchedulingController extends ApiBaseController
             $trainerId = Auth::id();
             $bookingSettings = BookingSetting::getOrCreateForTrainer($trainerId);
 
-            return $this->sendResponse($bookingSettings, 'Booking settings retrieved successfully');
+             $reposeData = [
+                "trainer_id" => $bookingSettings->trainer_id,
+                "allow_self_booking" => $bookingSettings->allow_self_booking,
+                "require_approval" => $bookingSettings->require_approval,
+                "updated_at" => $bookingSettings->updated_at,
+                "created_at" => $bookingSettings->created_at,
+                "id" => $bookingSettings->id
+             ];
+            return $this->sendResponse($reposeData, 'Booking settings retrieved successfully');
 
         } catch (\Exception $e) {
             return $this->sendError('Server Error', ['error' => $e->getMessage()], 500);

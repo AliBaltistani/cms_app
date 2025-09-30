@@ -68,7 +68,8 @@ class ApiAuthController extends ApiBaseController
                         'name' => $user->name,
                         'email' => $user->email,
                         'role' => $user->role,
-                        'profile_image' => $user->profile_image ? asset('storage/' . $user->profile_image) : null
+                        'profile_image' => $user->profile_image ? asset('storage/' . $user->profile_image) : null,
+                        'isVerified' => is_null($user->email_verified_at) ? false : true,
                     ]
                 ];
                 
@@ -109,9 +110,9 @@ class ApiAuthController extends ApiBaseController
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users,email',
                 'password' => 'required|string|min:8|confirmed',
-                // 'password_confirmation' => 'required|string',
-                'phone' => 'nullable|string|max:20|unique:users,phone',
-                'role' => 'nullable|in:trainer,client',
+                'password_confirmation' => 'required|string',
+                'phone' => 'required|string|max:20|unique:users,phone',
+                'role' => 'required|in:trainer,client',
                 'device_name' => 'nullable|string|max:255'
             ]);
             
@@ -140,7 +141,8 @@ class ApiAuthController extends ApiBaseController
                     'name' => $user->name,
                     'email' => $user->email,
                     'role' => $user->role,
-                    'profile_image' => null
+                    'profile_image' => null,
+                    'isVerified' => !is_null($user->email_verified_at)
                 ]
             ];
             
@@ -212,6 +214,7 @@ class ApiAuthController extends ApiBaseController
                 'role' => $user->role,
                 'profile_image' => $user->profile_image ? asset('storage/' . $user->profile_image) : null,
                 'email_verified_at' => $user->email_verified_at,
+                'isVerified' => is_null($user->email_verified_at) ? false : true,
                 'created_at' => $user->created_at->toISOString(),
                 'updated_at' => $user->updated_at->toISOString()
             ];

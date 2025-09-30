@@ -39,8 +39,6 @@ class NutritionMeal extends Model
         'protein',
         'carbs',
         'fats',
-        'ingredients',
-        'instructions',
         'prep_time',
         'cook_time',
         'servings',

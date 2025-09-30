@@ -76,6 +76,9 @@
                     @if($plan->is_global)
                         <span class="badge bg-info-transparent ms-2">Global Plan</span>
                     @endif
+                    @if($plan->is_featured)
+                        <span class="badge bg-warning-transparent ms-2"><i class="ri-star-fill me-1"></i>Featured</span>
+                    @endif
                 </div>
             </div>
             <div class="card-body">

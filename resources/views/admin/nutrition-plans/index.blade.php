@@ -161,6 +161,7 @@
                                 <th>Meals</th>
                                 <th>Duration</th>
                                 <th>Status</th>
+                                <th>Featured</th>
                                 <th>Restrictions</th>
                                 <th>Created</th>
                                 <th>Actions</th>
@@ -273,6 +274,17 @@ $(document).ready(function() {
                         'draft': 'bg-warning-transparent'
                     };
                     return '<span class="badge ' + (badgeClass[data] || 'bg-secondary-transparent') + '">' + data.charAt(0).toUpperCase() + data.slice(1) + '</span>';
+                }
+            },
+            { 
+                data: 'is_featured', 
+                name: 'is_featured',
+                render: function(data, type, row) {
+                    if (data) {
+                        return '<span class="badge bg-warning-transparent"><i class="ri-star-fill me-1"></i>Featured</span>';
+                    } else {
+                        return '<span class="text-muted">-</span>';
+                    }
                 }
             },
             { 
