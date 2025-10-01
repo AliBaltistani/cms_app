@@ -1401,4 +1401,437 @@ class TrainerController extends Controller
         }
     }
 
+    /**
+     * Get detailed information for a specific client
+     * 
+     * Provides comprehensive client details including profile, metrics, progress charts,
+     * workout statistics, goals, health history, assigned programs, and trainer notes
+     * 
+     * @param int $clientId The client ID to retrieve details for
+     * @return \Illuminate\Http\JsonResponse
+     * @throws \Exception When client not found or access denied
+     * @author [Your Name]
+     * @since 1.0.0
+     */
+    public function getClientDetails($clientId)
+    {
+        try {
+            // Get authenticated trainer
+            $trainer = auth()->user();
+            
+            if (!$trainer || $trainer->role !== 'trainer') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized access. Trainer authentication required.'
+                ], 401);
+            }
+
+            // Validate client ID
+            if (!is_numeric($clientId) || $clientId <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid client ID provided.'
+                ], 400);
+            }
+
+            // Find client with all necessary relationships
+            $client = User::with([
+                'goals' => function($query) {
+                    $query->orderBy('created_at', 'desc');
+                },
+                'assignedWorkouts.workout',
+                'assignedWorkouts.progress',
+                'videoProgress',
+                'clientSchedules' => function($query) {
+                    $query->orderBy('date', 'desc')->limit(10);
+                },
+                'nutritionPlans.recommendations',
+                'foodDiaryEntries' => function($query) {
+                    $query->where('logged_at', '>=', now()->subDays(30))
+                          ->orderBy('logged_at', 'desc');
+                }
+            ])->where('id', $clientId)
+              ->where('role', 'client')
+              ->first();
+
+            if (!$client) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Client not found or access denied.'
+                ], 404);
+            }
+
+            // Verify trainer has access to this client (check if client is assigned to this trainer)
+            $hasAccess = $client->clientSchedules()
+                               ->whereHas('trainer', function($query) use ($trainer) {
+                                   $query->where('id', $trainer->id);
+                               })
+                               ->exists();
+
+            if (!$hasAccess) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have access to this client\'s information.'
+                ], 403);
+            }
+
+            // Calculate comprehensive metrics
+            $metrics = $this->calculateClientMetrics($client);
+            
+            // Generate progress charts data
+            $progressCharts = $this->generateProgressCharts($client);
+            
+            // Calculate workout statistics
+            $workoutStats = $this->calculateWorkoutStatistics($client);
+            
+            // Calculate nutrition summary
+            $nutritionSummary = $this->calculateNutritionSummary($client);
+
+            // Get next scheduled session
+            $nextSession = $client->clientSchedules()
+                                 ->whereHas('trainer', function($query) use ($trainer) {
+                                     $query->where('id', $trainer->id);
+                                 })
+                                 ->where('date', '>=', now()->format('Y-m-d'))
+                                 ->orderBy('date', 'asc')
+                                 ->orderBy('start_time', 'asc')
+                                 ->first();
+
+            // Prepare client detail response
+            $clientDetails = [
+                'client_profile' => [
+                    'id' => $client->id,
+                    'name' => $client->name,
+                    'email' => $client->email,
+                    'phone' => $client->phone ?? null,
+                    'profile_image' => $client->profile_image ? asset('storage/' . $client->profile_image) : null,
+                    'date_of_birth' => $client->date_of_birth ?? null,
+                    'gender' => $client->gender ?? null,
+                    'height' => $client->height ?? null,
+                    'weight' => $client->weight ?? null,
+                    'fitness_level' => $client->fitness_level ?? null,
+                    'member_since' => $client->created_at->format('Y-m-d'),
+                    'last_active' => $client->updated_at->format('Y-m-d H:i:s'),
+                    'status' => $client->status ?? 'active'
+                ],
+                
+                'metrics' => $metrics,
+                
+                'progress_charts' => $progressCharts,
+                
+                'nutrition_summary' => $nutritionSummary,
+                
+                'workout_statistics' => $workoutStats,
+                
+                'goals' => $client->goals->map(function($goal) {
+                    return [
+                        'id' => $goal->id,
+                        'name' => $goal->name,
+                        'status' => $goal->status,
+                        'created_at' => $goal->created_at->format('Y-m-d'),
+                        'is_active' => $goal->status == 1
+                    ];
+                }),
+                
+                'health_history' => [
+                    'medical_conditions' => $client->medical_conditions ?? null,
+                    'allergies' => $client->allergies ?? null,
+                    'medications' => $client->medications ?? null,
+                    'injuries' => $client->injuries ?? null,
+                    'emergency_contact' => [
+                        'name' => $client->emergency_contact_name ?? null,
+                        'phone' => $client->emergency_contact_phone ?? null,
+                        'relationship' => $client->emergency_contact_relationship ?? null
+                    ]
+                ],
+                
+                'assigned_programs' => $client->assignedWorkouts->map(function($assignment) {
+                    return [
+                        'id' => $assignment->id,
+                        'workout_name' => $assignment->workout->name ?? 'Unknown Workout',
+                        'difficulty_level' => $assignment->workout->difficulty_level ?? 'beginner',
+                        'assigned_date' => $assignment->created_at->format('Y-m-d'),
+                        'status' => $assignment->progress->status ?? 'not_started',
+                        'completion_percentage' => $assignment->progress ? 
+                            ($assignment->progress->status === 'completed' ? 100 : 
+                             ($assignment->progress->status === 'in_progress' ? 50 : 0)) : 0,
+                        'last_activity' => $assignment->progress && $assignment->progress->updated_at ? 
+                            $assignment->progress->updated_at->format('Y-m-d H:i:s') : null
+                    ];
+                }),
+                
+                'recent_sessions' => $client->clientSchedules->take(5)->map(function($schedule) {
+                    return [
+                        'id' => $schedule->id,
+                        'date' => $schedule->date,
+                        'start_time' => $schedule->start_time,
+                        'end_time' => $schedule->end_time,
+                        'status' => $schedule->status ?? 'scheduled',
+                        'session_type' => $schedule->session_type ?? 'training',
+                        'notes' => $schedule->notes ?? null
+                    ];
+                }),
+                
+                'next_session' => $nextSession ? [
+                    'id' => $nextSession->id,
+                    'date' => $nextSession->date,
+                    'start_time' => $nextSession->start_time,
+                    'end_time' => $nextSession->end_time,
+                    'session_type' => $nextSession->session_type ?? 'training',
+                    'days_until' => now()->diffInDays($nextSession->date, false)
+                ] : null,
+                
+                'trainer_notes' => [
+                    'general_notes' => $client->trainer_notes ?? null,
+                    'fitness_assessment' => $client->fitness_assessment ?? null,
+                    'progress_notes' => $client->progress_notes ?? null,
+                    'special_instructions' => $client->special_instructions ?? null
+                ]
+            ];
+
+            // Log successful client detail retrieval
+            \Illuminate\Support\Facades\Log::info('Client details retrieved successfully', [
+                'trainer_id' => $trainer->id,
+                'client_id' => $client->id,
+                'timestamp' => now()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Client details retrieved successfully.',
+                'data' => $clientDetails
+            ], 200);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error fetching client details: ' . $e->getMessage(), [
+                'trainer_id' => auth()->id(),
+                'client_id' => $clientId,
+                'error' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch client details. Please try again.',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
+        }
+    }
+
+
+/**
+ * Calculate comprehensive client metrics including progress and performance indicators
+ * 
+ * @param User $client
+ * @return array
+ */
+private function calculateClientMetrics(User $client): array
+{
+    // Calculate workout completion metrics
+    $totalWorkouts = $client->assignedWorkouts->count();
+    $completedWorkouts = $client->assignedWorkouts->filter(function($assignment) {
+        return $assignment->progress && $assignment->progress->status === 'completed';
+    })->count();
+
+    // Calculate video progress metrics
+    $totalVideos = $client->videoProgress->count();
+    $completedVideos = $client->videoProgress->where('is_completed', true)->count();
+    $totalWatchTime = $client->videoProgress->sum('watched_duration'); // in seconds
+
+    // Calculate nutrition adherence (last 30 days)
+    $nutritionEntries = $client->foodDiaryEntries->count();
+    $avgDailyCalories = $client->foodDiaryEntries->avg('calories') ?? 0;
+
+    // Calculate session frequency (last 3 months)
+    $recentSessions = $client->clientSchedules->where('date', '>=', now()->subMonths(3));
+    $sessionFrequency = $recentSessions->count();
+
+    return [
+        'workout_completion_rate' => $totalWorkouts > 0 ? round(($completedWorkouts / $totalWorkouts) * 100, 1) : 0,
+        'video_completion_rate' => $totalVideos > 0 ? round(($completedVideos / $totalVideos) * 100, 1) : 0,
+        'total_watch_time_minutes' => round($totalWatchTime / 60, 0),
+        'session_frequency_3months' => $sessionFrequency,
+        'nutrition_entries_30days' => $nutritionEntries,
+        'avg_daily_calories' => round($avgDailyCalories, 0),
+        'active_goals_count' => $client->goals->where('status', 1)->count(),
+        'member_duration_days' => $client->created_at->diffInDays(now())
+    ];
+}
+
+/**
+ * Generate progress charts data for client visualization
+ * 
+ * @param User $client
+ * @return array
+ */
+private function generateProgressCharts(User $client): array
+{
+    // Workout progress over time (last 12 weeks)
+    $workoutProgress = [];
+    for ($i = 11; $i >= 0; $i--) {
+        $weekStart = now()->subWeeks($i)->startOfWeek();
+        $weekEnd = now()->subWeeks($i)->endOfWeek();
+        
+        $weeklyCompletions = $client->assignedWorkouts->filter(function($assignment) use ($weekStart, $weekEnd) {
+            return $assignment->progress && 
+                   $assignment->progress->completed_at &&
+                   $assignment->progress->completed_at->between($weekStart, $weekEnd);
+        })->count();
+
+        $workoutProgress[] = [
+            'week' => $weekStart->format('M d'),
+            'completions' => $weeklyCompletions
+        ];
+    }
+
+    // Nutrition tracking over time (last 30 days)
+    $nutritionProgress = [];
+    for ($i = 29; $i >= 0; $i--) {
+        $date = now()->subDays($i)->format('Y-m-d');
+        $dailyEntries = $client->foodDiaryEntries->where('logged_at', '>=', $date . ' 00:00:00')
+                                                   ->where('logged_at', '<=', $date . ' 23:59:59');
+        
+        $nutritionProgress[] = [
+            'date' => now()->subDays($i)->format('M d'),
+            'calories' => $dailyEntries->sum('calories'),
+            'entries_count' => $dailyEntries->count()
+        ];
+    }
+
+    // Session attendance over time (last 6 months)
+    $sessionAttendance = [];
+    for ($i = 5; $i >= 0; $i--) {
+        $monthStart = now()->subMonths($i)->startOfMonth();
+        $monthEnd = now()->subMonths($i)->endOfMonth();
+        
+        $monthlySessions = $client->clientSchedules->filter(function($schedule) use ($monthStart, $monthEnd) {
+            $scheduleDate = \Carbon\Carbon::parse($schedule->date);
+            return $scheduleDate->between($monthStart, $monthEnd);
+        });
+
+        $completedSessions = $monthlySessions->where('status', 'completed')->count();
+        $totalSessions = $monthlySessions->count();
+
+        $sessionAttendance[] = [
+            'month' => $monthStart->format('M Y'),
+            'completed' => $completedSessions,
+            'total' => $totalSessions,
+            'attendance_rate' => $totalSessions > 0 ? round(($completedSessions / $totalSessions) * 100, 1) : 0
+        ];
+    }
+
+    return [
+        'workout_progress' => $workoutProgress,
+        'nutrition_tracking' => $nutritionProgress,
+        'session_attendance' => $sessionAttendance
+    ];
+}
+
+/**
+ * Calculate detailed workout statistics for the client
+ * 
+ * @param User $client
+ * @return array
+ */
+private function calculateWorkoutStatistics(User $client): array
+{
+    $assignments = $client->assignedWorkouts;
+    
+    // Calculate workout frequency by difficulty
+    $difficultyStats = $assignments->groupBy(function($assignment) {
+        return $assignment->workout->difficulty_level ?? 'unknown';
+    })->map(function($group) {
+        return $group->count();
+    });
+
+    // Calculate average completion time
+    $completedAssignments = $assignments->filter(function($assignment) {
+        return $assignment->progress && $assignment->progress->status === 'completed';
+    });
+
+    $avgCompletionDays = 0;
+    if ($completedAssignments->count() > 0) {
+        $totalDays = $completedAssignments->sum(function($assignment) {
+            if ($assignment->progress && $assignment->progress->completed_at) {
+                return $assignment->created_at->diffInDays($assignment->progress->completed_at);
+            }
+            return 0;
+        });
+        $avgCompletionDays = round($totalDays / $completedAssignments->count(), 1);
+    }
+
+    // Recent workout activity (last 7 days)
+    $recentActivity = $assignments->filter(function($assignment) {
+        return $assignment->progress && 
+               $assignment->progress->completed_at &&
+               $assignment->progress->completed_at->gte(now()->subDays(7));
+    })->count();
+
+    return [
+        'total_assigned' => $assignments->count(),
+        'completed' => $completedAssignments->count(),
+        'in_progress' => $assignments->filter(function($assignment) {
+            return $assignment->progress && $assignment->progress->status === 'in_progress';
+        })->count(),
+        'not_started' => $assignments->filter(function($assignment) {
+            return !$assignment->progress || $assignment->progress->status === 'not_started';
+        })->count(),
+        'difficulty_breakdown' => $difficultyStats,
+        'avg_completion_days' => $avgCompletionDays,
+        'recent_activity_7days' => $recentActivity,
+        'completion_rate' => $assignments->count() > 0 ? round(($completedAssignments->count() / $assignments->count()) * 100, 1) : 0
+    ];
+}
+
+/**
+ * Calculate nutrition summary and adherence metrics
+ * 
+ * @param User $client
+ * @return array
+ */
+private function calculateNutritionSummary(User $client): array
+{
+    $nutritionPlans = $client->nutritionPlans;
+    $foodEntries = $client->foodDiaryEntries;
+
+    // Calculate macro averages (last 30 days)
+    $avgMacros = [
+        'calories' => round($foodEntries->avg('calories') ?? 0, 0),
+        'protein' => round($foodEntries->avg('protein') ?? 0, 1),
+        'carbs' => round($foodEntries->avg('carbs') ?? 0, 1),
+        'fats' => round($foodEntries->avg('fats') ?? 0, 1)
+    ];
+
+    // Calculate adherence to current plan
+    $currentPlan = $nutritionPlans->where('status', 'active')->first();
+    $adherenceRate = 0;
+    
+    if ($currentPlan && $currentPlan->recommendations) {
+        $targetCalories = $currentPlan->recommendations->target_calories;
+        if ($targetCalories > 0 && $avgMacros['calories'] > 0) {
+            $adherenceRate = min(100, round(($avgMacros['calories'] / $targetCalories) * 100, 1));
+        }
+    }
+
+    // Calculate logging consistency (last 30 days)
+    $loggingDays = $foodEntries->groupBy(function($entry) {
+        return $entry->logged_at->format('Y-m-d');
+    })->count();
+
+    return [
+        'active_plans' => $nutritionPlans->where('status', 'active')->count(),
+        'total_plans' => $nutritionPlans->count(),
+        'avg_daily_macros' => $avgMacros,
+        'plan_adherence_rate' => $adherenceRate,
+        'logging_consistency_30days' => round(($loggingDays / 30) * 100, 1),
+        'total_food_entries' => $foodEntries->count(),
+        'current_plan' => $currentPlan ? [
+            'id' => $currentPlan->id,
+            'name' => $currentPlan->plan_name,
+            'goal_type' => $currentPlan->goal_type,
+            'target_calories' => $currentPlan->recommendations->target_calories ?? 0,
+            'duration_days' => $currentPlan->duration_days
+        ] : null
+    ];
+}
+
 }

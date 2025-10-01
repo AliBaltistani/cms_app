@@ -333,4 +333,34 @@ class User extends Authenticatable
         
         return $this->specializations()->pluck('name')->implode(', ');
     }
+    
+    /**
+     * Get nutrition plans assigned to this client.
+     * 
+     * @return HasMany
+     */
+    public function nutritionPlans(): HasMany
+    {
+        return $this->hasMany(NutritionPlan::class, 'client_id');
+    }
+    
+    /**
+     * Get nutrition plans created by this trainer.
+     * 
+     * @return HasMany
+     */
+    public function assignedNutritionPlans(): HasMany
+    {
+        return $this->hasMany(NutritionPlan::class, 'trainer_id');
+    }
+    
+    /**
+     * Get food diary entries for this client.
+     * 
+     * @return HasMany
+     */
+    public function foodDiaryEntries(): HasMany
+    {
+        return $this->hasMany(FoodDiary::class, 'client_id');
+    }
 }
