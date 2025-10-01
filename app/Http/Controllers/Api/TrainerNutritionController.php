@@ -51,7 +51,7 @@ class TrainerNutritionController extends Controller
             
             $query = NutritionPlan::with([
                 'client:id,name,email',
-                'meals:id,plan_id,title,meal_type,calories_per_serving',
+                'meals:id,plan_id,title,meal_type,calories',
                 'dailyMacros:id,plan_id,protein,carbs,fats,total_calories',
                 'restrictions:id,plan_id'
             ])->where('trainer_id', $trainer->id);
@@ -65,7 +65,7 @@ class TrainerNutritionController extends Controller
                 $query->where('client_id', $request->client_id);
             }
             
-            if ($request->has('goal_type')) {
+            if ($request->has('goal_type') && $request->goal_type !== 'all') {
                 $query->where('goal_type', $request->goal_type);
             }
             
@@ -97,9 +97,10 @@ class TrainerNutritionController extends Controller
                     'duration_text' => $plan->duration_text,
                     'target_weight' => $plan->target_weight,
                     'status' => $plan->status,
+                    'is_featured' => $plan->is_featured,
                     'media_url' => $plan->media_url ? asset('storage/' . $plan->media_url) : null,
                     'meals_count' => $plan->meals->count(),
-                    'total_calories' => $plan->meals->sum('calories_per_serving'),
+                    'total_calories' => $plan->meals->sum('calories'),
                     'daily_macros' => $plan->dailyMacros,
                     'has_restrictions' => $plan->restrictions !== null,
                     'tags' => $plan->tags,
@@ -147,21 +148,40 @@ class TrainerNutritionController extends Controller
                 ], 403);
             }
             
-            // Validation rules
+            // Enhanced validation rules according to UI requirements
             $validator = Validator::make($request->all(), [
-                'plan_name' => 'required|string|max:255',
-                'description' => 'nullable|string|max:1000',
                 'client_id' => 'required|exists:users,id',
+                'plan_name' => 'required|string|max:255',
+                'description' => 'required|string|max:1000',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                
+                // Meals array validation
+                'meals' => 'required|array|min:1',
+                'meals.*.name' => 'required|string|max:255',
+                'meals.*.type' => 'required|in:breakfast,lunch,dinner,snack',
+                'meals.*.description' => 'nullable|string|max:500',
+                'meals.*.media_url' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                
+                // Macronutrient targets validation
+                'macros' => 'required|array',
+                'macros.protein' => 'required|numeric|min:0|max:500',
+                'macros.carbs' => 'required|numeric|min:0|max:800',
+                'macros.fats' => 'required|numeric|min:0|max:200',
+                'macros.total_calories' => 'required|numeric|min:0|max:5000',
+                
+                // Dietary restrictions validation
+                'restrictions' => 'required|array',
+                'restrictions.vegetarian' => 'nullable|boolean',
+                'restrictions.gluten_free' => 'nullable|boolean',
+                'restrictions.dairy_free' => 'nullable|boolean',
+                'restrictions.notes' => 'nullable|string|max:1000',
+                
+                // Optional fields
                 'goal_type' => 'nullable|in:weight_loss,weight_gain,maintenance,muscle_gain',
                 'duration_days' => 'nullable|integer|min:1|max:365',
                 'target_weight' => 'nullable|numeric|min:30|max:300',
-                'tags' => 'nullable|array',
-                'daily_macros' => 'nullable|array',
-                'daily_macros.protein' => 'nullable|numeric|min:0|max:500',
-                'daily_macros.carbs' => 'nullable|numeric|min:0|max:800',
-                'daily_macros.fats' => 'nullable|numeric|min:0|max:200',
-                'daily_macros.total_calories' => 'nullable|numeric|min:0|max:5000',
-                'restrictions' => 'nullable|array'
+                'is_featured' => 'nullable|boolean',
+                'tags' => 'nullable|array'
             ]);
             
             if ($validator->fails()) {
@@ -184,77 +204,162 @@ class TrainerNutritionController extends Controller
                 ], 404);
             }
             
+            // Handle image upload if provided
+            $imageUrl = null;
+            if ($request->hasFile('image')) {
+                $image = $request->file('image');
+                $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+                $imagePath = $image->storeAs('nutrition_plans', $imageName, 'public');
+                $imageUrl = $imagePath;
+            }
+            
             // Create nutrition plan
             $plan = NutritionPlan::create([
                 'trainer_id' => $trainer->id,
                 'client_id' => $request->client_id,
                 'plan_name' => $request->plan_name,
-                'description' => $request->description,
-                'goal_type' => $request->goal_type,
-                'duration_days' => $request->duration_days,
+                'description' => $request->description ?? '',
+                'image_url' => $imageUrl,
+                'goal_type' => $request->goal_type ?? 'maintenance',
+                'duration_days' => $request->duration_days ?? 30,
                 'target_weight' => $request->target_weight,
                 'status' => 'active',
                 'is_global' => false,
-                'tags' => $request->tags
+                'is_featured' => $request->boolean('is_featured'),
+                'tags' => $request->tags ?? []
             ]);
             
-            // Create daily macros if provided
-            if ($request->has('daily_macros') && $request->daily_macros) {
+
+            
+            // Create meals for the nutrition plan
+            if ($request->has('meals') && is_array($request->meals)) {
+                foreach ($request->meals as $index => $mealData) {
+                    NutritionMeal::create([
+                        'plan_id' => $plan->id,
+                        'title' => $mealData['name'],
+                        'description' => $mealData['description'] ?? '',
+                        'meal_type' => $mealData['type'],
+                        'ingredients' => $mealData['ingredients'] ?? [],
+                        'instructions' => $mealData['instructions'] ?? [],
+                        'prep_time' => $mealData['prep_time'] ?? 0,
+                        'cook_time' => $mealData['cook_time'] ?? 0,
+                        'servings' => $mealData['servings'] ?? 1,
+                        'calories' => $mealData['calories_per_serving'] ?? 0,
+                        'protein' => $mealData['protein_per_serving'] ?? 0,
+                        'carbs' => $mealData['carbs_per_serving'] ?? 0,
+                        'fats' => $mealData['fats_per_serving'] ?? 0,
+                        'sort_order' => $index + 1
+                    ]);
+                }
+            }
+            
+            // Create macronutrient targets
+            if ($request->has('macros') && $request->macros) {
                 NutritionMacro::create([
                     'plan_id' => $plan->id,
-                    'protein' => $request->daily_macros['protein'] ?? 0,
-                    'carbs' => $request->daily_macros['carbs'] ?? 0,
-                    'fats' => $request->daily_macros['fats'] ?? 0,
-                    'total_calories' => $request->daily_macros['total_calories'] ?? 0,
+                    'protein' => $request->macros['protein'],
+                    'carbs' => $request->macros['carbs'],
+                    'fats' => $request->macros['fats'],
+                    'total_calories' => $request->macros['total_calories'],
                     'macro_type' => 'daily_target'
                 ]);
             }
             
-            // Create restrictions if provided
+            // Create dietary restrictions if provided
             if ($request->has('restrictions') && $request->restrictions) {
                 $restrictionData = array_merge(
                     ['plan_id' => $plan->id],
                     $request->restrictions
                 );
+                
+                // Ensure boolean fields are properly cast
+                $booleanFields = [
+                    'vegetarian', 'vegan', 'pescatarian', 'keto', 'paleo', 'mediterranean',
+                    'low_carb', 'low_fat', 'high_protein', 'gluten_free', 'dairy_free',
+                    'nut_free', 'soy_free', 'egg_free', 'shellfish_free', 'fish_free',
+                    'sesame_free', 'diabetic_friendly'
+                ];
+                
+                foreach ($booleanFields as $field) {
+                    if (isset($restrictionData[$field])) {
+                        $restrictionData[$field] = (bool) $restrictionData[$field];
+                    }
+                }
+                
                 NutritionRestriction::create($restrictionData);
             }
             
             // Load relationships for response
-            $plan->load(['client:id,name,email', 'dailyMacros', 'restrictions']);
+            $plan->load([
+                'client:id,name,email',
+                'meals:id,plan_id,title,meal_type,calories,protein,carbs,fats,sort_order',
+                'dailyMacros:id,plan_id,protein,carbs,fats,total_calories',
+                'restrictions:id,plan_id,vegetarian,vegan,gluten_free,dairy_free,keto,paleo,custom_restrictions,notes'
+            ]);
             
             // Log the creation
-            Log::info('Nutrition plan created by trainer via API', [
+            Log::info('Comprehensive nutrition plan created by trainer via API', [
                 'trainer_id' => $trainer->id,
                 'client_id' => $request->client_id,
                 'plan_id' => $plan->id,
-                'plan_name' => $plan->plan_name
+                'plan_name' => $plan->plan_name,
+                'meals_count' => count($request->meals ?? []),
+                'has_image' => !is_null($imageUrl),
+                'has_restrictions' => !is_null($request->restrictions)
             ]);
             
             return response()->json([
                 'success' => true,
-                'message' => 'Nutrition plan created successfully',
+                'message' => 'Nutrition plan created successfully with all components',
                 'data' => [
                     'id' => $plan->id,
                     'plan_name' => $plan->plan_name,
                     'description' => $plan->description,
+                    'image_url' => $plan->image_url ? asset('storage/' . $plan->image_url) : null,
                     'client' => $plan->client,
                     'goal_type' => $plan->goal_type,
                     'duration_days' => $plan->duration_days,
-                    'duration_text' => $plan->duration_text,
                     'target_weight' => $plan->target_weight,
                     'status' => $plan->status,
                     'tags' => $plan->tags,
-                    'daily_macros' => $plan->dailyMacros,
-                    'restrictions' => $plan->restrictions,
+                    'meals' => $plan->meals->map(function($meal) {
+                        return [
+                            'id' => $meal->id,
+                            'name' => $meal->title,
+                            'type' => $meal->meal_type,
+                            'description' => $meal->description,
+                            'calories' => $meal->calories,
+                            'protein' => $meal->protein,
+                            'carbs' => $meal->carbs,
+                            'fats' => $meal->fats,
+                            'sort_order' => $meal->sort_order
+                        ];
+                    }),
+                    'macros' => $plan->dailyMacros ? [
+                        'protein' => $plan->dailyMacros->protein,
+                        'carbs' => $plan->dailyMacros->carbs,
+                        'fats' => $plan->dailyMacros->fats,
+                        'total_calories' => $plan->dailyMacros->total_calories
+                    ] : null,
+                    'restrictions' => $plan->restrictions ? [
+                        'vegetarian' => $plan->restrictions->vegetarian,
+                        'vegan' => $plan->restrictions->vegan,
+                        'gluten_free' => $plan->restrictions->gluten_free,
+                        'dairy_free' => $plan->restrictions->dairy_free,
+                        'keto' => $plan->restrictions->keto,
+                        'paleo' => $plan->restrictions->paleo,
+                        'custom_restrictions' => $plan->restrictions->custom_restrictions,
+                        'notes' => $plan->restrictions->notes
+                    ] : null,
                     'created_at' => $plan->created_at,
                     'updated_at' => $plan->updated_at
                 ]
             ], 201);
             
         } catch (\Exception $e) {
-            Log::error('Failed to create nutrition plan via trainer API: ' . $e->getMessage(), [
+            Log::error('Failed to create comprehensive nutrition plan via trainer API: ' . $e->getMessage(), [
                 'trainer_id' => Auth::id(),
-                'request_data' => $request->all(),
+                'request_data' => $request->except(['image']), // Exclude image from logs
                 'trace' => $e->getTraceAsString()
             ]);
             
@@ -290,7 +395,7 @@ class TrainerNutritionController extends Controller
             // Calculate plan statistics
             $stats = [
                 'total_meals' => $plan->meals->count(),
-                'total_calories' => $plan->meals->sum('calories_per_serving'),
+                'total_calories' => $plan->meals->sum('calories'),
                 'avg_prep_time' => $plan->meals->avg('prep_time'),
                 'meal_types' => $plan->meals->groupBy('meal_type')->map->count()
             ];
@@ -308,6 +413,7 @@ class TrainerNutritionController extends Controller
                     'duration_text' => $plan->duration_text,
                     'target_weight' => $plan->target_weight,
                     'status' => $plan->status,
+                    'is_featured' => $plan->is_featured,
                     'media_url' => $plan->media_url ? asset('storage/' . $plan->media_url) : null,
                     'tags' => $plan->tags,
                     'meals' => $plan->meals->map(function($meal) {
@@ -325,7 +431,7 @@ class TrainerNutritionController extends Controller
                             'cook_time_formatted' => $meal->cook_time_formatted,
                             'total_time' => $meal->total_time,
                             'servings' => $meal->servings,
-                            'calories_per_serving' => $meal->calories_per_serving,
+                            'calories_per_serving' => $meal->calories,
                             'protein_per_serving' => $meal->protein_per_serving,
                             'carbs_per_serving' => $meal->carbs_per_serving,
                             'fats_per_serving' => $meal->fats_per_serving,
@@ -398,7 +504,7 @@ class TrainerNutritionController extends Controller
                 'instructions' => 'nullable|string',
                 'prep_time' => 'nullable|integer|min:0|max:480',
                 'cook_time' => 'nullable|integer|min:0|max:480',
-                'servings' => 'required|integer|min:1|max:20',
+                'servings' => 'nullable|integer|min:1|max:20',
                 'calories_per_serving' => 'nullable|numeric|min:0|max:2000',
                 'protein_per_serving' => 'nullable|numeric|min:0|max:200',
                 'carbs_per_serving' => 'nullable|numeric|min:0|max:300',

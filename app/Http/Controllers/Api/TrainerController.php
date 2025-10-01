@@ -1162,4 +1162,243 @@ class TrainerController extends Controller
         return null; // No availability found in the next 7 days
     }
 
+    /**
+     * Add a new client by trainer
+     * 
+     * Creates a new client account with the provided information
+     * Only trainers can add clients to the system
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function addClient(Request $request): JsonResponse
+    {
+        try {
+            // Validate trainer authentication
+            $trainer = Auth::user();
+            if (!$trainer || !$trainer->isTrainerRole()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied. Only trainers can add clients.'
+                ], 403);
+            }
+
+            // Validate request data based on the form fields from the image
+            $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+                'first_name' => 'required|string|max:255',
+                'last_name' => 'required|string|max:255',
+                'email' => 'required|email|unique:users,email|max:255',
+                'phone' => 'required|string|max:20',
+                'fitness_goals' => 'nullable|string|max:1000',
+                'current_fitness_level' => 'nullable|string|in:Beginner,Intermediate,Advanced',
+                'health_considerations' => 'nullable|string|max:1000'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Create client user account
+            $clientData = [
+                'name' => trim($request->first_name . ' ' . $request->last_name),
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'role' => 'client',
+                'password' => \Illuminate\Support\Facades\Hash::make('password123'), // Default password
+                'email_verified_at' => now(), // Auto-verify trainer created clients
+            ];
+
+            $client = User::create($clientData);
+
+            // Create fitness goals if provided
+            if ($request->filled('fitness_goals')) {
+                $client->goals()->create([
+                    'name' => $request->fitness_goals,
+                    'status' => 1
+                ]);
+            }
+
+            // Log client creation
+            \Illuminate\Support\Facades\Log::info('New client added by trainer', [
+                'trainer_id' => $trainer->id,
+                'trainer_name' => $trainer->name,
+                'client_id' => $client->id,
+                'client_name' => $client->name,
+                'client_email' => $client->email
+            ]);
+
+            // Prepare response data
+            $responseData = [
+                'id' => $client->id,
+                'name' => $client->name,
+                'first_name' => $request->first_name,
+                'last_name' => $request->last_name,
+                'email' => $client->email,
+                'phone' => $client->phone,
+                'fitness_goals' => $request->fitness_goals,
+                'current_fitness_level' => $request->current_fitness_level,
+                'health_considerations' => $request->health_considerations,
+                'role' => $client->role,
+                'status' => 'active',
+                'created_at' => $client->created_at->toISOString(),
+                'member_since' => $client->created_at->format('M Y')
+            ];
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Client added successfully',
+                'data' => $responseData
+            ], 201);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to add client via trainer API: ' . $e->getMessage(), [
+                'trainer_id' => Auth::id(),
+                'request_data' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to add client. Please try again.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all clients with search and filtering capabilities
+     * 
+     * Retrieves clients with optional search functionality
+     * Includes client goals, progress, and basic information
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getClients(Request $request): JsonResponse
+    {
+        try {
+            // Validate trainer authentication
+            $trainer = Auth::user();
+            if (!$trainer || !$trainer->isTrainerRole()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied. Only trainers can view clients.'
+                ], 403);
+            }
+
+            // Validate search parameters
+            $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+                'search' => 'nullable|string|max:255',
+                'fitness_level' => 'nullable|string|in:Beginner,Intermediate,Advanced',
+                'sort_by' => 'nullable|string|in:name,email,created_at',
+                'sort_order' => 'nullable|string|in:asc,desc',
+                'per_page' => 'nullable|integer|min:5|max:100',
+                'page' => 'nullable|integer|min:1'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Build query for clients
+            $query = User::where('role', 'client')
+                ->with([
+                    'goals:id,user_id,name,status',
+                    'clientSchedules' => function($q) use ($trainer) {
+                        $q->where('trainer_id', $trainer->id)
+                          ->select('id', 'client_id', 'trainer_id', 'date', 'status');
+                    }
+                ])
+                ->select('id', 'name', 'email', 'phone', 'profile_image', 'created_at');
+
+            // Apply search filter
+            if ($request->filled('search')) {
+                $searchTerm = trim($request->search);
+                $query->where(function ($q) use ($searchTerm) {
+                    $q->where('name', 'LIKE', "%{$searchTerm}%")
+                      ->orWhere('email', 'LIKE', "%{$searchTerm}%")
+                      ->orWhere('phone', 'LIKE', "%{$searchTerm}%");
+                });
+            }
+
+            // Apply sorting
+            $sortBy = $request->get('sort_by', 'created_at');
+            $sortOrder = $request->get('sort_order', 'desc');
+            $query->orderBy($sortBy, $sortOrder);
+
+            // Paginate results
+            $perPage = $request->get('per_page', 20);
+            $clients = $query->paginate($perPage);
+
+            // Transform client data for response
+            $transformedClients = $clients->getCollection()->map(function ($client) {
+                // Get next session with this trainer
+                $nextSession = $client->clientSchedules
+                    ->where('date', '>=', now()->format('Y-m-d'))
+                    ->where('status', '!=', 'cancelled')
+                    ->sortBy('date')
+                    ->first();
+
+                return [
+                    'id' => $client->id,
+                    'name' => $client->name,
+                    'email' => $client->email,
+                    'phone' => $client->phone,
+                    'profile_image' => $client->profile_image ? asset('storage/' . $client->profile_image) : null,
+                    'fitness_goals' => $client->goals->where('status', 1)->pluck('name')->implode(', '),
+                    'goals_count' => $client->goals->where('status', 1)->count(),
+                    'next_session' => $nextSession ? [
+                        'date' => $nextSession->date,
+                        'status' => $nextSession->status
+                    ] : null,
+                    'total_sessions' => $client->clientSchedules->count(),
+                    'member_since' => $client->created_at->format('M Y'),
+                    'created_at' => $client->created_at->toISOString()
+                ];
+            });
+
+            // Prepare pagination data
+            $paginationData = [
+                'current_page' => $clients->currentPage(),
+                'last_page' => $clients->lastPage(),
+                'per_page' => $clients->perPage(),
+                'total' => $clients->total(),
+                'from' => $clients->firstItem(),
+                'to' => $clients->lastItem()
+            ];
+
+            \Illuminate\Support\Facades\Log::info('Clients retrieved by trainer', [
+                'trainer_id' => $trainer->id,
+                'search_params' => $request->only(['search', 'fitness_level', 'sort_by', 'sort_order']),
+                'results_count' => $clients->count()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Clients retrieved successfully',
+                'data' => $transformedClients,
+                'pagination' => $paginationData
+            ]);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to retrieve clients via trainer API: ' . $e->getMessage(), [
+                'trainer_id' => Auth::id(),
+                'request_params' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve clients. Please try again.'
+            ], 500);
+        }
+    }
+
 }

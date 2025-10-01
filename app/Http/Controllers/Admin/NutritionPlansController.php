@@ -159,6 +159,7 @@ class NutritionPlansController extends Controller
                     'duration' => $plan->duration_text,
                     'status' => $plan->status,
                     'is_global' => $plan->is_global,
+                    'is_featured' => $plan->is_featured,
                     'restrictions_summary' => $plan->restrictions ? $plan->restrictions->restrictions_summary : 'None',
                     'created_at' => $plan->created_at->format('d-m-Y H:i'),
                     'actions' => $this->generateActionButtons($plan)
@@ -279,6 +280,7 @@ class NutritionPlansController extends Controller
                 'target_weight' => 'nullable|numeric|min:30|max:300',
                 'status' => 'required|in:active,inactive,draft',
                 'is_global' => 'boolean',
+                'is_featured' => 'boolean',
                 'tags' => 'nullable|array',
                 'media_file' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
             ];
@@ -323,6 +325,7 @@ class NutritionPlansController extends Controller
                 'target_weight' => $request->target_weight,
                 'status' => $request->status,
                 'is_global' => $request->boolean('is_global'),
+                'is_featured' => $request->boolean('is_featured'),
                 'tags' => $request->tags,
                 'image_url' => $mediaUrl
             ]);
@@ -489,6 +492,7 @@ class NutritionPlansController extends Controller
                 'target_weight' => 'nullable|numeric|min:30|max:300',
                 'status' => 'required|in:active,inactive,draft',
                 'is_global' => 'boolean',
+                'is_featured' => 'boolean',
                 'tags' => 'nullable|array',
                 'media_file' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
             ];
@@ -530,6 +534,7 @@ class NutritionPlansController extends Controller
                 'target_weight' => $request->target_weight,
                 'status' => $request->status,
                 'is_global' => $request->boolean('is_global'),
+                'is_featured' => $request->boolean('is_featured'),
                 'tags' => $request->tags,
                 'image_url' => $mediaUrl
             ]);

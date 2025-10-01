@@ -130,6 +130,15 @@
                             </div>
                             <small class="text-muted">Global plans can be viewed by all trainers and reused for multiple clients</small>
                         </div>
+                        <div class="col-xl-12 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="is_featured" name="is_featured" value="1">
+                                <label class="form-check-label" for="is_featured">
+                                    <i class="ri-star-line me-1"></i>Featured Plan
+                                </label>
+                            </div>
+                            <small class="text-muted">Featured plans will be highlighted and promoted in the system</small>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -425,6 +434,7 @@ $(document).ready(function() {
         formData.append('trainer_id', $('#trainer_id').val());
         formData.append('client_id', $('#client_id').val());
         formData.append('is_global', $('#is_global').is(':checked') ? 1 : 0);
+        formData.append('is_featured', $('#is_featured').is(':checked') ? 1 : 0);
         
         // Add tags
         const tags = $('#tags').val();

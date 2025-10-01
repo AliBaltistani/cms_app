@@ -42,6 +42,7 @@ class NutritionPlan extends Model
         'image_url',
         'status',
         'is_global',
+        'is_featured',
         'tags',
         'duration_days',
         'target_weight',
@@ -54,6 +55,7 @@ class NutritionPlan extends Model
     protected $casts = [
         'tags' => 'array',
         'is_global' => 'boolean',
+        'is_featured' => 'boolean',
         'target_weight' => 'decimal:2',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
@@ -138,6 +140,14 @@ class NutritionPlan extends Model
     public function scopeGlobal($query)
     {
         return $query->where('is_global', true);
+    }
+
+    /**
+     * Scope to get featured plans
+     */
+    public function scopeFeatured($query)
+    {
+        return $query->where('is_featured', true);
     }
 
     /**
