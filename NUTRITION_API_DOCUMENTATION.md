@@ -9,6 +9,7 @@ This document provides comprehensive API documentation for the Nutrition Plans m
 http://127.0.0.1:8000/api
 http://127.0.0.1:8000/api
 http://127.0.0.1:8000/api
+http://127.0.0.1:8000/api
 ```
 
 ## Authentication
