@@ -10,8 +10,6 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\Admin\GoalsController;
-use App\Http\Controllers\Admin\WorkoutController;
-use App\Http\Controllers\Admin\WorkoutVideoController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Client\ClientDashboardController;
 use App\Http\Controllers\Trainer\TrainerDashboardController;
@@ -192,111 +190,8 @@ Route::middleware('auth')->group(function () {
             Route::delete('/destroy/{id}', [GoalsController::class, 'delete'])->name('goals.destroy');
         });
 
-        // Workouts Management - Additional routes MUST come before resource routes
-        Route::get('workouts/stats', [WorkoutController::class, 'stats'])->name('workouts.stats');
-        Route::get('workouts/{workout}/videos-list', [WorkoutController::class, 'videosList'])->name('workouts.videos-list');
-        Route::post('workouts/{workout}/duplicate', [WorkoutController::class, 'duplicate'])->name('workouts.duplicate');
-        Route::patch('workouts/{workout}/toggle-status', [WorkoutController::class, 'toggleStatus'])->name('workouts.toggle-status');
+      
         
-        // Resource routes (must come after specific routes to avoid conflicts)
-        Route::resource('workouts', WorkoutController::class);
-        Route::resource('workouts.videos', WorkoutVideoController::class)
-            ->names([
-                'index' => 'workout-videos.index',
-                'create' => 'workout-videos.create',
-                'store' => 'workout-videos.store',
-                'show' => 'workout-videos.show',
-                'edit' => 'workout-videos.edit',
-                'update' => 'workout-videos.update',
-                'destroy' => 'workout-videos.destroy',
-            ]);
-        
-        // Workout Video Additional Routes
-        Route::get('workouts/{workout}/videos/reorder', [WorkoutVideoController::class, 'reorderForm'])->name('workout-videos.reorder-form');
-        Route::patch('workouts/{workout}/videos/reorder', [WorkoutVideoController::class, 'reorder'])->name('workout-videos.reorder');
-        
-        // Workout Assignment Routes
-        Route::post('workouts/{workout}/assign', [WorkoutController::class, 'assignWorkout'])->name('workouts.assign');
-        Route::get('workouts/users/{type}', [WorkoutController::class, 'getUsersByType'])->name('workouts.users-by-type');
-        Route::patch('workout-assignments/{assignment}/status', [\App\Http\Controllers\Admin\WorkoutAssignmentController::class, 'updateStatus'])->name('workout-assignments.update-status');
-        Route::delete('workout-assignments/{assignment}', [\App\Http\Controllers\Admin\WorkoutAssignmentController::class, 'destroy'])->name('workout-assignments.destroy');
-        
-        // Workout Exercises Management Routes
-        Route::resource('workouts.exercises', \App\Http\Controllers\Admin\WorkoutExerciseController::class)
-            ->names([
-                'index' => 'workout-exercises.index',
-                'create' => 'workout-exercises.create',
-                'store' => 'workout-exercises.store',
-                'show' => 'workout-exercises.show',
-                'edit' => 'workout-exercises.edit',
-                'update' => 'workout-exercises.update',
-                'destroy' => 'workout-exercises.destroy',
-            ]);
-        
-        // Workout Exercise Additional Routes
-        Route::patch('workouts/{workout}/exercises/reorder', [\App\Http\Controllers\Admin\WorkoutExerciseController::class, 'reorder'])->name('workout-exercises.reorder');
-        Route::patch('workouts/{workout}/exercises/{exercise}/toggle-status', [\App\Http\Controllers\Admin\WorkoutExerciseController::class, 'toggleStatus'])->name('workout-exercises.toggle-status');
-        
-        // Workout Exercise Sets Management Routes
-        Route::resource('workouts.exercises.sets', \App\Http\Controllers\Admin\WorkoutExerciseSetController::class)
-            ->names([
-                'index' => 'workout-exercise-sets.index',
-                'create' => 'workout-exercise-sets.create',
-                'store' => 'workout-exercise-sets.store',
-                'show' => 'workout-exercise-sets.show',
-                'edit' => 'workout-exercise-sets.edit',
-                'update' => 'workout-exercise-sets.update',
-                'destroy' => 'workout-exercise-sets.destroy',
-            ]);
-        
-        // Workout Exercise Set Additional Routes
-        Route::post('workouts/{workout}/exercises/{exercise}/sets/{set}/toggle-status', [\App\Http\Controllers\Admin\WorkoutExerciseSetController::class, 'toggleStatus'])->name('workout-exercise-sets.toggle-status');
-        
-        // Programs Management - Additional routes MUST come before resource routes
-        Route::get('programs/stats', [\App\Http\Controllers\Admin\ProgramController::class, 'getStats'])->name('programs.stats');
-        Route::post('programs/{program}/duplicate', [\App\Http\Controllers\Admin\ProgramController::class, 'duplicate'])->name('programs.duplicate');
-        Route::patch('programs/{program}/toggle-status', [\App\Http\Controllers\Admin\ProgramController::class, 'toggleStatus'])->name('programs.toggle-status');
-        
-        // Resource routes for programs
-        Route::resource('programs', \App\Http\Controllers\Admin\ProgramController::class);
-        
-        // Program Builder Routes
-        Route::prefix('program-builder')->group(function () {
-            Route::get('/{program}', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'show'])->name('program-builder.show');
-            
-            // Week management
-            Route::post('/{program}/weeks', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'addWeek'])->name('program-builder.weeks.store');
-            Route::get('/weeks/{week}/edit', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'editWeek'])->name('program-builder.weeks.edit');
-            Route::put('/weeks/{week}', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'updateWeek'])->name('program-builder.weeks.update');
-            Route::delete('/weeks/{week}', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'removeWeek'])->name('program-builder.weeks.destroy');
-            Route::put('/{program}/weeks/reorder', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'reorderWeeks'])->name('program-builder.weeks.reorder');
-            
-            // Day management
-            Route::post('/weeks/{week}/days', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'addDay'])->name('program-builder.days.store');
-            Route::get('/days/{day}/edit', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'editDay'])->name('program-builder.days.edit');
-            Route::put('/days/{day}', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'updateDay'])->name('program-builder.days.update');
-            Route::delete('/days/{day}', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'removeDay'])->name('program-builder.days.destroy');
-            Route::put('/weeks/{week}/days/reorder', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'reorderDays'])->name('program-builder.days.reorder');
-            
-            // Circuit management
-            Route::post('/days/{day}/circuits', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'addCircuit'])->name('program-builder.circuits.store');
-            Route::get('/circuits/{circuit}/edit', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'editCircuit'])->name('program-builder.circuits.edit');
-            Route::put('/circuits/{circuit}', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'updateCircuit'])->name('program-builder.circuits.update');
-            Route::delete('/circuits/{circuit}', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'removeCircuit'])->name('program-builder.circuits.destroy');
-            Route::put('/days/{day}/circuits/reorder', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'reorderCircuits'])->name('program-builder.circuits.reorder');
-            
-            // Exercise management
-                Route::post('/circuits/{circuit}/exercises', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'addExercise'])->name('program-builder.exercises.add');
-                Route::get('/exercises/{exercise}/edit', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'editExercise'])->name('program-builder.exercises.edit');
-                Route::put('/exercises/{programExercise}', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'updateExercise'])->name('program-builder.exercises.update');
-                Route::put('/exercises/{programExercise}/workout', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'updateExerciseWorkout'])->name('program-builder.exercises.update-workout');
-                Route::delete('/exercises/{programExercise}', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'removeExercise'])->name('program-builder.exercises.remove');
-                Route::post('/circuits/{circuit}/exercises/reorder', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'reorderExercises'])->name('program-builder.exercises.reorder');
-            
-            // Exercise sets management
-            Route::get('/exercises/{programExercise}/sets', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'manageSets'])->name('program-builder.sets.manage');
-            Route::put('/exercises/{exercise}/sets', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'updateExerciseSets'])->name('program-builder.sets.update');
-        });
         
         // Nutrition Plans Management
         Route::prefix('nutrition-plans')->group(function () {
