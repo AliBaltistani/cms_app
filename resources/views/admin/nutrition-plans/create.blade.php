@@ -33,6 +33,35 @@
 </div>
 <!-- Page Header Close -->
 
+<!-- Success Message -->
+@if(session('success'))
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="ri-check-line me-2"></i>{{ session('success') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+@endif
+
+<!-- Error Message -->
+@if(session('error'))
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="ri-error-warning-line me-2"></i>{{ session('error') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+@endif
+
+<!-- Validation Errors -->
+@if($errors->any())
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="ri-error-warning-line me-2"></i><strong>Please fix the following errors:</strong>
+    <ul class="mb-0 mt-2">
+        @foreach($errors->all() as $error)
+            <li>{{ $error }}</li>
+        @endforeach
+    </ul>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+@endif
+
 <form id="nutritionPlanForm" action="{{ route('admin.nutrition-plans.store') }}" method="POST" enctype="multipart/form-data">
     @csrf
     <div class="row">
@@ -60,10 +89,11 @@
                             <label for="goal_type" class="form-label">Goal Type</label>
                             <select class="form-select" id="goal_type" name="goal_type">
                                 <option value="">Select Goal Type</option>
-                                <option value="weight_loss">Weight Loss</option>
-                                <option value="weight_gain">Weight Gain</option>
-                                <option value="maintenance">Maintenance</option>
-                                <option value="muscle_gain">Muscle Gain</option>
+                                @foreach($goals as $goal)
+                                    <option value="{{ strtolower(str_replace(' ', '_', $goal->name)) }}" {{ old('goal_type') == strtolower(str_replace(' ', '_', $goal->name)) ? 'selected' : '' }}>
+                                        {{ $goal->name }}
+                                    </option>
+                                @endforeach
                             </select>
                             <div class="invalid-feedback"></div>
                         </div>

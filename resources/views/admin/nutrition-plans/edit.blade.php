@@ -34,6 +34,35 @@
 </div>
 <!-- Page Header Close -->
 
+<!-- Display Success/Error Messages -->
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="ri-check-line me-2"></i>{{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
+
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="ri-error-warning-line me-2"></i>{{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
+
+<!-- Display Validation Errors -->
+@if($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="ri-error-warning-line me-2"></i>
+        <strong>Please fix the following errors:</strong>
+        <ul class="mb-0 mt-2">
+            @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
+
 <form id="nutritionPlanForm" action="{{ route('admin.nutrition-plans.update', $plan->id) }}" method="POST" enctype="multipart/form-data">
     @csrf
     @method('PUT')
@@ -62,10 +91,14 @@
                             <label for="goal_type" class="form-label">Goal Type</label>
                             <select class="form-select" id="goal_type" name="goal_type">
                                 <option value="">Select Goal Type</option>
-                                <option value="weight_loss" {{ old('goal_type', $plan->goal_type) == 'weight_loss' ? 'selected' : '' }}>Weight Loss</option>
-                                <option value="weight_gain" {{ old('goal_type', $plan->goal_type) == 'weight_gain' ? 'selected' : '' }}>Weight Gain</option>
-                                <option value="maintenance" {{ old('goal_type', $plan->goal_type) == 'maintenance' ? 'selected' : '' }}>Maintenance</option>
-                                <option value="muscle_gain" {{ old('goal_type', $plan->goal_type) == 'muscle_gain' ? 'selected' : '' }}>Muscle Gain</option>
+                                @foreach($goals as $goal)
+                                    @php
+                                        $goalValue = strtolower(str_replace(' ', '_', $goal->name));
+                                    @endphp
+                                    <option value="{{ $goalValue }}" {{ old('goal_type', $plan->goal_type) == $goalValue ? 'selected' : '' }}>
+                                        {{ $goal->name }}
+                                    </option>
+                                @endforeach
                             </select>
                             <div class="invalid-feedback"></div>
                         </div>

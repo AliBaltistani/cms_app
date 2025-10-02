@@ -10,6 +10,7 @@ use App\Models\NutritionRestriction;
 use App\Models\NutritionRecommendation;
 use App\Models\FoodDiary;
 use App\Models\User;
+use App\Models\Goal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -251,7 +252,13 @@ class NutritionPlansController extends Controller
                          ->orderBy('name')
                          ->get();
             
-            return view('admin.nutrition-plans.create', compact('trainers', 'clients'));
+            // Get active goals for goal type dropdown
+            $goals = Goal::where('status', 1)
+                        ->select('id', 'name')
+                        ->orderBy('name')
+                        ->get();
+            
+            return view('admin.nutrition-plans.create', compact('trainers', 'clients', 'goals'));
             
         } catch (\Exception $e) {
             Log::error('Failed to load nutrition plan creation form: ' . $e->getMessage());
@@ -268,6 +275,14 @@ class NutritionPlansController extends Controller
     public function store(Request $request)
     {
         try {
+            // Get valid goal types from the goals table
+            $validGoalTypes = Goal::where('status', 1)
+                                 ->pluck('name')
+                                 ->map(function($name) {
+                                     return strtolower(str_replace(' ', '_', $name));
+                                 })
+                                 ->toArray();
+            
             // Validation rules
             $rules = [
                 'plan_name' => 'required|string|max:255',
@@ -275,7 +290,7 @@ class NutritionPlansController extends Controller
                 'category' => 'nullable|string|max:100',
                 'trainer_id' => 'nullable|exists:users,id',
                 'client_id' => 'nullable|exists:users,id',
-                'goal_type' => 'nullable|in:weight_loss,weight_gain,muscle_gain,maintenance,cutting,bulking',
+                'goal_type' => 'nullable|string|in:' . implode(',', $validGoalTypes),
                 'duration_days' => 'nullable|integer|min:1|max:365',
                 'target_weight' => 'nullable|numeric|min:30|max:300',
                 'status' => 'required|in:active,inactive,draft',
@@ -458,7 +473,13 @@ class NutritionPlansController extends Controller
                          ->orderBy('name')
                          ->get();
             
-            return view('admin.nutrition-plans.edit', compact('plan', 'trainers', 'clients'));
+            // Get active goals for goal type dropdown
+            $goals = Goal::where('status', 1)
+                        ->select('id', 'name')
+                        ->orderBy('name')
+                        ->get();
+            
+            return view('admin.nutrition-plans.edit', compact('plan', 'trainers', 'clients', 'goals'));
             
         } catch (\Exception $e) {
             Log::error('Failed to load nutrition plan edit form: ' . $e->getMessage());
@@ -478,6 +499,14 @@ class NutritionPlansController extends Controller
         try {
             $plan = NutritionPlan::findOrFail($id);
             
+            // Get valid goal types from the goals table
+            $validGoalTypes = Goal::where('status', 1)
+                                 ->pluck('name')
+                                 ->map(function($name) {
+                                     return strtolower(str_replace(' ', '_', $name));
+                                 })
+                                 ->toArray();
+            
             // Validation rules
             $rules = [
                 'plan_name' => 'required|string|max:255',
@@ -485,8 +514,8 @@ class NutritionPlansController extends Controller
                 'category' => 'nullable|string|max:100',
                 'trainer_id' => 'nullable|exists:users,id',
                 'client_id' => 'nullable|exists:users,id',
-                'goal_type' => 'required|in:weight_loss,weight_gain,muscle_gain,maintenance,cutting,bulking',
-                'duration_days' => 'required|integer|min:1|max:365',
+                'goal_type' => 'nullable|string|in:' . implode(',', $validGoalTypes),
+                'duration_days' => 'nullable|integer|min:1|max:365',
                 'target_weight' => 'nullable|numeric|min:30|max:300',
                 'status' => 'required|in:active,inactive,draft',
                 'is_global' => 'boolean',
@@ -498,6 +527,14 @@ class NutritionPlansController extends Controller
             $validator = Validator::make($request->all(), $rules);
             
             if ($validator->fails()) {
+                // Log validation errors for debugging
+                Log::error('Nutrition plan update validation failed', [
+                    'admin_id' => Auth::id(),
+                    'plan_id' => $id,
+                    'validation_errors' => $validator->errors()->toArray(),
+                    'request_data' => $request->except(['media_file', '_token'])
+                ]);
+                
                 if ($request->ajax()) {
                     return response()->json([
                         'success' => false,
@@ -594,6 +631,9 @@ class NutritionPlansController extends Controller
             Log::error('Failed to update nutrition plan: ' . $e->getMessage(), [
                 'admin_id' => Auth::id(),
                 'plan_id' => $id,
+                'request_data' => $request->except(['media_file', '_token']),
+                'error_line' => $e->getLine(),
+                'error_file' => $e->getFile(),
                 'trace' => $e->getTraceAsString()
             ]);
             
