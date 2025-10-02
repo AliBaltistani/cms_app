@@ -315,7 +315,6 @@ class NutritionPlansController extends Controller
             // Create nutrition plan
             $plan = NutritionPlan::create([
                 'plan_name' => $request->plan_name,
-                'name' => $request->name,
                 'description' => $request->description,
                 'category' => $request->category,
                 'trainer_id' => $request->trainer_id,
@@ -482,7 +481,6 @@ class NutritionPlansController extends Controller
             // Validation rules
             $rules = [
                 'plan_name' => 'required|string|max:255',
-                'name' => 'required|string|max:255',
                 'description' => 'nullable|string',
                 'category' => 'nullable|string|max:100',
                 'trainer_id' => 'nullable|exists:users,id',
