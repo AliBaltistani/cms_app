@@ -179,7 +179,7 @@
             </div>
 
             <!-- Tags Section -->
-            <div class="card custom-card">
+            <!-- <div class="card custom-card">
                 <div class="card-header">
                     <div class="card-title">
                         Tags & Categories
@@ -213,7 +213,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> -->
 
             <!-- Macronutrient Targets Section -->
             <div class="card custom-card">
