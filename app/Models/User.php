@@ -33,6 +33,12 @@ class User extends Authenticatable
         'experience',
         'about',
         'training_philosophy',
+        'sms_notifications_enabled',
+        'sms_marketing_enabled',
+        'sms_quiet_start',
+        'sms_quiet_end',
+        'sms_notification_types',
+        'timezone',
     ];
 
     /**
@@ -55,6 +61,9 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'sms_notifications_enabled' => 'boolean',
+            'sms_marketing_enabled' => 'boolean',
+            'sms_notification_types' => 'array',
         ];
     }
 
@@ -355,6 +364,90 @@ class User extends Authenticatable
     }
     
     /**
+     * Check if SMS notifications are enabled for this user
+     * 
+     * @return bool
+     */
+    public function canReceiveSms(): bool
+    {
+        return $this->sms_notifications_enabled ?? true;
+    }
+    
+    /**
+     * Check if marketing SMS are enabled for this user
+     * 
+     * @return bool
+     */
+    public function canReceiveMarketingSms(): bool
+    {
+        return $this->sms_marketing_enabled ?? false;
+    }
+    
+    /**
+     * Check if current time is within quiet hours for SMS
+     * 
+     * @return bool
+     */
+    public function isInQuietHours(): bool
+    {
+        if (!$this->sms_quiet_start || !$this->sms_quiet_end) {
+            return false;
+        }
+        
+        // Get current time in user's timezone
+        $userTimezone = $this->timezone ?? 'UTC';
+        $currentTime = now()->setTimezone($userTimezone)->format('H:i:s');
+        
+        $quietStart = $this->sms_quiet_start;
+        $quietEnd = $this->sms_quiet_end;
+        
+        // Handle cases where quiet hours span midnight
+        if ($quietStart < $quietEnd) {
+            // Same day: 14:00 - 16:00
+            return $currentTime >= $quietStart && $currentTime < $quietEnd;
+        } else {
+            // Spans midnight: 22:00 - 08:00
+            return $currentTime >= $quietStart || $currentTime < $quietEnd;
+        }
+    }
+    
+    /**
+     * Check if user can receive a specific type of SMS notification
+     * 
+     * @param string $notificationType Type of notification (e.g., 'workout', 'appointment', 'general')
+     * @return bool
+     */
+    public function canReceiveSmsType(string $notificationType): bool
+    {
+        if (!$this->canReceiveSms()) {
+            return false;
+        }
+        
+        // If no specific types are set, allow all
+        if (!$this->sms_notification_types) {
+            return true;
+        }
+        
+        return in_array($notificationType, $this->sms_notification_types);
+    }
+    
+    /**
+     * Get default SMS notification types
+     * 
+     * @return array
+     */
+    public static function getDefaultSmsNotificationTypes(): array
+    {
+        return [
+            'conversation' => 'Direct Messages',
+            'workout' => 'Workout Reminders',
+            'appointment' => 'Appointment Notifications',
+            'progress' => 'Progress Updates',
+            'general' => 'General Notifications'
+        ];
+    }
+    
+    /**
      * Get food diary entries for this client.
      * 
      * @return HasMany
@@ -362,5 +455,75 @@ class User extends Authenticatable
     public function foodDiaryEntries(): HasMany
     {
         return $this->hasMany(FoodDiary::class, 'client_id');
+    }
+    
+    /**
+     * Validate phone number format
+     * 
+     * @param string $phone
+     * @return bool
+     */
+    public static function isValidPhoneNumber(string $phone): bool
+    {
+        // Remove all non-digit characters
+        $cleanPhone = preg_replace('/\D/', '', $phone);
+        
+        // Check if phone number has valid length (10-15 digits)
+        if (strlen($cleanPhone) < 10 || strlen($cleanPhone) > 15) {
+            return false;
+        }
+        
+        // Basic format validation - should start with country code or local format
+        return preg_match('/^(\+?[1-9]\d{1,14})$/', $cleanPhone);
+    }
+    
+    /**
+     * Format phone number for storage
+     * 
+     * @param string $phone
+     * @return string
+     */
+    public static function formatPhoneNumber(string $phone): string
+    {
+        // Remove all non-digit characters except +
+        $cleanPhone = preg_replace('/[^\d+]/', '', $phone);
+        
+        // Ensure it starts with + if it doesn't already
+        if (!str_starts_with($cleanPhone, '+')) {
+            // If it's a 10-digit number, assume it's a local number and add default country code
+            if (strlen($cleanPhone) === 10) {
+                $cleanPhone = '+92' . $cleanPhone; // Pakistan country code
+            } else {
+                $cleanPhone = '+' . $cleanPhone;
+            }
+        }
+        
+        return $cleanPhone;
+    }
+    
+    /**
+     * Mutator for phone attribute - format phone number before saving
+     * 
+     * @param string $value
+     * @return void
+     */
+    public function setPhoneAttribute($value): void
+    {
+        if ($value) {
+            $this->attributes['phone'] = self::formatPhoneNumber($value);
+        } else {
+            $this->attributes['phone'] = null;
+        }
+    }
+    
+    /**
+     * Accessor for phone attribute - return formatted phone number
+     * 
+     * @param string $value
+     * @return string|null
+     */
+    public function getPhoneAttribute($value): ?string
+    {
+        return $value;
     }
 }

@@ -44,11 +44,17 @@ Route::prefix('auth')->name('api.auth.')->group(function () {
     Route::post('/register', [ApiAuthController::class, 'register'])->name('register');
     Route::post('/login', [ApiAuthController::class, 'login'])->name('login');
 
-    // Password Reset Flow
+    // Email-based Password Reset Flow
     Route::post('/forgot-password', [ApiAuthController::class, 'forgotPassword'])->name('forgot-password');
     Route::post('/verify-otp', [ApiAuthController::class, 'verifyOTP'])->name('verify-otp');
     Route::post('/reset-password', [ApiAuthController::class, 'resetPassword'])->name('reset-password');
     Route::post('/resend-otp', [ApiAuthController::class, 'resendOTP'])->name('resend-otp');
+    
+    // Phone-based Password Reset Flow
+    Route::post('/forgot-password-phone', [ApiAuthController::class, 'forgotPasswordPhone'])->name('forgot-password-phone');
+    Route::post('/verify-otp-phone', [ApiAuthController::class, 'verifyPhoneOTP'])->name('verify-otp-phone');
+    Route::post('/reset-password-phone', [ApiAuthController::class, 'resetPasswordPhone'])->name('reset-password-phone');
+    Route::post('/resend-otp-phone', [ApiAuthController::class, 'resendPhoneOTP'])->name('resend-otp-phone');
 });
 
 /**
@@ -341,21 +347,48 @@ Route::prefix('system')->name('api.system.')->group(function () {
 });
 
 /**
- * API Documentation Routes
- * Complete API documentation with detailed request/response examples
- * Organized by user roles and functionality
+ * =============================================================================
+ * SMS COMMUNICATION ROUTES
+ * =============================================================================
  */
-Route::prefix('docs')->name('api.docs.')->group(function () {
-    // Complete API documentation (public access)
-    Route::get('/', [App\Http\Controllers\ApiDocumentationController::class, 'index'])->name('index');
 
-    // Specific endpoint documentation
-    Route::get('/{endpoint}', [App\Http\Controllers\ApiDocumentationController::class, 'getEndpoint'])->name('endpoint');
-
-    // OpenAPI/Swagger schema
-    Route::get('/schema/openapi', [App\Http\Controllers\ApiDocumentationController::class, 'getSchema'])->name('schema');
+/**
+ * SMS Routes for Trainer-Client Communication
+ * Handles SMS messaging between trainers and clients via Twilio
+ */
+Route::middleware(['auth:sanctum'])->prefix('sms')->name('sms.')->group(function () {
+    // Send SMS message
+    Route::post('/send', [\App\Http\Controllers\Api\SmsController::class, 'sendMessage'])->name('send');
+    
+    // Get conversation with specific user
+    Route::get('/conversation', [\App\Http\Controllers\Api\SmsController::class, 'getConversation'])->name('conversation');
+    
+    // Get all conversations for authenticated user
+    Route::get('/conversations', [\App\Http\Controllers\Api\SmsController::class, 'getConversations'])->name('conversations');
+    
+    // Mark messages as read
+    Route::patch('/mark-read', [\App\Http\Controllers\Api\SmsController::class, 'markAsRead'])->name('mark-read');
+    
+    // Get message status
+    Route::get('/status/{messageSid}', [\App\Http\Controllers\Api\SmsController::class, 'getMessageStatus'])->name('status');
+    
+    // SMS Preferences Routes
+    Route::prefix('preferences')->name('preferences.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\UserPreferencesController::class, 'getSmsPreferences'])->name('get');
+        Route::put('/', [\App\Http\Controllers\Api\UserPreferencesController::class, 'updateSmsPreferences'])->name('update');
+        Route::post('/reset', [\App\Http\Controllers\Api\UserPreferencesController::class, 'resetSmsPreferences'])->name('reset');
+        Route::get('/types', [\App\Http\Controllers\Api\UserPreferencesController::class, 'getSmsNotificationTypes'])->name('types');
+    });
 });
 
+/**
+ * SMS Webhook Routes (Public - for Twilio callbacks)
+ * These routes handle incoming SMS and status updates from Twilio
+ */
+Route::prefix('sms/webhook')->name('sms.webhook.')->group(function () {
+    // Handle incoming SMS from Twilio
+    Route::post('/incoming', [\App\Http\Controllers\Api\SmsController::class, 'handleIncomingSms'])->name('incoming');
+});
 
 /**
  * =============================================================================
@@ -381,7 +414,8 @@ Route::fallback(function () {
                 'admin' => '/api/admin/*',
                 'trainer' => '/api/trainer/*',
                 'client' => '/api/client/*',
-                'system' => '/api/system/*'
+                'system' => '/api/system/*',
+                'sms' => '/api/sms/*'
             ]
         ]
     ], 404);

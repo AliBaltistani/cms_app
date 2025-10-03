@@ -14,7 +14,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('user_certifications', function (Blueprint $table) {
-            // Add the missing fields that the form expects (name and issuing_organization already exist)
+            // Add issuing_organization field first
+            $table->string('issuing_organization')->nullable()->after('certificate_name');
+            
+            // Add the missing fields that the form expects
             $table->date('issue_date')->nullable()->after('issuing_organization'); // Date when certification was issued
             $table->date('expiry_date')->nullable()->after('issue_date'); // Expiry date (optional)
             $table->string('credential_id')->nullable()->after('expiry_date'); // Credential ID (optional)
@@ -34,6 +37,7 @@ return new class extends Migration
         Schema::table('user_certifications', function (Blueprint $table) {
             // Remove the added fields
             $table->dropColumn([
+                'issuing_organization',
                 'issue_date',
                 'expiry_date',
                 'credential_id',

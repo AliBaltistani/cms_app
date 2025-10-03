@@ -47,7 +47,7 @@ class TrainerProfileSeeder extends Seeder
             ['email' => 'ahmed.trainer@example.com'],
             [
             'name' => 'Ahmed Khan',
-            'email' => 'ahmed.trainer@example.com',
+            'email' => 'ahmed.trainer@example.com', 
             'phone' => '+92-301-9876543',
             'role' => 'trainer',
             'password' => Hash::make('password123'),

@@ -268,6 +268,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/{program}/weeks', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'addWeek'])->name('program-builder.weeks.store');
             Route::get('/weeks/{week}/edit', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'editWeek'])->name('program-builder.weeks.edit');
             Route::put('/weeks/{week}', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'updateWeek'])->name('program-builder.weeks.update');
+            Route::post('/weeks/{week}/duplicate', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'duplicateWeek'])->name('program-builder.weeks.duplicate');
             Route::delete('/weeks/{week}', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'removeWeek'])->name('program-builder.weeks.destroy');
             Route::put('/{program}/weeks/reorder', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'reorderWeeks'])->name('program-builder.weeks.reorder');
             

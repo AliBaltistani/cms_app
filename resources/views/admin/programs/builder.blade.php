@@ -184,6 +184,9 @@
                                         <button class="btn btn-light btn-sm" onclick="addDay('{{ $week->id }}')">
                                             <i class="ri-add-line"></i> Add Day
                                         </button>
+                                        <button class="btn btn-outline-light btn-sm" onclick="duplicateWeek('{{ $week->id }}')">
+                                            <i class="ri-file-copy-line"></i> Duplicate
+                                        </button>
                                         <button class="btn btn-outline-light btn-sm" onclick="editWeek('{{ $week->id }}')">
                                             <i class="ri-edit-line"></i>
                                         </button>

@@ -31,21 +31,21 @@ class PasswordReset extends Model
      *
      * @var string
      */
-    protected $primaryKey = 'email';
+    protected $primaryKey = 'id';
 
     /**
      * Indicates if the IDs are auto-incrementing.
      *
      * @var bool
      */
-    public $incrementing = false;
+    public $incrementing = true;
 
     /**
      * The data type of the auto-incrementing ID.
      *
      * @var string
      */
-    protected $keyType = 'string';
+    protected $keyType = 'int';
 
     /**
      * Indicates if the model should be timestamped.
@@ -61,11 +61,13 @@ class PasswordReset extends Model
      */
     protected $fillable = [
         'email',
+        'phone',
         'token',
         'otp',
         'otp_expires_at',
         'is_used',
         'attempts',
+        'otp_type',
         'created_at'
     ];
 
@@ -79,6 +81,12 @@ class PasswordReset extends Model
         'otp_expires_at' => 'datetime',
         'is_used' => 'boolean',
     ];
+
+    /**
+     * OTP type constants
+     */
+    const OTP_TYPE_EMAIL = 'email';
+    const OTP_TYPE_PHONE = 'phone';
 
     /**
      * Generate a 6-digit OTP
@@ -133,7 +141,7 @@ class PasswordReset extends Model
     }
 
     /**
-     * Create or update password reset record with OTP
+     * Create or update password reset record with OTP for email
      *
      * @param string $email
      * @param string $token
@@ -145,13 +153,41 @@ class PasswordReset extends Model
         $otpExpiresAt = Carbon::now()->addMinutes(15); // OTP expires in 15 minutes
 
         return self::updateOrCreate(
-            ['email' => $email],
+            ['email' => $email, 'otp_type' => self::OTP_TYPE_EMAIL],
             [
                 'token' => Hash::make($token),
                 'otp' => $otp,
                 'otp_expires_at' => $otpExpiresAt,
                 'is_used' => false,
                 'attempts' => 0,
+                'otp_type' => self::OTP_TYPE_EMAIL,
+                'created_at' => Carbon::now()
+            ]
+        );
+    }
+
+    /**
+     * Create or update password reset record with OTP for phone
+     *
+     * @param string $phone
+     * @param string $token
+     * @return PasswordReset
+     */
+    public static function createWithPhoneOTP(string $phone, string $token): PasswordReset
+    {
+        $otp = self::generateOTP();
+        $otpExpiresAt = Carbon::now()->addMinutes(15); // OTP expires in 15 minutes
+
+        return self::updateOrCreate(
+            ['phone' => $phone, 'otp_type' => self::OTP_TYPE_PHONE],
+            [
+                'email' => null, // Explicitly set email to null for phone-based resets
+                'token' => Hash::make($token),
+                'otp' => $otp,
+                'otp_expires_at' => $otpExpiresAt,
+                'is_used' => false,
+                'attempts' => 0,
+                'otp_type' => self::OTP_TYPE_PHONE,
                 'created_at' => Carbon::now()
             ]
         );
@@ -168,6 +204,31 @@ class PasswordReset extends Model
     {
         $resetRecord = self::where('email', $email)
             ->where('otp', $otp)
+            ->where('otp_type', self::OTP_TYPE_EMAIL)
+            ->first();
+
+        if (!$resetRecord || !$resetRecord->isOTPValid()) {
+            if ($resetRecord) {
+                $resetRecord->incrementAttempts();
+            }
+            return null;
+        }
+
+        return $resetRecord;
+    }
+
+    /**
+     * Verify OTP for given phone number
+     *
+     * @param string $phone
+     * @param string $otp
+     * @return PasswordReset|null
+     */
+    public static function verifyPhoneOTP(string $phone, string $otp): ?PasswordReset
+    {
+        $resetRecord = self::where('phone', $phone)
+            ->where('otp', $otp)
+            ->where('otp_type', self::OTP_TYPE_PHONE)
             ->first();
 
         if (!$resetRecord || !$resetRecord->isOTPValid()) {

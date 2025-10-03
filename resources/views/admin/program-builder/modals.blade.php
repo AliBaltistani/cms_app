@@ -147,13 +147,16 @@
                 @csrf
                 <div class="modal-body">
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-6 d-none">
                             <div class="form-group">
                                 <label for="workout_id" class="form-label">Select Workout <span class="text-danger">*</span></label>
                                 <select class="form-control" id="workout_id" name="workout_id" required>
-                                    <option value="">Choose a workout...</option>
-                                    @foreach($workouts as $workout)
-                                        <option value="{{ $workout->id }}" data-duration="{{ $workout->duration }}" data-difficulty="{{ $workout->difficulty_level }}">
+                                    <option value="" disabled>Choose a workout...</option>
+                                    @foreach($workouts as $index => $workout)
+                                        <option value="{{ $workout->id }}" 
+                                                data-duration="{{ $workout->duration }}" 
+                                                data-difficulty="{{ $workout->difficulty_level }}"
+                                                {{ $index === 0 ? 'selected' : '' }}>
                                             {{ $workout->name }} ({{ $workout->duration }}min - {{ ucfirst($workout->difficulty_level) }})
                                         </option>
                                     @endforeach
@@ -161,7 +164,7 @@
                                 <div class="invalid-feedback"></div>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6 d-none">
                             <div class="form-group">
                                 <label for="exercise_order" class="form-label">Order <span class="text-danger">*</span></label>
                                 <input type="number" class="form-control" id="exercise_order" name="order" min="0" required>
@@ -253,6 +256,51 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary">
                         <i class="ri-save-line"></i> Update Sets
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{{-- Duplicate Week Modal --}}
+<div class="modal fade" id="duplicateWeekModal" tabindex="-1" role="dialog" aria-labelledby="duplicateWeekModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="duplicateWeekModalLabel">Duplicate Week</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="duplicateWeekForm" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="ri-information-line"></i> This will create a complete copy of the selected week including all days, circuits, exercises, and sets.
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="duplicate_week_number" class="form-label">New Week Number <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="duplicate_week_number" name="week_number" min="1" required>
+                        <div class="invalid-feedback"></div>
+                        <small class="form-text text-muted">The week number for the duplicated week</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="duplicate_week_title" class="form-label">Title (Optional)</label>
+                        <input type="text" class="form-control" id="duplicate_week_title" name="title" maxlength="255" placeholder="Leave empty to copy original title">
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="duplicate_week_description" class="form-label">Description (Optional)</label>
+                        <textarea class="form-control" id="duplicate_week_description" name="description" rows="3" placeholder="Leave empty to copy original description"></textarea>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ri-file-copy-line"></i> Duplicate Week
                     </button>
                 </div>
             </form>
