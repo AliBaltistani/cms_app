@@ -113,7 +113,7 @@ class ApiAuthController extends ApiBaseController
                 'password' => 'required|string|min:8|confirmed',
                 'password_confirmation' => 'required|string',
                 'phone' => 'required|string|max:20|unique:users,phone',
-                'role' => 'required|in:trainer,client',
+                'role' => 'required|in:trainer,client,admin',
                 'device_name' => 'nullable|string|max:255'
             ]);
             

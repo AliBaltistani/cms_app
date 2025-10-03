@@ -116,6 +116,31 @@ function deleteWeek(weekId) {
     $('#deleteModal').modal('show');
 }
 
+function duplicateWeek(weekId) {
+    currentWeekId = weekId;
+    $('#duplicateWeekModalLabel').text('Duplicate Week');
+    $('#duplicateWeekForm')[0].reset();
+    clearFormErrors('duplicateWeekForm');
+    
+    // Set next week number
+    const weekNumbers = $('.week-section').map(function() {
+        return parseInt($(this).find('.week-header h5').text().match(/\d+/)[0]);
+    }).get();
+    const nextWeekNumber = weekNumbers.length > 0 ? Math.max(...weekNumbers) + 1 : 1;
+    $('#duplicate_week_number').val(nextWeekNumber);
+    
+    // Load original week data to show in placeholders
+    $.get(`/admin/program-builder/weeks/${weekId}/edit`)
+        .done(function(response) {
+            $('#duplicate_week_title').attr('placeholder', `Copy of: ${response.week.title || 'Week ' + response.week.week_number}`);
+            $('#duplicate_week_description').attr('placeholder', response.week.description || 'No description');
+            $('#duplicateWeekModal').modal('show');
+        })
+        .fail(function() {
+            showError('Failed to load week data');
+        });
+}
+
 // Day Management Functions
 function addDay(weekId) {
     currentWeekId = weekId;
@@ -486,6 +511,35 @@ $('#weekForm').on('submit', function(e) {
                 displayFormErrors('weekForm', xhr.responseJSON.errors);
             } else {
                 showError('An error occurred while saving the week');
+            }
+        }
+    });
+});
+
+$('#duplicateWeekForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = $(this).serialize();
+    const url = `/admin/program-builder/weeks/${currentWeekId}/duplicate`;
+    
+    $.ajax({
+        url: url,
+        type: 'POST',
+        data: formData,
+        success: function(response) {
+            if (response.success) {
+                $('#duplicateWeekModal').modal('hide');
+                showSuccess(response.message);
+                location.reload(); // Reload to show duplicated week
+            } else {
+                showError(response.message);
+            }
+        },
+        error: function(xhr) {
+            if (xhr.status === 422) {
+                displayFormErrors('duplicateWeekForm', xhr.responseJSON.errors);
+            } else {
+                showError('An error occurred while duplicating the week');
             }
         }
     });

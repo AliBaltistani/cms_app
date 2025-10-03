@@ -542,6 +542,126 @@ class ProgramBuilderController extends Controller
     }
 
     /**
+     * Duplicate a week with all its nested data
+     * 
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Models\Week  $week
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function duplicateWeek(Request $request, Week $week): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'week_number' => 'required|integer|min:1',
+                'title' => 'nullable|string|max:255',
+                'description' => 'nullable|string'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Check if week number already exists in the same program
+            $existingWeek = Week::where('program_id', $week->program_id)
+                                ->where('week_number', $request->week_number)
+                                ->first();
+
+            if ($existingWeek) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Week number already exists in this program',
+                    'errors' => ['week_number' => ['Week number already exists']]
+                ], 422);
+            }
+
+            DB::beginTransaction();
+
+            // Load the original week with all its nested relationships
+            $originalWeek = Week::with([
+                'days.circuits.programExercises.exerciseSets'
+            ])->find($week->id);
+
+            // Create the new week
+            $newWeek = Week::create([
+                'program_id' => $originalWeek->program_id,
+                'week_number' => $request->week_number,
+                'title' => $request->title ?: $originalWeek->title,
+                'description' => $request->description ?: $originalWeek->description
+            ]);
+
+            // Duplicate all days in the week
+            foreach ($originalWeek->days as $originalDay) {
+                $newDay = Day::create([
+                    'week_id' => $newWeek->id,
+                    'day_number' => $originalDay->day_number,
+                    'title' => $originalDay->title,
+                    'description' => $originalDay->description,
+                    'cool_down' => $originalDay->cool_down
+                ]);
+
+                // Duplicate all circuits in each day
+                foreach ($originalDay->circuits as $originalCircuit) {
+                    $newCircuit = Circuit::create([
+                        'day_id' => $newDay->id,
+                        'circuit_number' => $originalCircuit->circuit_number,
+                        'title' => $originalCircuit->title,
+                        'description' => $originalCircuit->description
+                    ]);
+
+                    // Duplicate all exercises in each circuit
+                    foreach ($originalCircuit->programExercises as $originalExercise) {
+                        $newExercise = ProgramExercise::create([
+                            'circuit_id' => $newCircuit->id,
+                            'workout_id' => $originalExercise->workout_id,
+                            'order' => $originalExercise->order,
+                            'tempo' => $originalExercise->tempo,
+                            'rest_interval' => $originalExercise->rest_interval,
+                            'notes' => $originalExercise->notes
+                        ]);
+
+                        // Duplicate all sets for each exercise
+                        foreach ($originalExercise->exerciseSets as $originalSet) {
+                            ExerciseSet::create([
+                                'program_exercise_id' => $newExercise->id,
+                                'set_number' => $originalSet->set_number,
+                                'reps' => $originalSet->reps,
+                                'weight' => $originalSet->weight
+                            ]);
+                        }
+                    }
+                }
+            }
+
+            DB::commit();
+
+            // Log the successful duplication
+            Log::info('Week duplicated successfully', [
+                'original_week_id' => $originalWeek->id,
+                'new_week_id' => $newWeek->id,
+                'program_id' => $originalWeek->program_id
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Week duplicated successfully',
+                'week' => $newWeek
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error in ProgramBuilderController@duplicateWeek: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while duplicating the week'
+            ], 500);
+        }
+    }
+
+    /**
      * Show the form for editing a day
      * 
      * @param  \App\Models\Day  $day
