@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\PasswordReset;
+use App\Services\TwilioSmsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -117,7 +118,9 @@ class ApiAuthController extends ApiBaseController
             ]);
             
             if ($validator->fails()) {
-                return $this->sendError('Validation Error', $validator->errors(), 422);
+                $errors = $validator->errors()->all();
+                $errorMessage = 'Validation Error: ' . implode(' ', $errors);
+                return $this->sendError($errorMessage, $validator->errors(), 422);
             }
             
             // Create new user
@@ -538,6 +541,265 @@ class ApiAuthController extends ApiBaseController
         } catch (\Exception $e) {
             Log::error('Failed to resend OTP via API: ' . $e->getMessage(), [
                 'email' => $request->email ?? 'unknown',
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return $this->sendError('Resend Failed', ['error' => 'Unable to resend OTP'], 500);
+        }
+    }
+
+    /**
+     * Send password reset OTP via phone
+     * 
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function forgotPasswordPhone(Request $request): JsonResponse
+    {
+        try {
+            // Validate phone input
+            $validator = Validator::make($request->all(), [
+                'phone' => 'required|string|exists:users,phone'
+            ], [
+                'phone.required' => 'Phone number is required.',
+                'phone.exists' => 'No account found with this phone number.'
+            ]);
+            
+            if ($validator->fails()) {
+                return $this->sendError('Validation Error', $validator->errors(), 422);
+            }
+            
+            // Get user details
+            $user = User::where('phone', $request->phone)->first();
+            
+            if (!$user) {
+                return $this->sendError('User Not Found', ['phone' => 'User not found.'], 404);
+            }
+            
+            // Generate unique token and create password reset record with OTP
+            $token = Str::random(60);
+            $passwordReset = PasswordReset::createWithPhoneOTP($request->phone, $token);
+            
+            // Send OTP via SMS using Twilio
+            $twilioService = new TwilioSmsService();
+            $smsMessage = "Your password reset OTP is: {$passwordReset->otp}. This code expires in 15 minutes.";
+            
+            $smsResult = $twilioService->sendSms($request->phone, $smsMessage);
+            
+            if (!$smsResult['success']) {
+                return $this->sendError('SMS Failed', ['error' => 'Unable to send SMS: ' . $smsResult['error']], 500);
+            }
+            
+            Log::info('Password reset OTP sent via SMS API', [
+                'phone' => $request->phone,
+                'user_id' => $user->id,
+                'message_sid' => $smsResult['message_sid'] ?? null,
+                'otp' => $passwordReset->otp // For debugging - remove in production
+            ]);
+            
+            return $this->sendResponse([
+                'message_sid' => $smsResult['message_sid'] ?? null
+            ], 'Password reset OTP sent to your phone number');
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to send password reset OTP via SMS API: ' . $e->getMessage(), [
+                'phone' => $request->phone ?? 'unknown',
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return $this->sendError('Send Failed', ['error' => 'Unable to send password reset OTP'. $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Verify password reset OTP for phone
+     * 
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function verifyPhoneOTP(Request $request): JsonResponse
+    {
+        try {
+            // Validate OTP input
+            $validator = Validator::make($request->all(), [
+                'phone' => 'required|string',
+                'otp' => 'required|string|size:6'
+            ], [
+                'phone.required' => 'Phone number is required.',
+                'otp.required' => 'OTP is required.',
+                'otp.size' => 'OTP must be exactly 6 digits.'
+            ]);
+            
+            if ($validator->fails()) {
+                return $this->sendError('Validation Error', $validator->errors(), 422);
+            }
+            
+
+            // Verify OTP using model method
+            $passwordReset = PasswordReset::verifyPhoneOTP($request->phone, $request->otp);
+            
+            if (!$passwordReset) {
+                return $this->sendError('Invalid OTP', ['otp' => 'Invalid or expired OTP. Please try again.'], 400);
+            }
+            
+            // Generate reset token for password reset
+            $resetToken = Str::random(64);
+            
+            Log::info('Password reset OTP verified via SMS API', [
+                'phone' => $request->phone
+            ]);
+            
+            return $this->sendResponse([
+                'reset_token' => $resetToken,
+                'phone' => $request->phone,
+                'expires_in' => 900 // 15 minutes
+            ], 'OTP verified successfully');
+            
+        } catch (\Exception $e) {
+            Log::error('Phone OTP verification failed via API: ' . $e->getMessage(), [
+                'phone' => $request->phone ?? 'unknown',
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return $this->sendError('Verification Failed', ['error' => 'Unable to verify OTP'], 500);
+        }
+    }
+
+    /**
+     * Reset password using verified phone OTP
+     * 
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function resetPasswordPhone(Request $request): JsonResponse
+    {
+        try {
+            // Validate password input
+            $validator = Validator::make($request->all(), [
+                'phone' => 'required|string',
+                'otp' => 'required|string|size:6',
+                'password' => 'required|string|min:8|confirmed',
+                'password_confirmation' => 'required|string'
+            ], [
+                'phone.required' => 'Phone number is required.',
+                'otp.required' => 'OTP is required.',
+                'otp.size' => 'OTP must be exactly 6 digits.',
+                'password.required' => 'Password is required.',
+                'password.min' => 'Password must be at least 8 characters long.',
+                'password.confirmed' => 'Password confirmation does not match.',
+                'password_confirmation.required' => 'Password confirmation is required.'
+            ]);
+            
+            if ($validator->fails()) {
+                return $this->sendError('Validation Error', $validator->errors(), 422);
+            }
+            
+            // Verify OTP again for security
+            $passwordReset = PasswordReset::verifyPhoneOTP($request->phone, $request->otp);
+            
+            if (!$passwordReset) {
+                return $this->sendError('Invalid OTP', ['otp' => 'Invalid or expired OTP. Please try again.'], 400);
+            }
+            
+            // Find user and update password
+            $user = User::where('phone', $request->phone)->first();
+            
+            if (!$user) {
+                return $this->sendError('User Not Found', ['phone' => 'User not found.'], 404);
+            }
+            
+            // Update user password
+            $user->password = Hash::make($request->password);
+            $user->save();
+            
+            // Mark OTP as used and clean up
+            $passwordReset->markOTPAsUsed();
+            
+            // Revoke all existing tokens for security
+            $user->tokens()->delete();
+            
+            Log::info('Password reset successfully via SMS API', [
+                'phone' => $request->phone,
+                'user_id' => $user->id
+            ]);
+            
+            return $this->sendResponse([], 'Password reset successfully! Please login with your new password.');
+            
+        } catch (\Exception $e) {
+            Log::error('Password reset via SMS failed: ' . $e->getMessage(), [
+                'phone' => $request->phone ?? 'unknown',
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return $this->sendError('Reset Failed', ['error' => 'Unable to reset password'], 500);
+        }
+    }
+
+    /**
+     * Resend password reset OTP via phone
+     * 
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function resendPhoneOTP(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'phone' => 'required|string|exists:users,phone'
+            ], [
+                'phone.required' => 'Phone number is required.',
+                'phone.exists' => 'No account found with this phone number.'
+            ]);
+            
+            if ($validator->fails()) {
+                return $this->sendError('Validation Error', $validator->errors(), 422);
+            }
+            
+            // Check if there's a recent OTP request (rate limiting)
+            $recentReset = PasswordReset::where('phone', $request->phone)
+                ->where('otp_type', PasswordReset::OTP_TYPE_PHONE)
+                ->where('created_at', '>', now()->subMinutes(2))
+                ->first();
+            
+            if ($recentReset) {
+                return $this->sendError('Rate Limited', ['error' => 'Please wait 2 minutes before requesting another OTP'], 429);
+            }
+            
+            // Get user details
+            $user = User::where('phone', $request->phone)->first();
+            
+            if (!$user) {
+                return $this->sendError('User Not Found', ['phone' => 'User not found.'], 404);
+            }
+            
+            // Generate new token and create new password reset record with OTP
+            $token = Str::random(60);
+            $passwordReset = PasswordReset::createWithPhoneOTP($request->phone, $token);
+            
+            // Send new OTP via SMS
+            $twilioService = new TwilioSmsService();
+            $smsMessage = "Your password reset OTP is: {$passwordReset->otp}. This code expires in 15 minutes.";
+            
+            $smsResult = $twilioService->sendSms($request->phone, $smsMessage);
+            
+            if (!$smsResult['success']) {
+                return $this->sendError('SMS Failed', ['error' => 'Unable to send SMS: ' . $smsResult['error']], 500);
+            }
+            
+            Log::info('Password reset OTP resent via SMS API', [
+                'phone' => $request->phone,
+                'user_id' => $user->id,
+                'message_sid' => $smsResult['message_sid'] ?? null,
+                'otp' => $passwordReset->otp // For debugging - remove in production
+            ]);
+            
+            return $this->sendResponse([
+                'message_sid' => $smsResult['message_sid'] ?? null
+            ], 'New OTP has been sent to your phone number');
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to resend OTP via SMS API: ' . $e->getMessage(), [
+                'phone' => $request->phone ?? 'unknown',
                 'trace' => $e->getTraceAsString()
             ]);
             
