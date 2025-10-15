@@ -33,7 +33,12 @@ class NutritionRecommendation extends Model
         'target_calories',
         'protein',
         'carbs',
-        'fats'
+        'fats',
+        'bmr',
+        'tdee',
+        'activity_level',
+        'calculation_method',
+        'macro_distribution'
     ];
 
     /**
@@ -44,6 +49,9 @@ class NutritionRecommendation extends Model
         'protein' => 'decimal:2',
         'carbs' => 'decimal:2',
         'fats' => 'decimal:2',
+        'bmr' => 'decimal:2',
+        'tdee' => 'decimal:2',
+        'macro_distribution' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];
@@ -67,11 +75,11 @@ class NutritionRecommendation extends Model
     }
 
     /**
-     * Get macro distribution percentages
+     * Get calculated macro distribution percentages
      * 
      * @return array
      */
-    public function getMacroDistributionAttribute(): array
+    public function getCalculatedMacroDistributionAttribute(): array
     {
         $totalCalories = $this->target_calories > 0 ? $this->target_calories : $this->total_macro_calories;
         

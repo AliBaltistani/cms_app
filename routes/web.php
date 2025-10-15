@@ -318,6 +318,12 @@ Route::middleware('auth')->group(function () {
             Route::get('/{id}/food-diary', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'foodDiary'])->name('admin.nutrition-plans.food-diary');
             Route::get('/categories', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'getCategories'])->name('admin.nutrition-plans.categories');
             
+            // Nutrition Calculator routes
+            Route::get('/{id}/calculator', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'calculator'])->name('admin.nutrition-plans.calculator');
+            Route::post('/calculate-nutrition', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'calculateNutrition'])->name('admin.nutrition-plans.calculate-nutrition');
+            Route::post('/{id}/save-calculated-nutrition', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'saveCalculatedNutrition'])->name('admin.nutrition-plans.save-calculated-nutrition');
+            Route::get('/{id}/calculator-data', [\App\Http\Controllers\Admin\NutritionPlansController::class, 'getCalculatorData'])->name('admin.nutrition-plans.calculator-data');
+            
             // Nutrition Meals Management
             Route::prefix('{planId}/meals')->group(function () {
                 Route::get('/', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'index'])->name('admin.nutrition-plans.meals.index');
@@ -336,6 +342,23 @@ Route::middleware('auth')->group(function () {
                 Route::get('/global-meals', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'getGlobalMeals'])->name('admin.nutrition-plans.meals.global-meals');
                 Route::delete('/bulk-delete', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'bulkDelete'])->name('admin.nutrition-plans.meals.bulk-delete');
                 Route::put('/{id}/macros', [\App\Http\Controllers\Admin\NutritionMealsController::class, 'updateMacros'])->name('admin.nutrition-plans.meals.update-macros');
+            });
+            
+            // Nutrition Recipes Management
+            Route::prefix('{planId}/recipes')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Admin\NutritionRecipesController::class, 'index'])->name('admin.nutrition-plans.recipes.index');
+                Route::get('/create', [\App\Http\Controllers\Admin\NutritionRecipesController::class, 'create'])->name('admin.nutrition-plans.recipes.create');
+                Route::post('/store', [\App\Http\Controllers\Admin\NutritionRecipesController::class, 'store'])->name('admin.nutrition-plans.recipes.store');
+                Route::get('/{id}', [\App\Http\Controllers\Admin\NutritionRecipesController::class, 'show'])->name('admin.nutrition-plans.recipes.show');
+                Route::get('/{id}/edit', [\App\Http\Controllers\Admin\NutritionRecipesController::class, 'edit'])->name('admin.nutrition-plans.recipes.edit');
+                Route::put('/{id}', [\App\Http\Controllers\Admin\NutritionRecipesController::class, 'update'])->name('admin.nutrition-plans.recipes.update');
+                Route::delete('/{id}', [\App\Http\Controllers\Admin\NutritionRecipesController::class, 'destroy'])->name('admin.nutrition-plans.recipes.destroy');
+                Route::patch('/reorder', [\App\Http\Controllers\Admin\NutritionRecipesController::class, 'reorder'])->name('admin.nutrition-plans.recipes.reorder');
+                Route::delete('/{id}/delete-image', [\App\Http\Controllers\Admin\NutritionRecipesController::class, 'deleteImage'])->name('admin.nutrition-plans.recipes.delete-image');
+                
+                // Enhanced recipe management routes
+                Route::post('/{id}/duplicate', [\App\Http\Controllers\Admin\NutritionRecipesController::class, 'duplicate'])->name('admin.nutrition-plans.recipes.duplicate');
+                Route::delete('/bulk-delete', [\App\Http\Controllers\Admin\NutritionRecipesController::class, 'bulkDelete'])->name('admin.nutrition-plans.recipes.bulk-delete');
             });
         });
         

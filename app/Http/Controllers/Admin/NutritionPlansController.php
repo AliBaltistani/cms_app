@@ -11,6 +11,7 @@ use App\Models\NutritionRecommendation;
 use App\Models\FoodDiary;
 use App\Models\User;
 use App\Models\Goal;
+use App\Services\NutritionCalculatorService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -431,6 +432,9 @@ class NutritionPlansController extends Controller
                 'meals' => function($query) {
                     $query->orderBy('sort_order');
                 },
+                'recipes' => function($query) {
+                    $query->orderBy('sort_order');
+                },
                 'dailyMacros',
                 'restrictions'
             ])->findOrFail($id);
@@ -438,6 +442,7 @@ class NutritionPlansController extends Controller
             // Calculate plan statistics
             $stats = [
                 'total_meals' => $plan->meals->count(),
+                'total_recipes' => $plan->recipes->count(),
                 'total_calories' => $plan->meals->sum('calories_per_serving'),
                 'avg_prep_time' => $plan->meals->avg('prep_time'),
                 'meal_types' => $plan->meals->groupBy('meal_type')->map->count()
@@ -1012,6 +1017,213 @@ class NutritionPlansController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to load categories'
+            ], 500);
+        }
+    }
+
+    /**
+     * Show nutrition calculator interface
+     * 
+     * @param int $id Plan ID
+     * @return View|RedirectResponse
+     */
+    public function calculator(int $id)
+    {
+        try {
+            $plan = NutritionPlan::with(['client', 'trainer', 'recommendations'])->findOrFail($id);
+            $calculatorService = new NutritionCalculatorService();
+            
+            // Get available options for calculator
+            $activityLevels = $calculatorService->getActivityLevels();
+            $goalTypes = $calculatorService->getGoalTypes();
+            
+            return view('admin.nutrition-plans.calculator', compact('plan', 'activityLevels', 'goalTypes'));
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to load nutrition calculator: ' . $e->getMessage(), [
+                'admin_id' => Auth::id(),
+                'plan_id' => $id
+            ]);
+            
+            return redirect()->route('admin.nutrition-plans.index')->with('error', 'Plan not found');
+        }
+    }
+
+    /**
+     * Calculate nutrition recommendations via AJAX
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function calculateNutrition(Request $request): JsonResponse
+    {
+        try {
+            // Validation
+            $validator = Validator::make($request->all(), [
+                'weight' => 'required|numeric|min:1|max:500',
+                'height' => 'required|numeric|min:1|max:300',
+                'age' => 'required|integer|min:1|max:120',
+                'gender' => 'required|in:male,female',
+                'activity_level' => 'required|string',
+                'goal_type' => 'required|string'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Calculate nutrition
+            $calculatorService = new NutritionCalculatorService();
+            $userData = $request->only(['weight', 'height', 'age', 'gender', 'activity_level', 'goal_type']);
+            $calculations = $calculatorService->calculateNutrition($userData);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Nutrition calculated successfully',
+                'data' => $calculations
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to calculate nutrition: ' . $e->getMessage(), [
+                'admin_id' => Auth::id(),
+                'request_data' => $request->all()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to calculate nutrition: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Save calculated nutrition recommendations to plan
+     * 
+     * @param Request $request
+     * @param int $id Plan ID
+     * @return JsonResponse
+     */
+    public function saveCalculatedNutrition(Request $request, int $id): JsonResponse
+    {
+        try {
+            $plan = NutritionPlan::findOrFail($id);
+
+            // Validation
+            $validator = Validator::make($request->all(), [
+                'target_calories' => 'required|numeric|min:500|max:5000',
+                'protein' => 'required|numeric|min:10|max:500',
+                'carbs' => 'required|numeric|min:10|max:800',
+                'fats' => 'required|numeric|min:10|max:300',
+                'bmr' => 'required|numeric|min:500|max:4000',
+                'tdee' => 'required|numeric|min:500|max:5000',
+                'activity_level' => 'required|string',
+                'macro_distribution' => 'required|array'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Update or create recommendations
+            $recommendationData = [
+                'plan_id' => $plan->id,
+                'target_calories' => $request->target_calories,
+                'protein' => $request->protein,
+                'carbs' => $request->carbs,
+                'fats' => $request->fats,
+                'bmr' => $request->bmr,
+                'tdee' => $request->tdee,
+                'activity_level' => $request->activity_level,
+                'calculation_method' => 'mifflin_st_jeor',
+                'macro_distribution' => json_encode($request->macro_distribution)
+            ];
+
+            if ($plan->recommendations) {
+                $plan->recommendations->update($recommendationData);
+                $message = 'Nutrition recommendations updated successfully';
+            } else {
+                NutritionRecommendation::create($recommendationData);
+                $message = 'Nutrition recommendations saved successfully';
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $message
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to save calculated nutrition: ' . $e->getMessage(), [
+                'admin_id' => Auth::id(),
+                'plan_id' => $id,
+                'request_data' => $request->all()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to save nutrition recommendations: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get calculator data for existing plan
+     * 
+     * @param int $id Plan ID
+     * @return JsonResponse
+     */
+    public function getCalculatorData(int $id): JsonResponse
+    {
+        try {
+            $plan = NutritionPlan::with(['client', 'recommendations'])->findOrFail($id);
+            $calculatorService = new NutritionCalculatorService();
+
+            $data = [
+                'plan' => [
+                    'id' => $plan->id,
+                    'plan_name' => $plan->plan_name,
+                    'goal_type' => $plan->goal_type,
+                    'client' => $plan->client ? [
+                        'id' => $plan->client->id,
+                        'name' => $plan->client->name,
+                        'email' => $plan->client->email
+                    ] : null
+                ],
+                'recommendations' => $plan->recommendations ? [
+                    'target_calories' => $plan->recommendations->target_calories,
+                    'protein' => $plan->recommendations->protein,
+                    'carbs' => $plan->recommendations->carbs,
+                    'fats' => $plan->recommendations->fats,
+                    'bmr' => $plan->recommendations->bmr,
+                    'tdee' => $plan->recommendations->tdee,
+                    'activity_level' => $plan->recommendations->activity_level,
+                    'macro_distribution' => json_decode($plan->recommendations->macro_distribution, true)
+                ] : null,
+                'activity_levels' => array_values($calculatorService->getActivityLevels()),
+                'goal_types' => array_values($calculatorService->getGoalTypes())
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => $data
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get calculator data: ' . $e->getMessage(), [
+                'admin_id' => Auth::id(),
+                'plan_id' => $id
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load calculator data'
             ], 500);
         }
     }

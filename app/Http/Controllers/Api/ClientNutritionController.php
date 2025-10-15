@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\NutritionPlan;
 use App\Models\NutritionMeal;
+use App\Models\NutritionRecipe;
 use App\Models\NutritionMacro;
 use App\Models\NutritionRestriction;
 use App\Models\NutritionRecommendation;
@@ -545,9 +546,10 @@ class ClientNutritionController extends Controller
     }
 
     /**
-     * Get client's current nutrition plan with recommendations
+     * Get client's current nutrition plan with recipes and food diary
      * 
-     * Supports filtering by search terms and tags for enhanced user experience
+     * Returns a single active nutrition plan with recipes and recent food diary entries
+     * Designed for mobile app nutrition screen
      * 
      * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -558,32 +560,34 @@ class ClientNutritionController extends Controller
             $clientId = Auth::id();
             
             // Get filter parameters
-            $search = $request->get('search');
-            $tags = $request->get('tags');
+            $search = $request->get('search', '');
+            $goalFilter = $request->get('goal_type', ''); // For goal type filtering
             
-            // Build the base query for nutrition plan
-            $planQuery = NutritionPlan::with(['meals', 'recommendations', 'trainer'])
-                ->where('client_id', $clientId)
-                ->where('status', 'active');
+            // Build the base query for nutrition plan with all relationships
+            $planQuery = NutritionPlan::with([
+                'trainer:id,name,email,profile_image',
+                'recipes' => function($query) {
+                    $query->orderBy('sort_order')->limit(6); // Limit recipes for mobile display
+                },
+                'meals' => function($query) {
+                    $query->orderBy('sort_order');
+                },
+                'recommendations',
+                'restrictions'
+            ])
+            ->where('client_id', $clientId)
+            ->where('status', 'active');
+            
+            // Apply goal type filter if provided
+            if (!empty($goalFilter)) {
+                $planQuery->where('goal_type', $goalFilter);
+            }
             
             // Apply search filter to plan if provided
             if (!empty($search)) {
                 $planQuery->where(function($query) use ($search) {
                     $query->where('plan_name', 'LIKE', "%{$search}%")
-                          ->orWhere('description', 'LIKE', "%{$search}%")
-                          ->orWhere('goal_type', 'LIKE', "%{$search}%");
-                });
-            }
-            
-            // Apply tags filter to plan if provided
-            if (!empty($tags)) {
-                $tagsArray = is_array($tags) ? $tags : explode(',', $tags);
-                $tagsArray = array_map('trim', $tagsArray);
-                
-                $planQuery->where(function($query) use ($tagsArray) {
-                    foreach ($tagsArray as $tag) {
-                        $query->orWhereJsonContains('tags', $tag);
-                    }
+                          ->orWhere('description', 'LIKE', "%{$search}%");
                 });
             }
             
@@ -592,85 +596,167 @@ class ClientNutritionController extends Controller
             if (!$plan) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No active nutrition plan found matching the criteria'
+                    'message' => 'No active nutrition plan found',
+                    'data' => null
                 ], 404);
             }
             
-            // Filter meals based on search criteria
-            $filteredMeals = $plan->meals;
-            
-            if (!empty($search)) {
-                $filteredMeals = $filteredMeals->filter(function($meal) use ($search) {
-                    return stripos($meal->title, $search) !== false ||
-                           stripos($meal->description, $search) !== false ||
-                           stripos($meal->meal_type, $search) !== false ||
-                           stripos($meal->ingredients, $search) !== false ||
-                           stripos($meal->instructions, $search) !== false;
-                });
-            }
-            
-            // Group filtered meals by type
-            $mealsByType = $filteredMeals->groupBy('meal_type')->map(function($meals) {
-                return $meals->map(function($meal) {
+            // Get recent food diary entries (last 7 days)
+            $recentFoodDiary = FoodDiary::where('client_id', $clientId)
+                ->where('logged_at', '>=', now()->subDays(7))
+                ->orderBy('logged_at', 'desc')
+                ->limit(10)
+                ->get()
+                ->map(function($entry) {
                     return [
-                        'id' => $meal->id,
-                        'title' => $meal->title,
-                        'description' => $meal->description,
-                        'meal_type' => $meal->meal_type,
-                        'meal_type_display' => $meal->meal_type_display,
-                        'ingredients' => $meal->ingredients_array,
-                        'instructions' => $meal->instructions_array,
-                        'prep_time' => $meal->prep_time,
-                        'cook_time' => $meal->cook_time,
-                        'prep_time_formatted' => $meal->prep_time_formatted,
-                        'cook_time_formatted' => $meal->cook_time_formatted,
-                        'total_time' => $meal->total_time,
-                        'servings' => $meal->servings,
-                        'calories' => $meal->calories,
-                        'protein' => $meal->protein,
-                        'carbs' => $meal->carbs,
-                        'fats' => $meal->fats,
-                        'media_url' => $meal->media_url ? asset('storage/' . $meal->media_url) : null,
-                        'sort_order' => $meal->sort_order
+                        'id' => $entry->id,
+                        'meal_name' => $entry->meal_name,
+                        'meal_type' => $entry->meal_type ?? 'other',
+                        'calories' => $entry->calories,
+                        'protein' => $entry->protein,
+                        'carbs' => $entry->carbs,
+                        'fats' => $entry->fats,
+                        'logged_at' => $entry->logged_at,
+                        'formatted_date' => $entry->logged_at->format('M d'),
+                        'formatted_time' => $entry->logged_at->format('h:i A'),
+                        'meal_icon' => $this->getMealTypeIcon($entry->meal_type ?? 'other')
                     ];
                 });
+            
+            // Format recipes for mobile display
+            $recipes = $plan->recipes->map(function($recipe) {
+                return [
+                    'id' => $recipe->id,
+                    'title' => $recipe->title,
+                    'description' => $recipe->short_description,
+                    'image_url' => $recipe->image_url,
+                    'sort_order' => $recipe->sort_order,
+                    'created_at' => $recipe->created_at
+                ];
             });
+            
+            // Format meals for mobile display
+            $meals = $plan->meals->map(function($meal) {
+                return [
+                    'id' => $meal->id,
+                    'title' => $meal->title,
+                    'description' => $meal->description,
+                    'meal_type' => $meal->meal_type,
+                    'meal_type_display' => ucfirst(str_replace('_', ' ', $meal->meal_type)),
+                    'ingredients' => $meal->ingredients,
+                    'instructions' => $meal->instructions,
+                    'prep_time' => $meal->prep_time,
+                    'cook_time' => $meal->cook_time,
+                    'total_time' => ($meal->prep_time ?? 0) + ($meal->cook_time ?? 0),
+                    'servings' => $meal->servings,
+                    'calories_per_serving' => $meal->calories_per_serving,
+                    'protein_per_serving' => $meal->protein_per_serving,
+                    'carbs_per_serving' => $meal->carbs_per_serving,
+                    'fats_per_serving' => $meal->fats_per_serving,
+                    'image_url' => $meal->image_url ? asset('storage/' . $meal->image_url) : null,
+                    'sort_order' => $meal->sort_order,
+                    'created_at' => $meal->created_at,
+                    'updated_at' => $meal->updated_at
+                ];
+            });
+            
+            // Calculate daily nutrition summary from food diary
+            $todayEntries = FoodDiary::where('client_id', $clientId)
+                ->whereDate('logged_at', today())
+                ->get();
+            
+            $dailySummary = [
+                'calories_consumed' => $todayEntries->sum('calories'),
+                'protein_consumed' => $todayEntries->sum('protein'),
+                'carbs_consumed' => $todayEntries->sum('carbs'),
+                'fats_consumed' => $todayEntries->sum('fats'),
+                'entries_count' => $todayEntries->count()
+            ];
+            
+            // Add target vs consumed comparison if recommendations exist
+            if ($plan->recommendations) {
+                $dailySummary['targets'] = [
+                    'calories' => $plan->recommendations->target_calories,
+                    'protein' => $plan->recommendations->protein,
+                    'carbs' => $plan->recommendations->carbs,
+                    'fats' => $plan->recommendations->fats
+                ];
+                
+                $dailySummary['progress'] = [
+                    'calories_percentage' => $plan->recommendations->target_calories > 0 
+                        ? min(100, ($dailySummary['calories_consumed'] / $plan->recommendations->target_calories) * 100) 
+                        : 0,
+                    'protein_percentage' => $plan->recommendations->protein > 0 
+                        ? min(100, ($dailySummary['protein_consumed'] / $plan->recommendations->protein) * 100) 
+                        : 0,
+                    'carbs_percentage' => $plan->recommendations->carbs > 0 
+                        ? min(100, ($dailySummary['carbs_consumed'] / $plan->recommendations->carbs) * 100) 
+                        : 0,
+                    'fats_percentage' => $plan->recommendations->fats > 0 
+                        ? min(100, ($dailySummary['fats_consumed'] / $plan->recommendations->fats) * 100) 
+                        : 0
+                ];
+            }
+            
+            // Available goal types for filtering
+            $availableGoalTypes = [
+                ['value' => 'weight_loss', 'label' => 'Weight Loss', 'active' => $goalFilter === 'weight_loss'],
+                ['value' => 'muscle_gain', 'label' => 'Muscle Gain', 'active' => $goalFilter === 'muscle_gain'],
+                ['value' => 'wellness', 'label' => 'Wellness', 'active' => $goalFilter === 'wellness'],
+                ['value' => 'maintenance', 'label' => 'Maintenance', 'active' => $goalFilter === 'maintenance']
+            ];
             
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'plan' => [
+                    'my_plan' => [
                         'id' => $plan->id,
                         'plan_name' => $plan->plan_name,
                         'description' => $plan->description,
                         'goal_type' => $plan->goal_type,
-                        'duration_days' => $plan->duration_days,
-                        'target_weight' => $plan->target_weight,
-                        'status' => $plan->status,
-                        'tags' => $plan->tags,
+                        'goal_type_display' => $plan->goal_type ? ucfirst(str_replace('_', ' ', $plan->goal_type)) : null,
                         'image_url' => $plan->image_url ? asset('storage/' . $plan->image_url) : null,
                         'trainer' => $plan->trainer ? [
                             'id' => $plan->trainer->id,
                             'name' => $plan->trainer->name,
-                            'email' => $plan->trainer->email,
                             'profile_image' => $plan->trainer->profile_image ? asset('storage/' . $plan->trainer->profile_image) : null
                         ] : null,
-                        'created_at' => $plan->created_at,
-                        'updated_at' => $plan->updated_at
+                        'status' => $plan->status,
+                        'duration_days' => $plan->duration_days,
+                        'target_weight' => $plan->target_weight
                     ],
+                    'recipes' => $recipes,
+                    'food_diary' => $meals,
+                    // 'meals_by_type' => $meals->groupBy('meal_type'),
+                    // 'food_diary' => $recentFoodDiary,
+                    // 'daily_summary' => $dailySummary,
+                    // 'goal_filters' => $availableGoalTypes,
                     'recommendations' => $plan->recommendations ? [
                         'target_calories' => $plan->recommendations->target_calories,
                         'protein' => $plan->recommendations->protein,
                         'carbs' => $plan->recommendations->carbs,
                         'fats' => $plan->recommendations->fats,
-                        'total_macro_calories' => $plan->recommendations->total_macro_calories,
-                        'macro_distribution' => $plan->recommendations->macro_distribution
+                        'bmr' => $plan->recommendations->bmr,
+                        'tdee' => $plan->recommendations->tdee,
+                        'activity_level' => $plan->recommendations->activity_level,
+                        'activity_level_display' => ucfirst(str_replace('_', ' ', $plan->recommendations->activity_level ?? 'moderate')),
+                        'calculation_method' => $plan->recommendations->calculation_method ?? 'mifflin_st_jeor',
+                        'macro_distribution' => $plan->recommendations->macro_distribution,
+                        'calorie_adjustment' => $plan->recommendations->target_calories - $plan->recommendations->tdee,
+                        'goal_type' => $plan->goal_type,
+                        'goal_type_display' => ucfirst(str_replace('_', ' ', $plan->goal_type ?? 'general'))
                     ] : null,
-                    'meals_by_type' => $mealsByType,
-                    'total_meals' => $filteredMeals->count(),
-                    'filters_applied' => [
-                        'search' => $search,
-                        'tags' => $tags
+                    'restrictions' => $plan->restrictions ? [
+                        'dietary_preferences' => $plan->restrictions->dietary_preferences,
+                        'allergens' => $plan->restrictions->allergens,
+                        'restrictions_summary' => $plan->restrictions->restrictions_summary
+                    ] : null,
+                    'statistics' => [
+                        'total_recipes' => $plan->recipes->count(),
+                        'total_meals' => $plan->meals->count(),
+                        'diary_entries_this_week' => FoodDiary::where('client_id', $clientId)
+                            ->where('logged_at', '>=', now()->startOfWeek())
+                            ->count()
                     ]
                 ]
             ]);
@@ -678,14 +764,37 @@ class ClientNutritionController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to retrieve client nutrition plan: ' . $e->getMessage(), [
                 'client_id' => Auth::id(),
+                'request_data' => $request->all(),
                 'trace' => $e->getTraceAsString()
             ]);
             
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to retrieve nutrition plan' . $e->getMessage()
+                'message' => 'Failed to retrieve nutrition plan',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
             ], 500);
         }
+    }
+    
+    /**
+     * Get meal type icon for food diary entries
+     * 
+     * @param string $mealType
+     * @return string
+     */
+    private function getMealTypeIcon(string $mealType): string
+    {
+        $icons = [
+            'breakfast' => '🍳',
+            'lunch' => '🥗',
+            'dinner' => '🍽️',
+            'snack' => '🍎',
+            'pre_workout' => '💪',
+            'post_workout' => '🥤',
+            'other' => '🍴'
+        ];
+        
+        return $icons[$mealType] ?? $icons['other'];
     }
 
     /**
@@ -1353,6 +1462,486 @@ class ClientNutritionController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve nutrition goal types'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get recipes for a specific nutrition plan assigned to the trainee
+     * 
+     * @param int $planId
+     * @return JsonResponse
+     */
+    public function getPlanRecipes(int $planId): JsonResponse
+    {
+        try {
+            $trainee = Auth::user();
+            
+            // Verify plan ownership
+            $plan = NutritionPlan::where('client_id', $trainee->id)
+                                ->findOrFail($planId);
+            
+            // Get recipes for the plan
+            $recipes = NutritionRecipe::where('plan_id', $planId)
+                                    ->orderBy('sort_order')
+                                    ->get()
+                                    ->map(function($recipe) {
+                                        return [
+                                            'id' => $recipe->id,
+                                            'title' => $recipe->title,
+                                            'description' => $recipe->description,
+                                            'image_url' => $recipe->image_url,
+                                            'sort_order' => $recipe->sort_order,
+                                            'created_at' => $recipe->created_at,
+                                            'updated_at' => $recipe->updated_at
+                                        ];
+                                    });
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Recipes retrieved successfully',
+                'data' => [
+                    'plan' => [
+                        'id' => $plan->id,
+                        'plan_name' => $plan->plan_name
+                    ],
+                    'recipes' => $recipes,
+                    'total_recipes' => $recipes->count()
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve plan recipes via client API: ' . $e->getMessage(), [
+                'client_id' => Auth::id(),
+                'plan_id' => $planId,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve recipes or access denied'
+            ], 404);
+        }
+    }
+
+    /**
+     * Get a specific recipe from the trainee's nutrition plan
+     * 
+     * @param int $planId
+     * @param int $recipeId
+     * @return JsonResponse
+     */
+    public function getPlanRecipe(int $planId, int $recipeId): JsonResponse
+    {
+        try {
+            $trainee = Auth::user();
+            
+            // Verify plan ownership
+            $plan = NutritionPlan::where('client_id', $trainee->id)
+                                ->findOrFail($planId);
+            
+            // Get the specific recipe
+            $recipe = NutritionRecipe::where('plan_id', $planId)
+                                   ->findOrFail($recipeId);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Recipe retrieved successfully',
+                'data' => [
+                    'id' => $recipe->id,
+                    'title' => $recipe->title,
+                    'description' => $recipe->description,
+                    'image_url' => $recipe->image_url,
+                    'sort_order' => $recipe->sort_order,
+                    'plan' => [
+                        'id' => $plan->id,
+                        'plan_name' => $plan->plan_name,
+                        'trainer_name' => $plan->trainer->name ?? 'Admin'
+                    ],
+                    'created_at' => $recipe->created_at,
+                    'updated_at' => $recipe->updated_at
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve recipe via client API: ' . $e->getMessage(), [
+                'client_id' => Auth::id(),
+                'plan_id' => $planId,
+                'recipe_id' => $recipeId,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Recipe not found or access denied'
+            ], 404);
+        }
+    }
+
+    /**
+     * Get all recipes from global plans (public recipes)
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getGlobalRecipes(Request $request): JsonResponse
+    {
+        try {
+            $query = NutritionRecipe::query()
+                ->whereHas('plan', function($q) {
+                    $q->where('is_global', true);
+                });
+            
+            // Filter by category if provided
+            if ($request->has('category') && $request->category) {
+                $query->whereHas('plan', function($q) use ($request) {
+                    $q->where('category', $request->category);
+                });
+            }
+            
+            // Search by title or description
+            if ($request->has('search') && $request->search) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%");
+                });
+            }
+            
+            // Pagination
+            $perPage = min($request->get('per_page', 15), 50);
+            $recipes = $query->with('plan:id,plan_name,category')
+                ->orderBy('title')
+                ->paginate($perPage);
+
+            $formattedRecipes = $recipes->getCollection()->map(function($recipe) {
+                return [
+                    'id' => $recipe->id,
+                    'title' => $recipe->title,
+                    'description' => $recipe->description,
+                    'image_url' => $recipe->image_url,
+                    'plan' => [
+                        'id' => $recipe->plan->id,
+                        'name' => $recipe->plan->plan_name,
+                        'category' => $recipe->plan->category
+                    ],
+                    'created_at' => $recipe->created_at,
+                    'updated_at' => $recipe->updated_at
+                ];
+            });
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Global recipes retrieved successfully',
+                'data' => [
+                    'recipes' => $formattedRecipes,
+                    'pagination' => [
+                        'current_page' => $recipes->currentPage(),
+                        'last_page' => $recipes->lastPage(),
+                        'per_page' => $recipes->perPage(),
+                        'total' => $recipes->total(),
+                        'from' => $recipes->firstItem(),
+                        'to' => $recipes->lastItem()
+                    ]
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve global recipes: ' . $e->getMessage(), [
+                'client_id' => Auth::id(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve global recipes'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get available meals from global plans (alias for getRecipes for backward compatibility)
+     * 
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getMeals(Request $request)
+    {
+        // This method is an alias for getRecipes since meals and recipes are stored in the same table
+        return $this->getRecipes($request);
+    }
+
+    /**
+     * Get meals for a specific nutrition plan assigned to the trainee
+     * 
+     * @param int $planId
+     * @return JsonResponse
+     */
+    public function getPlanMeals(int $planId): JsonResponse
+    {
+        try {
+            $trainee = Auth::user();
+            
+            // Verify plan ownership
+            $plan = NutritionPlan::where('client_id', $trainee->id)
+                                ->findOrFail($planId);
+            
+            // Get meals for the plan with filtering options
+            $query = NutritionMeal::where('plan_id', $planId);
+            
+            // Apply meal type filter if provided
+            if (request()->has('meal_type') && request()->meal_type) {
+                $query->where('meal_type', request()->meal_type);
+            }
+            
+            // Apply search filter if provided
+            if (request()->has('search') && request()->search) {
+                $search = request()->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%")
+                      ->orWhere('ingredients', 'like', "%{$search}%");
+                });
+            }
+            
+            $meals = $query->orderBy('sort_order')
+                          ->get()
+                          ->map(function($meal) {
+                              return [
+                                  'id' => $meal->id,
+                                  'title' => $meal->title,
+                                  'description' => $meal->description,
+                                  'meal_type' => $meal->meal_type,
+                                  'meal_type_display' => ucfirst(str_replace('_', ' ', $meal->meal_type)),
+                                  'ingredients' => $meal->ingredients,
+                                  'instructions' => $meal->instructions,
+                                  'prep_time' => $meal->prep_time,
+                                  'cook_time' => $meal->cook_time,
+                                  'total_time' => ($meal->prep_time ?? 0) + ($meal->cook_time ?? 0),
+                                  'servings' => $meal->servings,
+                                  'calories_per_serving' => $meal->calories_per_serving,
+                                  'protein_per_serving' => $meal->protein_per_serving,
+                                  'carbs_per_serving' => $meal->carbs_per_serving,
+                                  'fats_per_serving' => $meal->fats_per_serving,
+                                  'image_url' => $meal->image_url ? asset('storage/' . $meal->image_url) : null,
+                                  'sort_order' => $meal->sort_order,
+                                  'created_at' => $meal->created_at,
+                                  'updated_at' => $meal->updated_at
+                              ];
+                          });
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Meals retrieved successfully',
+                'data' => [
+                    'plan' => [
+                        'id' => $plan->id,
+                        'plan_name' => $plan->plan_name,
+                        'description' => $plan->description
+                    ],
+                    'meals' => $meals,
+                    'total_meals' => $meals->count(),
+                    'meals_by_type' => $meals->groupBy('meal_type')->map->count(),
+                    'filters' => [
+                        'meal_type' => request()->meal_type,
+                        'search' => request()->search
+                    ]
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve plan meals via client API: ' . $e->getMessage(), [
+                'client_id' => Auth::id(),
+                'plan_id' => $planId,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve meals or access denied'
+            ], 404);
+        }
+    }
+
+    /**
+     * Get a specific meal from the trainee's nutrition plan
+     * 
+     * @param int $planId
+     * @param int $mealId
+     * @return JsonResponse
+     */
+    public function getPlanMeal(int $planId, int $mealId): JsonResponse
+    {
+        try {
+            $trainee = Auth::user();
+            
+            // Verify plan ownership
+            $plan = NutritionPlan::where('client_id', $trainee->id)
+                                ->findOrFail($planId);
+            
+            // Get the specific meal
+            $meal = NutritionMeal::where('plan_id', $planId)
+                                ->where('id', $mealId)
+                                ->firstOrFail();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Meal retrieved successfully',
+                'data' => [
+                    'plan' => [
+                        'id' => $plan->id,
+                        'plan_name' => $plan->plan_name
+                    ],
+                    'meal' => [
+                        'id' => $meal->id,
+                        'title' => $meal->title,
+                        'description' => $meal->description,
+                        'meal_type' => $meal->meal_type,
+                        'meal_type_display' => ucfirst(str_replace('_', ' ', $meal->meal_type)),
+                        'ingredients' => $meal->ingredients,
+                        'instructions' => $meal->instructions,
+                        'prep_time' => $meal->prep_time,
+                        'cook_time' => $meal->cook_time,
+                        'total_time' => ($meal->prep_time ?? 0) + ($meal->cook_time ?? 0),
+                        'servings' => $meal->servings,
+                        'calories_per_serving' => $meal->calories_per_serving,
+                        'protein_per_serving' => $meal->protein_per_serving,
+                        'carbs_per_serving' => $meal->carbs_per_serving,
+                        'fats_per_serving' => $meal->fats_per_serving,
+                        'image_url' => $meal->image_url ? asset('storage/' . $meal->image_url) : null,
+                        'sort_order' => $meal->sort_order,
+                        'created_at' => $meal->created_at,
+                        'updated_at' => $meal->updated_at
+                    ]
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve specific meal via client API: ' . $e->getMessage(), [
+                'client_id' => Auth::id(),
+                'plan_id' => $planId,
+                'meal_id' => $mealId,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Meal not found or access denied'
+            ], 404);
+        }
+    }
+
+    /**
+     * Get meals from global nutrition plans
+     * 
+     * @param \Illuminate\Http\Request $request
+     * @return JsonResponse
+     */
+    public function getGlobalMeals(Request $request): JsonResponse
+    {
+        try {
+            // Build query for global meals
+            $query = NutritionMeal::query()
+                ->whereHas('plan', function($q) {
+                    $q->where('is_global', true)
+                      ->where('status', 'active');
+                });
+            
+            // Apply meal type filter
+            if ($request->has('meal_type') && $request->meal_type) {
+                $query->where('meal_type', $request->meal_type);
+            }
+            
+            // Apply search filter
+            if ($request->has('search') && $request->search) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%")
+                      ->orWhere('ingredients', 'like', "%{$search}%");
+                });
+            }
+            
+            // Apply category filter
+            if ($request->has('category') && $request->category) {
+                $query->whereHas('plan', function($q) use ($request) {
+                    $q->where('category', $request->category);
+                });
+            }
+            
+            // Apply goal type filter
+            if ($request->has('goal_type') && $request->goal_type) {
+                $query->whereHas('plan', function($q) use ($request) {
+                    $q->where('goal_type', $request->goal_type);
+                });
+            }
+            
+            // Pagination
+            $perPage = $request->get('per_page', 15);
+            $meals = $query->with('plan:id,plan_name,category,goal_type')
+                          ->orderBy('title')
+                          ->paginate($perPage);
+            
+            $formattedMeals = $meals->getCollection()->map(function($meal) {
+                return [
+                    'id' => $meal->id,
+                    'title' => $meal->title,
+                    'description' => $meal->description,
+                    'meal_type' => $meal->meal_type,
+                    'meal_type_display' => ucfirst(str_replace('_', ' ', $meal->meal_type)),
+                    'ingredients' => $meal->ingredients,
+                    'instructions' => $meal->instructions,
+                    'prep_time' => $meal->prep_time,
+                    'cook_time' => $meal->cook_time,
+                    'total_time' => ($meal->prep_time ?? 0) + ($meal->cook_time ?? 0),
+                    'servings' => $meal->servings,
+                    'calories_per_serving' => $meal->calories_per_serving,
+                    'protein_per_serving' => $meal->protein_per_serving,
+                    'carbs_per_serving' => $meal->carbs_per_serving,
+                    'fats_per_serving' => $meal->fats_per_serving,
+                    'image_url' => $meal->image_url ? asset('storage/' . $meal->image_url) : null,
+                    'sort_order' => $meal->sort_order,
+                    'plan' => [
+                        'id' => $meal->plan->id,
+                        'name' => $meal->plan->plan_name,
+                        'category' => $meal->plan->category,
+                        'goal_type' => $meal->plan->goal_type
+                    ],
+                    'created_at' => $meal->created_at
+                ];
+            });
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Global meals retrieved successfully',
+                'data' => [
+                    'meals' => $formattedMeals,
+                    'pagination' => [
+                        'current_page' => $meals->currentPage(),
+                        'last_page' => $meals->lastPage(),
+                        'per_page' => $meals->perPage(),
+                        'total' => $meals->total(),
+                        'from' => $meals->firstItem(),
+                        'to' => $meals->lastItem()
+                    ],
+                    'filters' => [
+                        'meal_type' => $request->meal_type,
+                        'search' => $request->search,
+                        'category' => $request->category,
+                        'goal_type' => $request->goal_type
+                    ]
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve global meals: ' . $e->getMessage(), [
+                'client_id' => Auth::id(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve global meals'
             ], 500);
         }
     }

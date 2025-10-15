@@ -86,6 +86,14 @@ class NutritionPlan extends Model
     }
 
     /**
+     * Get all recipes for this nutrition plan
+     */
+    public function recipes(): HasMany
+    {
+        return $this->hasMany(NutritionRecipe::class, 'plan_id')->orderBy('sort_order');
+    }
+
+    /**
      * Get macros for this nutrition plan
      */
     public function macros(): HasMany

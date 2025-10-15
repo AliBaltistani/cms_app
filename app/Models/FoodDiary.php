@@ -33,6 +33,7 @@ class FoodDiary extends Model
         'client_id',
         'meal_id',
         'meal_name',
+        'meal_type',
         'calories',
         'protein',
         'carbs',
