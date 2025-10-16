@@ -56,7 +56,6 @@ class ClientController extends ApiBaseController
             
             // Build query for trainers
             $query = User::where('role', 'trainer')
-                ->where('status', 1) // Only active trainers
                 ->with([
                     'certifications:id,user_id,certificate_name,created_at',
                     'receivedTestimonials:id,trainer_id,client_id,name,rate,comments,likes,dislikes,created_at'
@@ -177,7 +176,6 @@ class ClientController extends ApiBaseController
             // Find trainer with all related data
             $trainer = User::where('id', $trainerId)
                 ->where('role', 'trainer')
-                ->where('status', 1) // Only active trainers
                 ->with([
                     'certifications' => function ($query) {
                         $query->orderBy('created_at', 'desc');
@@ -190,7 +188,7 @@ class ClientController extends ApiBaseController
                 ->first();
             
             if (!$trainer) {
-                return $this->sendError('Trainer Not Found', ['error' => 'Trainer not found or inactive'], 404);
+                return $this->sendError('Trainer Not Found', ['error' => 'Trainer not found'], 404);
             }
             
             // Calculate trainer statistics
@@ -281,14 +279,13 @@ class ClientController extends ApiBaseController
     public function getTrainerCertifications(int $trainerId): JsonResponse
     {
         try {
-            // Verify trainer exists and is active
+            // Verify trainer exists
             $trainer = User::where('id', $trainerId)
                 ->where('role', 'trainer')
-                ->where('status', 1)
                 ->first();
             
             if (!$trainer) {
-                return $this->sendError('Trainer Not Found', ['error' => 'Trainer not found or inactive'], 404);
+                return $this->sendError('Trainer Not Found', ['error' => 'Trainer not found'], 404);
             }
             
             // Get trainer certifications
@@ -348,10 +345,9 @@ class ClientController extends ApiBaseController
                 return $this->sendError('Validation Error', $validator->errors(), 422);
             }
             
-            // Verify trainer exists and is active
+            // Verify trainer exists
             $trainer = User::where('id', $trainerId)
                 ->where('role', 'trainer')
-                ->where('status', 1)
                 ->first();
             
             if (!$trainer) {

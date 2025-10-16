@@ -589,7 +589,7 @@ class TrainersController extends Controller
                 ]);
             }
             
-            return view('admin.trainers.certifications', compact('trainer'));
+            return view('trainer.certifications.index', compact('trainer'));
             
         } catch (\Exception $e) {
             Log::error('Failed to load trainer certifications: ' . $e->getMessage());

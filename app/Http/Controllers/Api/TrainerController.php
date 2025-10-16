@@ -1834,4 +1834,167 @@ private function calculateNutritionSummary(User $client): array
     ];
 }
 
+    /**
+     * Get trainer certifications by trainer ID
+     * 
+     * @param  string  $id  Trainer ID
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getTrainerCertifications(string $id): JsonResponse
+    {
+        try {
+            // Verify trainer exists
+            $trainer = User::where('id', $id)
+                ->where('role', 'trainer')
+                ->first();
+            
+            if (!$trainer) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Trainer not found'
+                ], 404);
+            }
+            
+            // Get trainer certifications
+            $certifications = UserCertification::where('user_id', $id)
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($certification) {
+                    return [
+                        'id' => $certification->id,
+                        'certificate_name' => $certification->certificate_name,
+                        'document_url' => $certification->doc ? asset('storage/' . $certification->doc) : null,
+                        'has_document' => !empty($certification->doc),
+                        'date_added' => $certification->created_at->format('d M, Y'),
+                        'created_at' => $certification->created_at->toISOString()
+                    ];
+                });
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Trainer certifications retrieved successfully',
+                'data' => [
+                    'trainer' => [
+                        'id' => $trainer->id,
+                        'name' => $trainer->name,
+                        'designation' => $trainer->designation
+                    ],
+                    'certifications' => $certifications,
+                    'total_certifications' => $certifications->count()
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve trainer certifications',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get trainer testimonials by trainer ID
+     * 
+     * @param  string  $id  Trainer ID
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getTrainerTestimonials(string $id, Request $request): JsonResponse
+    {
+        try {
+            // Validate pagination parameters
+            $validated = $request->validate([
+                'per_page' => 'nullable|integer|min:5|max:50',
+                'sort_by' => 'nullable|in:rating,date,likes',
+                'sort_order' => 'nullable|in:asc,desc'
+            ]);
+            
+            // Verify trainer exists
+            $trainer = User::where('id', $id)
+                ->where('role', 'trainer')
+                ->first();
+            
+            if (!$trainer) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Trainer not found'
+                ], 404);
+            }
+            
+            // Build testimonials query
+            $query = Testimonial::where('trainer_id', $id)
+                ->with('client:id,name,profile_image');
+            
+            // Apply sorting
+            $sortBy = $request->get('sort_by', 'date');
+            $sortOrder = $request->get('sort_order', 'desc');
+            
+            switch ($sortBy) {
+                case 'rating':
+                    $query->orderBy('rate', $sortOrder);
+                    break;
+                case 'likes':
+                    $query->orderBy('likes', $sortOrder);
+                    break;
+                default:
+                    $query->orderBy('created_at', $sortOrder);
+                    break;
+            }
+            
+            // Paginate testimonials
+            $perPage = $request->get('per_page', 10);
+            $testimonials = $query->paginate($perPage);
+            
+            // Transform testimonials data
+            $testimonials->getCollection()->transform(function ($testimonial) {
+                return [
+                    'id' => $testimonial->id,
+                    'client_name' => $testimonial->name,
+                    'client_profile_image' => $testimonial->client && $testimonial->client->profile_image 
+                        ? asset('storage/' . $testimonial->client->profile_image) 
+                        : null,
+                    'rating' => $testimonial->rate,
+                    'comments' => $testimonial->comments,
+                    'likes' => $testimonial->likes,
+                    'dislikes' => $testimonial->dislikes,
+                    'date_posted' => $testimonial->created_at->format('d M, Y'),
+                    'created_at' => $testimonial->created_at->toISOString()
+                ];
+            });
+            
+            // Calculate testimonial statistics
+            $totalTestimonials = Testimonial::where('trainer_id', $id)->count();
+            $averageRating = Testimonial::where('trainer_id', $id)->avg('rate');
+            $totalLikes = Testimonial::where('trainer_id', $id)->sum('likes');
+            $totalDislikes = Testimonial::where('trainer_id', $id)->sum('dislikes');
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Trainer testimonials retrieved successfully',
+                'data' => [
+                    'trainer' => [
+                        'id' => $trainer->id,
+                        'name' => $trainer->name,
+                        'designation' => $trainer->designation
+                    ],
+                    'testimonials' => $testimonials,
+                    'statistics' => [
+                        'total_testimonials' => $totalTestimonials,
+                        'average_rating' => round($averageRating, 1),
+                        'total_likes' => $totalLikes,
+                        'total_dislikes' => $totalDislikes
+                    ]
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve trainer testimonials',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
 }

@@ -332,6 +332,30 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 
+/**
+     * PUBLIC TRAINER ROUTES (No Role Restriction)
+     * Public access to trainer information for browsing
+     */
+    Route::prefix('trainers')->group(function () {
+        // Public trainer listing and profile viewing
+        Route::get('/', [TrainerController::class, 'index'])->name('api.trainers.index');
+        Route::get('/{id}', [TrainerController::class, 'show'])->name('api.trainers.show');
+        Route::get('/{id}/certifications', [TrainerController::class, 'getTrainerCertifications'])->name('api.trainers.certifications');
+        Route::get('/{id}/testimonials', [TrainerController::class, 'getTrainerTestimonials'])->name('api.trainers.testimonials');
+        
+        // Client can add testimonials for trainers
+        Route::post('/{id}/testimonials', [TrainerController::class, 'addTestimonial'])->name('api.trainers.add-testimonial');
+    });
+
+    /**
+     * Specializations Routes (All Authenticated Users)
+     * Public access to specializations for filtering trainers
+     */
+    Route::prefix('specializations')->name('api.specializations.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\SpecializationController::class, 'index'])->name('index');
+        Route::get('/{id}', [\App\Http\Controllers\Api\SpecializationController::class, 'show'])->name('show');
+        Route::get('/{id}/trainers', [\App\Http\Controllers\Api\SpecializationController::class, 'getTrainers'])->name('trainers');
+    });
 
 /**
  * System Information Routes (Public)

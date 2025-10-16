@@ -130,6 +130,35 @@ class TrainerWebController extends Controller
     }
 
     /**
+     * Display a listing of trainer certifications.
+     * 
+     * @param int $trainerId
+     * @return \Illuminate\View\View
+     */
+    public function indexCertifications($trainerId)
+    {
+        try {
+            $trainer = User::where('id', $trainerId)
+                ->where('role', 'trainer')
+                ->with(['certifications' => function ($query) {
+                    $query->orderBy('created_at', 'desc');
+                }])
+                ->firstOrFail();
+            
+            // Check if user can view certifications
+            if (Auth::id() !== $trainer->id && Auth::user()->role !== 'admin') {
+                return redirect()->route('trainers.show', $trainerId)->with('error', 'You can only view your own certifications.');
+            }
+            
+            $certifications = $trainer->certifications ?? [];
+            
+            return view('trainer.certifications.index', compact('trainer', 'certifications'));
+        } catch (\Exception $e) {
+            return redirect()->route('trainers.index')->with('error', 'Trainer not found.');
+        }
+    }
+
+    /**
      * Show the form for creating a new certification.
      * 
      * @param int $trainerId
