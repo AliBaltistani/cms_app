@@ -44,17 +44,11 @@ Route::prefix('auth')->name('api.auth.')->group(function () {
     Route::post('/register', [ApiAuthController::class, 'register'])->name('register');
     Route::post('/login', [ApiAuthController::class, 'login'])->name('login');
 
-    // Email-based Password Reset Flow
+    // Unified Password Reset Flow (supports both email and phone)
     Route::post('/forgot-password', [ApiAuthController::class, 'forgotPassword'])->name('forgot-password');
     Route::post('/verify-otp', [ApiAuthController::class, 'verifyOTP'])->name('verify-otp');
     Route::post('/reset-password', [ApiAuthController::class, 'resetPassword'])->name('reset-password');
     Route::post('/resend-otp', [ApiAuthController::class, 'resendOTP'])->name('resend-otp');
-    
-    // Phone-based Password Reset Flow
-    Route::post('/forgot-password-phone', [ApiAuthController::class, 'forgotPasswordPhone'])->name('forgot-password-phone');
-    Route::post('/verify-otp-phone', [ApiAuthController::class, 'verifyPhoneOTP'])->name('verify-otp-phone');
-    Route::post('/reset-password-phone', [ApiAuthController::class, 'resetPasswordPhone'])->name('reset-password-phone');
-    Route::post('/resend-otp-phone', [ApiAuthController::class, 'resendPhoneOTP'])->name('resend-otp-phone');
 });
 
 /**

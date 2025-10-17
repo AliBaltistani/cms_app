@@ -43,7 +43,13 @@ $bodyClass = 'bg-white';
                                         <img src="{{ asset('build/assets/images/light-logo.svg') }}" alt="Logo" class="img-fluid" width="50">
                                        <div class="ms-3">
                                          <h4 class="mb-1 fw-semibold">Verify OTP</h4>
-                                         <p class=" mb-0  text-muted fw-normal">Enter the 6-digit code sent to your email</p>
+                                         <p class=" mb-0  text-muted fw-normal">
+                                            @if(session('password_reset_type') === 'phone')
+                                                Enter the 6-digit code sent to your phone
+                                            @else
+                                                Enter the 6-digit code sent to your email
+                                            @endif
+                                         </p>
                                        </div>
                                     </div>
                                     
@@ -74,10 +80,14 @@ $bodyClass = 'bg-white';
                 @endif
                                 </div>
 
-                                <!-- Email Display -->
+                                <!-- Email/Phone Display -->
                                 <div class="text-center mb-4">
                                     <p class="mb-2">OTP sent to:</p>
-                                    <strong class="text-primary">{{ session('password_reset_email') }}</strong>
+                                    @if(session('password_reset_type') === 'phone')
+                                        <strong class="text-primary">{{ session('password_reset_phone') }}</strong>
+                                    @else
+                                        <strong class="text-primary">{{ session('password_reset_email') }}</strong>
+                                    @endif
                                 </div>
 
                                  <form method="POST" action="{{ route('password.otp.verify') }}" id="otpForm">
