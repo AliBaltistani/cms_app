@@ -639,7 +639,7 @@ class TrainersController extends Controller
             // Create certification
             $certification = UserCertification::create([
                 'user_id' => $trainer->id,
-                'name' => $request->name,
+                'certificate_name' => $request->name,
                 'issuing_organization' => $request->issuing_organization,
                 'issue_date' => $request->issue_date,
                 'expiry_date' => $request->expiry_date,
@@ -664,7 +664,7 @@ class TrainersController extends Controller
             
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to add certification'
+                'message' => 'Failed to add certification: ' . $e->getMessage()
             ], 500);
         }
     }

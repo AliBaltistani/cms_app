@@ -490,7 +490,7 @@ Route::middleware('auth')->group(function () {
         // Certification management (only trainers can add certifications to their profile)
         Route::get('/{id}/certifications', [TrainerWebController::class, 'indexCertifications'])->name('trainers.certifications.index');
         Route::get('/{id}/certifications/create', [TrainerWebController::class, 'createCertification'])->name('trainers.certifications.create');
-        Route::post('/{id}/certifications', [TrainerWebController::class, 'storeCertification'])->name('trainers.certifications.store');
+        // Route::post('/{id}/certifications', [TrainerWebController::class, 'storeCertification'])->name('trainers.certifications.store');
         Route::delete('/{id}/certifications/{certificationId}', [TrainerWebController::class, 'deleteCertification'])->name('trainers.certifications.destroy');
         
         // Testimonial management (only clients can add testimonials for trainers)

@@ -396,7 +396,7 @@ class AdminTrainerController extends ApiBaseController
                 'trace' => $e->getTraceAsString()
             ]);
             
-            return $this->sendError('Failed to add certification', ['error' => 'Unable to create certification'], 500);
+            return $this->sendError('Failed to add certification'.$e->getMessage(), ['error' => 'Unable to create certification'], 500);
         }
     }
     
