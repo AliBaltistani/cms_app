@@ -286,11 +286,36 @@ class ClientBookingController extends ApiBaseController
 
             $schedule->load(['trainer:id,name,email,phone', 'client:id,name,email,phone']);
 
+            // Create Google Calendar event if booking is confirmed and trainer is connected
+            $googleEventResult = null;
+            if ($status === Schedule::STATUS_CONFIRMED) {
+                $googleEventResult = $schedule->createGoogleCalendarEvent();
+            }
+
+            // Prepare response data
+            $responseData = $schedule->toArray();
+            if ($googleEventResult && isset($googleEventResult['meet_link'])) {
+                $responseData['meet_link'] = $googleEventResult['meet_link'];
+                $responseData['google_event_created'] = true;
+            } else {
+                $responseData['meet_link'] = null;
+                $responseData['google_event_created'] = false;
+            }
+
             $message = $status === Schedule::STATUS_PENDING 
                 ? 'Booking request submitted successfully. Waiting for trainer approval.' 
                 : 'Booking confirmed successfully.';
 
-            return $this->sendResponse($schedule, $message);
+            // Add Google Calendar status to message if applicable
+            if ($status === Schedule::STATUS_CONFIRMED) {
+                if ($googleEventResult) {
+                    $message .= ' Google Calendar event created with Meet link.';
+                } else {
+                    $message .= ' Note: Google Calendar event could not be created.';
+                }
+            }
+
+            return $this->sendResponse($responseData, $message);
 
         } catch (\Exception $e) {
             return $this->sendError('Server Error', ['error' => $e->getMessage()], 500);

@@ -14,6 +14,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Admin Booking Controller
@@ -176,8 +177,23 @@ class BookingController extends Controller
                 'notes' => $request->notes,
             ]);
 
+            // Create Google Calendar event if booking is confirmed
+            $googleEventResult = null;
+            if ($request->status === Schedule::STATUS_CONFIRMED) {
+                $googleEventResult = $schedule->createGoogleCalendarEvent();
+            }
+
+            $message = 'Booking created successfully';
+            if ($request->status === Schedule::STATUS_CONFIRMED) {
+                if ($googleEventResult) {
+                    $message .= ' with Google Calendar event and Meet link';
+                } else {
+                    $message .= ' (Google Calendar event could not be created)';
+                }
+            }
+
             return redirect()->route('admin.bookings.show', $schedule->id)
-                ->with('success', 'Booking created successfully');
+                ->with('success', $message);
 
         } catch (\Exception $e) {
             return redirect()->back()
@@ -286,6 +302,8 @@ class BookingController extends Controller
                 }
             }
 
+            $oldStatus = $booking->status;
+            
             $booking->update([
                 'trainer_id' => $request->trainer_id,
                 'client_id' => $request->client_id,
@@ -296,8 +314,40 @@ class BookingController extends Controller
                 'notes' => $request->notes,
             ]);
 
+            // Handle Google Calendar events based on status change
+            $googleMessage = '';
+            
+            if ($request->status === Schedule::STATUS_CONFIRMED && $oldStatus !== Schedule::STATUS_CONFIRMED) {
+                // Create or update Google Calendar event when confirming
+                $googleEventResult = $booking->hasGoogleCalendarEvent() 
+                    ? $booking->updateGoogleCalendarEvent() 
+                    : $booking->createGoogleCalendarEvent();
+                    
+                if ($googleEventResult) {
+                    $googleMessage = ' with Google Calendar event and Meet link';
+                } else {
+                    $googleMessage = ' (Google Calendar event could not be created)';
+                }
+            } elseif ($request->status === Schedule::STATUS_CANCELLED && $booking->hasGoogleCalendarEvent()) {
+                // Delete Google Calendar event when cancelling
+                $deleteResult = $booking->deleteGoogleCalendarEvent();
+                if ($deleteResult) {
+                    $googleMessage = ' and Google Calendar event deleted';
+                } else {
+                    $googleMessage = ' (Google Calendar event could not be deleted)';
+                }
+            } elseif ($oldStatus !== $request->status && $booking->hasGoogleCalendarEvent()) {
+                // Update existing Google Calendar event for other status changes
+                $updateResult = $booking->updateGoogleCalendarEvent();
+                if ($updateResult) {
+                    $googleMessage = ' and Google Calendar event updated';
+                }
+            }
+
+            $message = 'Booking updated successfully' . $googleMessage;
+
             return redirect()->route('admin.bookings.show', $booking->id)
-                ->with('success', 'Booking updated successfully');
+                ->with('success', $message);
 
         } catch (\Exception $e) {
             return redirect()->back()
@@ -930,28 +980,51 @@ class BookingController extends Controller
 
             $schedule->load(['trainer:id,name', 'client:id,name']);
 
+            // Create Google Calendar event if booking is confirmed
+            $googleEventResult = null;
+            if ($schedule->status === Schedule::STATUS_CONFIRMED) {
+                $googleEventResult = $schedule->createGoogleCalendarEvent();
+            }
+
+            $eventData = [
+                'id' => $schedule->id,
+                'title' => $schedule->trainer->name . ' - ' . $schedule->client->name,
+                'start' => $startDateTime->toISOString(),
+                'end' => $endDateTime->toISOString(),
+                'backgroundColor' => '#ffc107',
+                'borderColor' => '#ffc107',
+                'extendedProps' => [
+                    'trainer_id' => $schedule->trainer_id,
+                    'trainer_name' => $schedule->trainer->name,
+                    'client_id' => $schedule->client_id,
+                    'client_name' => $schedule->client->name,
+                    'status' => $schedule->status,
+                    'notes' => $schedule->notes,
+                    'date' => $schedule->date,
+                    'start_time' => $schedule->start_time,
+                    'end_time' => $schedule->end_time
+                ]
+            ];
+
+            // Add Google Calendar info if event was created
+            if ($googleEventResult) {
+                $eventData['extendedProps']['meet_link'] = $googleEventResult['meet_link'] ?? null;
+                $eventData['extendedProps']['google_event_id'] = $googleEventResult['google_event_id'] ?? null;
+            }
+
+            $message = 'Booking created successfully';
+            if ($schedule->status === Schedule::STATUS_CONFIRMED) {
+                if ($googleEventResult) {
+                    $message .= ' with Google Calendar event and Meet link';
+                } else {
+                    $message .= ' (Google Calendar event could not be created)';
+                }
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => 'Booking created successfully',
-                'event' => [
-                    'id' => $schedule->id,
-                    'title' => $schedule->trainer->name . ' - ' . $schedule->client->name,
-                    'start' => $startDateTime->toISOString(),
-                    'end' => $endDateTime->toISOString(),
-                    'backgroundColor' => '#ffc107',
-                    'borderColor' => '#ffc107',
-                    'extendedProps' => [
-                        'trainer_id' => $schedule->trainer_id,
-                        'trainer_name' => $schedule->trainer->name,
-                        'client_id' => $schedule->client_id,
-                        'client_name' => $schedule->client->name,
-                        'status' => $schedule->status,
-                        'notes' => $schedule->notes,
-                        'date' => $schedule->date,
-                        'start_time' => $schedule->start_time,
-                        'end_time' => $schedule->end_time
-                    ]
-                ]
+                'message' => $message,
+                'event' => $eventData
             ]);
 
         } catch (\Exception $e) {
@@ -1287,5 +1360,198 @@ class BookingController extends Controller
         $stats['total_blocked_times'] = $trainers->sum('blocked_times_count');
 
         return view('admin.trainers-scheduling.index', compact('trainers', 'stats'));
+    }
+
+    /**
+     * Show the Google Calendar booking form
+     */
+    public function googleCalendarBooking()
+    {
+        $trainers = User::where('role', 'trainer')
+            // ->whereNotNull('email_verified_at')
+            ->select('id', 'name', 'email')
+            ->get();
+
+        $clients = User::where('role', 'client')
+            // ->whereNotNull('email_verified_at')
+            ->select('id', 'name', 'email')
+            ->get();
+
+        return view('admin.bookings.google-calendar-booking', compact('trainers', 'clients'));
+    }
+
+    /**
+     * Check trainer's Google Calendar connection status
+     */
+    public function checkTrainerGoogleConnection($trainerId)
+    {
+        try {
+            $trainer = User::findOrFail($trainerId);
+            
+            if ($trainer->role !== 'trainer') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User is not a trainer'
+                ], 400);
+            }
+
+            $googleController = new \App\Http\Controllers\GoogleController();
+            $connectionStatus = $googleController->getTrainerConnectionStatus($trainer);
+
+            return response()->json([
+                'success' => true,
+                'connected' => $connectionStatus['connected'],
+                'email' => $connectionStatus['email'] ?? null
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error checking Google Calendar connection: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get trainer's available time slots from Google Calendar
+     */
+    public function getTrainerAvailableSlots(Request $request)
+    {
+        $request->validate([
+            'trainer_id' => 'required|exists:users,id',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date'
+        ]);
+
+        try {
+            $trainer = User::findOrFail($request->trainer_id);
+            
+            if ($trainer->role !== 'trainer') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User is not a trainer'
+                ], 400);
+            }
+
+            // Check if trainer has Google Calendar connected
+            $googleController = new \App\Http\Controllers\GoogleController();
+            $connectionStatus = $googleController->getTrainerConnectionStatus($trainer);
+
+            if (!$connectionStatus['connected']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Trainer does not have Google Calendar connected'
+                ], 400);
+            }
+
+            // Get available slots using the GoogleCalendarService
+            $googleCalendarService = new \App\Services\GoogleCalendarService();
+            $availableSlots = $googleCalendarService->getAvailableSlots(
+                $trainer,
+                $request->start_date,
+                $request->end_date
+            );
+
+            return response()->json([
+                'success' => true,
+                'slots' => $availableSlots
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching available slots: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Store Google Calendar booking
+     */
+    public function storeGoogleCalendarBooking(Request $request)
+    {
+        $request->validate([
+            'trainer_id' => 'required|exists:users,id',
+            'client_id' => 'required|exists:users,id',
+            'session_date' => 'required|date',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
+            'session_type' => 'required|string|max:255',
+            'notes' => 'nullable|string'
+        ]);
+
+        try {
+            $trainer = User::findOrFail($request->trainer_id);
+            $client = User::findOrFail($request->client_id);
+
+            // Verify roles
+            if ($trainer->role !== 'trainer') {
+                return redirect()->back()->withErrors(['trainer_id' => 'Selected user is not a trainer.']);
+            }
+
+            if ($client->role !== 'client') {
+                return redirect()->back()->withErrors(['client_id' => 'Selected user is not a client.']);
+            }
+
+            // Check if trainer has Google Calendar connected
+            $googleController = new \App\Http\Controllers\GoogleController();
+            $connectionStatus = $googleController->getTrainerConnectionStatus($trainer);
+
+            if (!$connectionStatus['connected']) {
+                return redirect()->back()->withErrors(['trainer_id' => 'Trainer does not have Google Calendar connected.']);
+            }
+
+            // Create datetime objects
+            $sessionDateTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $request->session_date . ' ' . $request->start_time);
+            $endDateTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $request->session_date . ' ' . $request->end_time);
+
+            // Check for conflicting bookings
+            $conflictingBooking = Schedule::where('trainer_id', $trainer->id)
+                ->where('session_date', $request->session_date)
+                ->where(function ($query) use ($request) {
+                    $query->whereBetween('start_time', [$request->start_time, $request->end_time])
+                          ->orWhereBetween('end_time', [$request->start_time, $request->end_time])
+                          ->orWhere(function ($q) use ($request) {
+                              $q->where('start_time', '<=', $request->start_time)
+                                ->where('end_time', '>=', $request->end_time);
+                          });
+                })
+                ->first();
+
+            if ($conflictingBooking) {
+                return redirect()->back()->withErrors(['session_date' => 'Trainer already has a booking during this time slot.']);
+            }
+
+            // Create the booking
+            $schedule = Schedule::create([
+                'trainer_id' => $trainer->id,
+                'client_id' => $client->id,
+                'session_date' => $request->session_date,
+                'start_time' => $request->start_time,
+                'end_time' => $request->end_time,
+                'session_type' => $request->session_type,
+                'status' => 'confirmed',
+                'notes' => $request->notes,
+                'created_by_admin' => true,
+                'admin_id' => auth()->id()
+            ]);
+
+            // Create Google Calendar event
+            try {
+                $googleCalendarService = new \App\Services\GoogleCalendarService();
+                $eventData = $googleCalendarService->createEvent($schedule);
+
+                return redirect()->route('admin.bookings.index')
+                    ->with('success', 'Booking created successfully with Google Calendar event and Meet link!');
+            } catch (\Exception $e) {
+                // If Google Calendar event creation fails, still keep the booking but notify
+                Log::error('Failed to create Google Calendar event for booking ' . $schedule->id . ': ' . $e->getMessage());
+                
+                return redirect()->route('admin.bookings.index')
+                    ->with('warning', 'Booking created successfully, but failed to create Google Calendar event: ' . $e->getMessage());
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Error creating Google Calendar booking: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => 'An error occurred while creating the booking: ' . $e->getMessage()]);
+        }
     }
 }

@@ -212,6 +212,16 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         /**
+         * Google Calendar Integration
+         * Handle Google OAuth flow and calendar management for trainers
+         */
+        Route::prefix('google')->name('google.')->group(function () {
+            Route::get('/connect', [\App\Http\Controllers\GoogleController::class, 'redirectToGoogle'])->name('connect');
+            Route::get('/status', [\App\Http\Controllers\GoogleController::class, 'getConnectionStatus'])->name('status');
+            Route::delete('/disconnect', [\App\Http\Controllers\GoogleController::class, 'disconnectGoogle'])->name('disconnect');
+        });
+
+        /**
          * Trainer Client Management
          * Complete client management operations for trainers
          */
@@ -271,6 +281,14 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/', [\App\Http\Controllers\Api\ClientBookingController::class, 'getClientBookings'])->name('index');
             Route::post('/', [\App\Http\Controllers\Api\ClientBookingController::class, 'requestBooking'])->name('store');
             Route::delete('/{id}', [\App\Http\Controllers\Api\ClientBookingController::class, 'cancelBooking'])->name('cancel');
+        });
+
+        /**
+         * Client Trainer Management
+         * Access to trainer information and availability
+         */
+        Route::prefix('trainers')->name('trainers.')->group(function () {
+            Route::get('/{trainerId}/availability', [\App\Http\Controllers\Api\ClientBookingController::class, 'getTrainerAvailability'])->name('availability');
         });
 
         /**

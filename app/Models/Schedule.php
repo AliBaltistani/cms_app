@@ -45,7 +45,9 @@ class Schedule extends Model
         'start_time',
         'end_time',
         'status',
-        'notes'
+        'notes',
+        'google_event_id',
+        'meet_link'
     ];
 
     /**
@@ -195,5 +197,107 @@ class Schedule extends Model
         $end = Carbon::today()->setTimeFromTimeString($this->end_time->format('H:i:s'));
         
         return $end->diffInMinutes($start);
+    }
+
+    /**
+     * Create Google Calendar event for this schedule
+     * 
+     * @return array|null
+     */
+    public function createGoogleCalendarEvent(): ?array
+    {
+        try {
+            $googleCalendarService = app(\App\Services\GoogleCalendarService::class);
+            
+            // Only create event if trainer is connected and no event exists yet
+            if ($googleCalendarService->isTrainerConnected($this->trainer) && !$this->google_event_id) {
+                return $googleCalendarService->createCalendarEvent($this);
+            }
+            
+            return null;
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to create Google Calendar event for schedule', [
+                'schedule_id' => $this->id,
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Update Google Calendar event for this schedule
+     * 
+     * @return array|null
+     */
+    public function updateGoogleCalendarEvent(): ?array
+    {
+        try {
+            $googleCalendarService = app(\App\Services\GoogleCalendarService::class);
+            
+            // Only update if event exists
+            if ($this->google_event_id && $googleCalendarService->isTrainerConnected($this->trainer)) {
+                return $googleCalendarService->updateCalendarEvent($this);
+            }
+            
+            return null;
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to update Google Calendar event for schedule', [
+                'schedule_id' => $this->id,
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Delete Google Calendar event for this schedule
+     * 
+     * @return bool
+     */
+    public function deleteGoogleCalendarEvent(): bool
+    {
+        try {
+            $googleCalendarService = app(\App\Services\GoogleCalendarService::class);
+            
+            // Only delete if event exists
+            if ($this->google_event_id) {
+                $result = $googleCalendarService->deleteCalendarEvent($this);
+                
+                // Clear the event ID and meet link regardless of result
+                $this->google_event_id = null;
+                $this->meet_link = null;
+                $this->save();
+                
+                return $result;
+            }
+            
+            return true;
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to delete Google Calendar event for schedule', [
+                'schedule_id' => $this->id,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Check if this schedule has a Google Calendar event
+     * 
+     * @return bool
+     */
+    public function hasGoogleCalendarEvent(): bool
+    {
+        return !empty($this->google_event_id);
+    }
+
+    /**
+     * Check if this schedule has a Google Meet link
+     * 
+     * @return bool
+     */
+    public function hasGoogleMeetLink(): bool
+    {
+        return !empty($this->meet_link);
     }
 }

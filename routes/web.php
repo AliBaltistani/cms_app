@@ -52,6 +52,14 @@ Route::middleware('guest')->group(function () {
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout')->middleware('auth');
 
 /**
+ * Google OAuth Routes
+ * Handle Google Calendar integration OAuth flow
+ */
+Route::prefix('google')->name('google.')->group(function () {
+    Route::get('/callback', [\App\Http\Controllers\GoogleController::class, 'handleGoogleCallback'])->name('callback');
+});
+
+/**
  * Protected Routes - Requires Authentication
  * Role-based access control with middleware
  */
@@ -397,6 +405,12 @@ Route::middleware('auth')->group(function () {
             Route::post('/session-capacity', [\App\Http\Controllers\Admin\BookingController::class, 'updateSessionCapacity'])->name('admin.bookings.session-capacity.update');
             Route::get('/booking-approval', [\App\Http\Controllers\Admin\BookingController::class, 'bookingApproval'])->name('admin.bookings.booking-approval');
             Route::post('/booking-approval', [\App\Http\Controllers\Admin\BookingController::class, 'updateBookingApproval'])->name('admin.bookings.booking-approval.update');
+            
+            // Google Calendar Booking Routes
+            Route::get('/google-calendar', [\App\Http\Controllers\Admin\BookingController::class, 'googleCalendarBooking'])->name('admin.bookings.google-calendar');
+            Route::post('/google-calendar', [\App\Http\Controllers\Admin\BookingController::class, 'storeGoogleCalendarBooking'])->name('admin.bookings.google-calendar.store');
+            Route::get('/trainer/{trainerId}/google-connection', [\App\Http\Controllers\Admin\BookingController::class, 'checkTrainerGoogleConnection'])->name('admin.bookings.trainer.google-connection');
+            Route::get('/trainer/available-slots', [\App\Http\Controllers\Admin\BookingController::class, 'getTrainerAvailableSlots'])->name('admin.bookings.trainer.available-slots');
         });
 
         /**

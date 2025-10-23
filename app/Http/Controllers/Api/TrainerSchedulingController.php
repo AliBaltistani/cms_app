@@ -460,6 +460,8 @@ class TrainerSchedulingController extends ApiBaseController
                 return $this->sendError('Only pending bookings can be updated');
             }
 
+            $oldStatus = $schedule->status;
+            
             $schedule->update([
                 'status' => $request->status,
                 'notes' => $request->notes
@@ -467,7 +469,41 @@ class TrainerSchedulingController extends ApiBaseController
 
             $schedule->load('client:id,name,email,phone');
 
-            return $this->sendResponse($schedule, 'Booking status updated successfully');
+            // Handle Google Calendar events based on status change
+            $googleEventResult = null;
+            $googleMessage = '';
+            
+            if ($request->status === Schedule::STATUS_CONFIRMED && $oldStatus === Schedule::STATUS_PENDING) {
+                // Create Google Calendar event when confirming
+                $googleEventResult = $schedule->createGoogleCalendarEvent();
+                if ($googleEventResult) {
+                    $googleMessage = ' Google Calendar event created with Meet link.';
+                } else {
+                    $googleMessage = ' Note: Google Calendar event could not be created.';
+                }
+            } elseif ($request->status === Schedule::STATUS_CANCELLED && $schedule->hasGoogleCalendarEvent()) {
+                // Delete Google Calendar event when cancelling
+                $deleteResult = $schedule->deleteGoogleCalendarEvent();
+                if ($deleteResult) {
+                    $googleMessage = ' Google Calendar event deleted.';
+                } else {
+                    $googleMessage = ' Note: Google Calendar event could not be deleted.';
+                }
+            }
+
+            // Prepare response data
+            $responseData = $schedule->toArray();
+            if ($googleEventResult && isset($googleEventResult['meet_link'])) {
+                $responseData['meet_link'] = $googleEventResult['meet_link'];
+                $responseData['google_event_created'] = true;
+            } else {
+                $responseData['meet_link'] = $schedule->meet_link;
+                $responseData['google_event_created'] = false;
+            }
+
+            $message = 'Booking status updated successfully' . $googleMessage;
+
+            return $this->sendResponse($responseData, $message);
 
         } catch (\Exception $e) {
             return $this->sendError('Server Error', ['error' => $e->getMessage()], 500);

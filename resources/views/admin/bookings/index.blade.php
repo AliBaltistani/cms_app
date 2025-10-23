@@ -25,6 +25,9 @@
             <a href="{{ route('admin.bookings.create') }}" class="btn btn-primary btn-wave waves-effect waves-light me-2">
                 <i class="ri-add-line fw-semibold align-middle me-1"></i> Create Booking
             </a>
+            <a href="{{ route('admin.bookings.google-calendar') }}" class="btn btn-success btn-wave waves-effect waves-light me-2">
+                <i class="ri-calendar-line fw-semibold align-middle me-1"></i> Google Calendar Booking
+            </a>
             <a href="{{ route('admin.bookings.dashboard') }}" class="btn btn-secondary btn-wave waves-effect waves-light">
                 <i class="ri-dashboard-line fw-semibold align-middle me-1"></i> Dashboard
             </a>

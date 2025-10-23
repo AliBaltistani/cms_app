@@ -39,6 +39,7 @@ class User extends Authenticatable
         'sms_quiet_end',
         'sms_notification_types',
         'timezone',
+        'google_token',
     ];
 
     /**
@@ -49,6 +50,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'google_token',
     ];
 
     /**
@@ -64,6 +66,7 @@ class User extends Authenticatable
             'sms_notifications_enabled' => 'boolean',
             'sms_marketing_enabled' => 'boolean',
             'sms_notification_types' => 'array',
+            'google_token' => 'encrypted:array',
         ];
     }
 
