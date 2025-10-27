@@ -12,6 +12,7 @@ use Google_Service_Calendar_EventDateTime;
 use Google_Service_Calendar_ConferenceData;
 use Google_Service_Calendar_CreateConferenceRequest;
 use Google_Service_Calendar_ConferenceSolutionKey;
+use Google_Service_Calendar_FreeBusyRequest;
 use Exception;
 
 /**

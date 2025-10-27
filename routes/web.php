@@ -56,7 +56,9 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout')->midd
  * Handle Google Calendar integration OAuth flow
  */
 Route::prefix('google')->name('google.')->group(function () {
-    Route::get('/callback', [\App\Http\Controllers\GoogleController::class, 'handleGoogleCallback'])->name('callback');
+    Route::get('/callback', [\App\Http\Controllers\GoogleController::class, 'handleGoogleCallback'])
+        ->name('callback')
+        ->middleware('auth');
 });
 
 /**
@@ -411,6 +413,10 @@ Route::middleware('auth')->group(function () {
             Route::post('/google-calendar', [\App\Http\Controllers\Admin\BookingController::class, 'storeGoogleCalendarBooking'])->name('admin.bookings.google-calendar.store');
             Route::get('/trainer/{trainerId}/google-connection', [\App\Http\Controllers\Admin\BookingController::class, 'checkTrainerGoogleConnection'])->name('admin.bookings.trainer.google-connection');
             Route::get('/trainer/available-slots', [\App\Http\Controllers\Admin\BookingController::class, 'getTrainerAvailableSlots'])->name('admin.bookings.trainer.available-slots');
+            
+            // Admin Google Calendar Authentication Routes
+            Route::get('/google/connect/{trainerId}', [\App\Http\Controllers\GoogleController::class, 'adminInitiatedTrainerConnect'])->name('admin.google.connect');
+            Route::get('/google/callback', [\App\Http\Controllers\GoogleController::class, 'adminInitiatedTrainerCallback'])->name('admin.google.callback');
         });
 
         /**
@@ -484,6 +490,14 @@ Route::middleware('auth')->group(function () {
         Route::prefix('testimonials')->group(function () {
             Route::post('/{id}/like', [TrainerDashboardController::class, 'likeTestimonial'])->name('trainer.testimonials.like');
             Route::post('/{id}/dislike', [TrainerDashboardController::class, 'dislikeTestimonial'])->name('trainer.testimonials.dislike');
+        });
+        
+        // Google Calendar Management Routes for Trainers
+        Route::prefix('google-calendar')->name('trainer.google.')->group(function () {
+            Route::get('/', [TrainerDashboardController::class, 'googleCalendar'])->name('index');
+            Route::get('/connect', [\App\Http\Controllers\GoogleController::class, 'trainerConnect'])->name('connect');
+            Route::get('/status', [\App\Http\Controllers\GoogleController::class, 'getConnectionStatus'])->name('status');
+            Route::delete('/disconnect', [\App\Http\Controllers\GoogleController::class, 'disconnectGoogle'])->name('disconnect');
         });
     });
 

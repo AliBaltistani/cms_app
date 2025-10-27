@@ -222,6 +222,16 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         /**
+         * Trainer Google Calendar Management
+         * Trainer-specific Google Calendar integration endpoints
+         */
+        Route::prefix('trainer-google')->name('trainer.google.')->group(function () {
+            Route::get('/connect', [\App\Http\Controllers\GoogleController::class, 'trainerConnect'])->name('connect');
+            Route::get('/status', [\App\Http\Controllers\GoogleController::class, 'trainerStatus'])->name('status');
+            Route::delete('/disconnect', [\App\Http\Controllers\GoogleController::class, 'trainerDisconnect'])->name('disconnect');
+        });
+
+        /**
          * Trainer Client Management
          * Complete client management operations for trainers
          */

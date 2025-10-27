@@ -430,6 +430,40 @@ class TrainerDashboardController extends Controller
     }
     
     /**
+     * Display Google Calendar management interface for trainers.
+     * 
+     * @return \Illuminate\View\View
+     */
+    public function googleCalendar()
+    {
+        try {
+            $user = Auth::user();
+            
+            // Check if trainer has Google Calendar connected
+            $isConnected = !empty($user->google_token);
+            $connectedEmail = null;
+            
+            if ($isConnected) {
+                try {
+                    // Initialize Google Client to get user info
+                    $googleController = new \App\Http\Controllers\GoogleController();
+                    $connectionStatus = $googleController->getTrainerConnectionStatus($user);
+                    
+                    $isConnected = $connectionStatus['connected'];
+                    $connectedEmail = $connectionStatus['email'];
+                } catch (\Exception $e) {
+                    \Log::warning('Failed to verify Google Calendar connection: ' . $e->getMessage());
+                    $isConnected = false;
+                }
+            }
+            
+            return view('trainer.google-calendar.index', compact('isConnected', 'connectedEmail'));
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to load Google Calendar settings: ' . $e->getMessage());
+        }
+    }
+    
+    /**
      * Calculate profile completion percentage.
      * 
      * @param User $user

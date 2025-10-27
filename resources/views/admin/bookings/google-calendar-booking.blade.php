@@ -5,7 +5,7 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
     <!-- Flatpickr CSS -->
-    <link rel="stylesheet" href="{{ asset('assets/libs/flatpickr/flatpickr.min.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <!-- Custom CSS for Google Calendar Booking -->
     <style>
         .google-calendar-card {
@@ -308,6 +308,24 @@
                                     </div>
                                 </div>
                                 
+                                <!-- Session Type -->
+                                <div class="row">
+                                    <div class="col-xl-6 col-lg-6 col-md-6 col-sm-12">
+                                        <div class="mb-3">
+                                            <label for="session_type" class="form-label">Session Type</label>
+                                            <select class="form-control" name="session_type" id="session_type">
+                                                <option value="personal_training" {{ old('session_type') == 'personal_training' ? 'selected' : '' }}>Personal Training</option>
+                                                <option value="consultation" {{ old('session_type') == 'consultation' ? 'selected' : '' }}>Consultation</option>
+                                                <option value="assessment" {{ old('session_type') == 'assessment' ? 'selected' : '' }}>Assessment</option>
+                                                <option value="follow_up" {{ old('session_type') == 'follow_up' ? 'selected' : '' }}>Follow-up</option>
+                                            </select>
+                                            @error('session_type')
+                                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                </div>
+                                
                                 <!-- Session Notes -->
                                 <div class="row">
                                     <div class="col-12">
@@ -363,7 +381,7 @@
     <!-- Select2 JS -->
         <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <!-- Flatpickr JS -->
-    <script src="{{ asset('assets/libs/flatpickr/flatpickr.min.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     
     <script>
         $(document).ready(function() {
@@ -426,17 +444,21 @@
                     const statusDiv = $('#trainerConnectionStatus');
                     const statusText = $('#connectionStatusText');
                     
-                    if (response.success && response.data.connected) {
+                    if (response.success && response.connected) {
                         statusDiv.removeClass('status-disconnected').addClass('status-connected');
                         statusText.html(`
                             <i class="ri-check-line me-1"></i>
-                            Google Calendar connected (${response.data.email})
+                            Google Calendar connected (${response.email})
                         `);
                     } else {
                         statusDiv.removeClass('status-connected').addClass('status-disconnected');
+                        const connectUrl = '{{ route("admin.google.connect", ["trainerId" => "__TRAINER_ID__"]) }}'.replace('__TRAINER_ID__', trainerId);
                         statusText.html(`
                             <i class="ri-close-line me-1"></i>
                             Google Calendar not connected - Events will not be created automatically
+                            <a href="${connectUrl}" class="btn btn-primary btn-lg">
+                                <i class="ri-google-line me-2"></i>Connect Google Calendar
+                            </a>
                         `);
                     }
                     statusDiv.show();
@@ -503,13 +525,24 @@
             const slotsContainer = $('#availableSlots');
             slotsContainer.empty();
 
-            if (Object.keys(availableSlots).length === 0) {
+            if (!Array.isArray(availableSlots) || availableSlots.length === 0) {
                 slotsContainer.html('<p class="text-muted">No available slots found for the selected date range.</p>');
                 return;
             }
 
-            Object.keys(availableSlots).forEach(date => {
-                const dayData = availableSlots[date];
+            // Group slots by date
+            const slotsByDate = {};
+            availableSlots.forEach(slot => {
+                const date = slot.date;
+                if (!slotsByDate[date]) {
+                    slotsByDate[date] = [];
+                }
+                slotsByDate[date].push(slot);
+            });
+
+            // Display slots grouped by date
+            Object.keys(slotsByDate).forEach(date => {
+                const daySlots = slotsByDate[date];
                 const dateObj = new Date(date);
                 const formattedDate = dateObj.toLocaleDateString('en-US', { 
                     weekday: 'long', 
@@ -522,10 +555,10 @@
                     <div class="mb-4">
                         <h6 class="mb-3">${formattedDate}</h6>
                         <div class="row">
-                            ${dayData.slots.map(slot => `
+                            ${daySlots.map(slot => `
                                 <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12 mb-2">
                                     <div class="availability-slot" onclick="selectTimeSlot('${date}', '${slot.start_time}', '${slot.end_time}')">
-                                        <div class="time-slot">${slot.start_time} - ${slot.end_time}</div>
+                                        <div class="time-slot">${slot.display || (slot.start_time + ' - ' + slot.end_time)}</div>
                                     </div>
                                 </div>
                             `).join('')}

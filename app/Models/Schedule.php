@@ -46,6 +46,7 @@ class Schedule extends Model
         'end_time',
         'status',
         'notes',
+        'session_type',
         'google_event_id',
         'meet_link'
     ];

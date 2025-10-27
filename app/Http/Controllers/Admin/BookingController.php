@@ -1412,7 +1412,7 @@ class BookingController extends Controller
     }
 
     /**
-     * Get trainer's available time slots from Google Calendar
+     * Get trainer's available time slots from Google Calendar or local availability
      */
     public function getTrainerAvailableSlots(Request $request)
     {
@@ -1436,24 +1436,33 @@ class BookingController extends Controller
             $googleController = new \App\Http\Controllers\GoogleController();
             $connectionStatus = $googleController->getTrainerConnectionStatus($trainer);
 
-            if (!$connectionStatus['connected']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Trainer does not have Google Calendar connected'
-                ], 400);
+            if ($connectionStatus['connected']) {
+                // Use Google Calendar for availability
+                try {
+                    $googleCalendarService = new \App\Services\GoogleCalendarService();
+                    $availableSlots = $googleCalendarService->getAvailableSlots(
+                        $trainer,
+                        $request->start_date,
+                        $request->end_date
+                    );
+                } catch (\Exception $e) {
+                    // If Google Calendar fails, fall back to local availability
+                    \Log::warning('Google Calendar failed, falling back to local availability', [
+                        'trainer_id' => $trainer->id,
+                        'error' => $e->getMessage()
+                    ]);
+                    $availableSlots = $this->getLocalAvailableSlots($trainer, $request->start_date, $request->end_date);
+                }
+            } else {
+                // Use local availability system when Google Calendar is not connected
+                $availableSlots = $this->getLocalAvailableSlots($trainer, $request->start_date, $request->end_date);
             }
-
-            // Get available slots using the GoogleCalendarService
-            $googleCalendarService = new \App\Services\GoogleCalendarService();
-            $availableSlots = $googleCalendarService->getAvailableSlots(
-                $trainer,
-                $request->start_date,
-                $request->end_date
-            );
 
             return response()->json([
                 'success' => true,
-                'slots' => $availableSlots
+                'data' => [
+                    'available_slots' => $availableSlots
+                ]
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -1471,10 +1480,10 @@ class BookingController extends Controller
         $request->validate([
             'trainer_id' => 'required|exists:users,id',
             'client_id' => 'required|exists:users,id',
-            'session_date' => 'required|date',
+            'booking_date' => 'required|date',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
-            'session_type' => 'required|string|max:255',
+            'session_type' => 'required|string|in:personal_training,consultation,assessment,follow_up',
             'notes' => 'nullable|string'
         ]);
 
@@ -1500,12 +1509,12 @@ class BookingController extends Controller
             }
 
             // Create datetime objects
-            $sessionDateTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $request->session_date . ' ' . $request->start_time);
-            $endDateTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $request->session_date . ' ' . $request->end_time);
+            $sessionDateTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $request->booking_date . ' ' . $request->start_time);
+            $endDateTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $request->booking_date . ' ' . $request->end_time);
 
             // Check for conflicting bookings
             $conflictingBooking = Schedule::where('trainer_id', $trainer->id)
-                ->where('session_date', $request->session_date)
+                ->where('date', $request->booking_date)
                 ->where(function ($query) use ($request) {
                     $query->whereBetween('start_time', [$request->start_time, $request->end_time])
                           ->orWhereBetween('end_time', [$request->start_time, $request->end_time])
@@ -1517,21 +1526,19 @@ class BookingController extends Controller
                 ->first();
 
             if ($conflictingBooking) {
-                return redirect()->back()->withErrors(['session_date' => 'Trainer already has a booking during this time slot.']);
+                return redirect()->back()->withErrors(['booking_date' => 'Trainer already has a booking during this time slot.']);
             }
 
             // Create the booking
             $schedule = Schedule::create([
                 'trainer_id' => $trainer->id,
                 'client_id' => $client->id,
-                'session_date' => $request->session_date,
+                'date' => $request->booking_date,
                 'start_time' => $request->start_time,
                 'end_time' => $request->end_time,
-                'session_type' => $request->session_type,
                 'status' => 'confirmed',
                 'notes' => $request->notes,
-                'created_by_admin' => true,
-                'admin_id' => auth()->id()
+                'session_type' => $request->session_type
             ]);
 
             // Create Google Calendar event
@@ -1553,5 +1560,159 @@ class BookingController extends Controller
             Log::error('Error creating Google Calendar booking: ' . $e->getMessage());
             return redirect()->back()->withErrors(['error' => 'An error occurred while creating the booking: ' . $e->getMessage()]);
         }
+    }
+
+    /**
+     * Get local available slots for a trainer based on weekly availability
+     * 
+     * @param User $trainer
+     * @param string $startDate
+     * @param string $endDate
+     * @return array
+     */
+    private function getLocalAvailableSlots(User $trainer, string $startDate, string $endDate): array
+    {
+        $startDate = \Carbon\Carbon::parse($startDate);
+        $endDate = \Carbon\Carbon::parse($endDate);
+        
+        // Get trainer's weekly availability
+        $weeklyAvailability = \App\Models\Availability::where('trainer_id', $trainer->id)
+            ->get()
+            ->keyBy('day_of_week');
+
+        // Get blocked times for the date range
+        $blockedTimes = \App\Models\BlockedTime::where('trainer_id', $trainer->id)
+            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->get()
+            ->groupBy('date');
+
+        // Get existing bookings for the date range
+        $existingBookings = \App\Models\Schedule::where('trainer_id', $trainer->id)
+            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->where('status', '!=', 'cancelled')
+            ->get()
+            ->groupBy('date');
+
+        $availableSlots = [];
+        $currentDate = $startDate->copy();
+
+        while ($currentDate->lte($endDate)) {
+            $dateString = $currentDate->format('Y-m-d');
+            $dayOfWeek = $currentDate->dayOfWeek;
+            
+            // Get weekly availability for this day
+            $dayAvailability = $weeklyAvailability->get($dayOfWeek);
+            
+            if ($dayAvailability) {
+                $timeSlots = [];
+                
+                // Generate morning slots if available
+                if ($dayAvailability->morning_start_time && $dayAvailability->morning_end_time) {
+                    $morningSlots = $this->generateTimeSlots(
+                        $dayAvailability->morning_start_time,
+                        $dayAvailability->morning_end_time,
+                        60 // 60 minutes per slot
+                    );
+                    $timeSlots = array_merge($timeSlots, $morningSlots);
+                }
+                
+                // Generate evening slots if available
+                if ($dayAvailability->evening_start_time && $dayAvailability->evening_end_time) {
+                    $eveningSlots = $this->generateTimeSlots(
+                        $dayAvailability->evening_start_time,
+                        $dayAvailability->evening_end_time,
+                        60 // 60 minutes per slot
+                    );
+                    $timeSlots = array_merge($timeSlots, $eveningSlots);
+                }
+                
+                // Filter out blocked times and existing bookings
+                $dayBlockedTimes = $blockedTimes->get($dateString, collect());
+                $dayBookings = $existingBookings->get($dateString, collect());
+                
+                foreach ($timeSlots as $slot) {
+                    $slotStart = \Carbon\Carbon::createFromFormat('H:i', $slot['start_time']);
+                    $slotEnd = \Carbon\Carbon::createFromFormat('H:i', $slot['end_time']);
+                    $slotDateTime = $currentDate->copy()->setTime($slotStart->hour, $slotStart->minute);
+                    
+                    // Skip past slots
+                    if ($slotDateTime->lt(\Carbon\Carbon::now())) {
+                        continue;
+                    }
+                    
+                    $isAvailable = true;
+                    
+                    // Check against blocked times
+                    foreach ($dayBlockedTimes as $blockedTime) {
+                        $blockedStart = \Carbon\Carbon::createFromFormat('H:i:s', $blockedTime->start_time);
+                        $blockedEnd = \Carbon\Carbon::createFromFormat('H:i:s', $blockedTime->end_time);
+                        
+                        if ($slotStart->lt($blockedEnd) && $slotEnd->gt($blockedStart)) {
+                            $isAvailable = false;
+                            break;
+                        }
+                    }
+                    
+                    // Check against existing bookings
+                    if ($isAvailable) {
+                        foreach ($dayBookings as $booking) {
+                            $bookingStart = \Carbon\Carbon::createFromFormat('H:i:s', $booking->start_time);
+                            $bookingEnd = \Carbon\Carbon::createFromFormat('H:i:s', $booking->end_time);
+                            
+                            if ($slotStart->lt($bookingEnd) && $slotEnd->gt($bookingStart)) {
+                                $isAvailable = false;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if ($isAvailable) {
+                        $availableSlots[] = [
+                            'start' => $slotDateTime->toISOString(),
+                            'end' => $slotDateTime->copy()->addHour()->toISOString(),
+                            'start_time' => $slot['start_time'],
+                            'end_time' => $slot['end_time'],
+                            'date' => $dateString,
+                            'display' => $slotStart->format('g:i A') . ' - ' . $slotEnd->format('g:i A')
+                        ];
+                    }
+                }
+            }
+            
+            $currentDate->addDay();
+        }
+
+        return $availableSlots;
+    }
+
+    /**
+     * Generate time slots for a given time range
+     * 
+     * @param string $startTime
+     * @param string $endTime
+     * @param int $slotDuration Duration in minutes
+     * @return array
+     */
+    private function generateTimeSlots(string $startTime, string $endTime, int $slotDuration = 60): array
+    {
+        $slots = [];
+        $start = \Carbon\Carbon::createFromFormat('H:i:s', $startTime);
+        $end = \Carbon\Carbon::createFromFormat('H:i:s', $endTime);
+        
+        while ($start->lt($end)) {
+            $slotEnd = $start->copy()->addMinutes($slotDuration);
+            
+            if ($slotEnd->lte($end)) {
+                $slots[] = [
+                    'start_time' => $start->format('H:i'),
+                    'end_time' => $slotEnd->format('H:i'),
+                    'duration_minutes' => $slotDuration
+                ];
+            }
+            
+            $start->addMinutes($slotDuration);
+        }
+        
+        return $slots;
     }
 }
