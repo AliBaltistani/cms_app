@@ -87,8 +87,11 @@ class GoogleCalendarService
             // Create event
             $event = new Google_Service_Calendar_Event();
             
-            // Set event title
-            $event->setSummary("Training Session - {$client->name}");
+            // Set event title - use meeting agenda if available, otherwise default title
+            $eventTitle = !empty($schedule->meeting_agenda) 
+                ? $schedule->meeting_agenda 
+                : "Training Session - {$client->name}";
+            $event->setSummary($eventTitle);
             
             // Set event description
             $description = "Training session between {$trainer->name} (Trainer) and {$client->name} (Client).\n\n";
@@ -224,7 +227,11 @@ class GoogleCalendarService
 
             // Update event details
             $client = $schedule->client;
-            $event->setSummary("Training Session - {$client->name}");
+            // Use meeting agenda if available, otherwise default title
+            $eventTitle = !empty($schedule->meeting_agenda) 
+                ? $schedule->meeting_agenda 
+                : "Training Session - {$client->name}";
+            $event->setSummary($eventTitle);
             
             $description = "Training session between {$trainer->name} (Trainer) and {$client->name} (Client).\n\n";
             $description .= "Session Details:\n";

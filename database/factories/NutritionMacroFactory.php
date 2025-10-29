@@ -194,7 +194,8 @@ class NutritionMacroFactory extends Factory
         $notes[] = 'Adjust portions based on activity level and progress.';
         $notes[] = 'Stay hydrated and monitor how you feel with these targets.';
         
-        return implode(' ', $this->faker->randomElements($notes, $this->faker->numberBetween(1, 3)));
+        $maxNotes = min(3, count($notes));
+        return implode(' ', $this->faker->randomElements($notes, $this->faker->numberBetween(1, $maxNotes)));
     }
 
     /**

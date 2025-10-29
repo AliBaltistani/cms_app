@@ -6,7 +6,7 @@
 <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
     <!-- Flatpickr CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <!-- Custom CSS for Google Calendar Booking -->
+    
     <style>
         .google-calendar-card {
             border: 2px solid #4285f4;
@@ -101,6 +101,7 @@
         .section-title {
             font-size: 1.1rem;
             font-weight: 600;
+            margin-bottom: 1rem;
             color: #495057;
             margin-bottom: 15px;
             display: flex;
@@ -111,6 +112,20 @@
             margin-right: 8px;
             color: #4285f4;
         }
+        
+        .edit-mode-indicator {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            color: #856404;
+            font-weight: 500;
+        }
+        
+        .edit-mode-indicator i {
+            color: #f39c12;
+        }
     </style>
 @endsection
 
@@ -119,15 +134,24 @@
     <div class="d-md-flex d-block align-items-center justify-content-between my-4 page-header-breadcrumb">
         <div>
             <h1 class="page-title fw-semibold fs-18 mb-0">
-                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIwIDNINEMzLjQ0NzcxIDMgMyAzLjQ0NzcxIDMgNFYyMEMzIDIwLjU1MjMgMy40NDc3MSAyMSA0IDIxSDIwQzIwLjU1MjMgMjEgMjEgMjAuNTUyMyAyMSAyMFY0QzIxIDMuNDQ3NzEgMjAuNTUyMyAzIDIwIDNaIiBmaWxsPSIjNDI4NUY0Ii8+CjxwYXRoIGQ9Ik0xNiA5VjdIMTRWOUg5VjExSDE0VjEzSDE2VjExSDIxVjlIMTZaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K" class="google-icon" alt="Google Calendar">
-                Google Calendar Booking
+                @if(isset($booking))
+                    Edit Google Calendar Booking
+                @else
+                    Google Calendar Booking
+                @endif
             </h1>
             <div class="">
                 <nav>
                     <ol class="breadcrumb mb-0">
                         <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
                         <li class="breadcrumb-item"><a href="{{ route('admin.bookings.index') }}">Bookings</a></li>
-                        <li class="breadcrumb-item active" aria-current="page">Google Calendar Booking</li>
+                        <li class="breadcrumb-item active" aria-current="page">
+                            @if(isset($booking))
+                                Edit Booking #{{ $booking->id }}
+                            @else
+                                Google Calendar Booking
+                            @endif
+                        </li>
                     </ol>
                 </nav>
             </div>
@@ -138,51 +162,87 @@
             </a>
         </div>
     </div>
-    <!-- Page Header Close -->
 
     <!-- Start::row-1 -->
-    <div class="row">
-        <div class="col-xl-12">
-            <div class="card custom-card google-calendar-card">
+    <div class="row justify-content-center">
+        <div class="col-xl-10">
+            <div class="card google-calendar-card">
                 <div class="google-calendar-header">
                     <div class="d-flex align-items-center">
-                        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTI2LjY2NjcgNEg1LjMzMzMzQzQuNTk2OTUgNCA0IDQuNTk2OTUgNCA1LjMzMzMzVjI2LjY2NjdDNCAyNy40MDMgNC41OTY5NSAyOCA1LjMzMzMzIDI4SDI2LjY2NjdDMjcuNDAzIDI4IDI4IDI3LjQwMyAyOCAyNi42NjY3VjUuMzMzMzNDMjggNC41OTY5NSAyNy40MDMgNCAyNi42NjY3IDRaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNMjEuMzMzMyAxMlY5LjMzMzMzSDE4LjY2NjdWMTJIMTJWMTQuNjY2N0gxOC42NjY3VjE3LjMzMzNIMjEuMzMzM1YxNC42NjY3SDI4VjEySDIxLjMzMzNaIiBmaWxsPSIjNDI4NUY0Ii8+Cjwvc3ZnPgo=" class="google-icon" alt="Google Calendar">
+                        <i class="ri-google-line fs-24 me-3"></i>
                         <div>
-                            <h4 class="mb-1">Schedule Trainer Session with Google Calendar</h4>
-                            <p class="mb-0 opacity-75">Create bookings with automatic Google Calendar events and Meet links</p>
+                            <h4 class="mb-1">
+                                @if(isset($booking))
+                                    Edit Google Calendar Booking
+                                @else
+                                    Schedule Trainer Session with Google Calendar
+                                @endif
+                            </h4>
+                            <p class="mb-0 opacity-75">
+                                @if(isset($booking))
+                                    Update booking details and sync with Google Calendar
+                                @else
+                                    Create a new booking with automatic Google Calendar integration
+                                @endif
+                            </p>
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="card-body">
-                    <!-- Trainer Connection Status -->
-                    <div id="trainerConnectionStatus" class="trainer-connection-status status-disconnected" style="display: none;">
-                        <div class="d-flex align-items-center">
-                            <i class="ri-calendar-line me-2"></i>
-                            <span id="connectionStatusText">Please select a trainer to check Google Calendar connection</span>
+                    @if(isset($booking))
+                        <div class="edit-mode-indicator">
+                            <i class="ri-edit-line me-1"></i> Editing Booking #{{ $booking->id }}
                         </div>
+                    @endif
+
+                    <!-- Trainer Google Calendar Connection Status -->
+                    <div id="trainerConnectionStatus" class="connection-status" style="display: none;">
+                        <div id="connectionStatusText"></div>
                     </div>
 
-                    <form id="googleCalendarBookingForm" action="{{ route('admin.bookings.google-calendar.store') }}" method="POST">
+                    <!-- Availability Error Alert -->
+                    @if ($errors->has('booking_date') || $errors->has('start_time'))
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="ri-error-warning-line me-2"></i>
+                            <strong>Availability Error:</strong>
+                            @if ($errors->has('booking_date'))
+                                {{ $errors->first('booking_date') }}
+                            @elseif ($errors->has('start_time'))
+                                {{ $errors->first('start_time') }}
+                            @endif
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
+
+
+                    <form id="googleCalendarBookingForm" action="{{ isset($booking) ? route('admin.bookings.google-calendar.update', $booking->id) : route('admin.bookings.google-calendar.store') }}" method="POST">
                         @csrf
-                        
-                        <!-- Trainer and Client Selection -->
+                        @if(isset($booking))
+                            @method('PUT')
+                            <input type="hidden" name="booking_id" value="{{ $booking->id }}">
+                            <input type="hidden" name="update_google_calendar" value="1">
+                            <input type="hidden" name="original_date" value="{{ $booking->date->format('Y-m-d') }}">
+                            <input type="hidden" name="original_start_time" value="{{ $booking->start_time }}">
+                            <input type="hidden" name="original_end_time" value="{{ $booking->end_time }}">
+                        @endif
+
+                        <!-- Participant Selection -->
                         <div class="form-section">
                             <div class="section-title">
-                                <i class="ri-user-line"></i>
-                                Participant Selection
+                                <i class="ri-user-line me-2"></i>Participant Selection
                             </div>
                             
                             <div class="row">
-                                <!-- Trainer Selection -->
                                 <div class="col-xl-6 col-lg-6 col-md-6 col-sm-12">
                                     <div class="mb-3">
-                                        <label for="trainer_id" class="form-label">Trainer <span class="text-danger">*</span></label>
+                                        <label for="trainer_id" class="form-label">Select Trainer <span class="text-danger">*</span></label>
                                         <select class="form-control select2" name="trainer_id" id="trainer_id" required>
-                                            <option value="">Select Trainer</option>
+                                            <option value="">Choose a trainer...</option>
                                             @foreach($trainers as $trainer)
-                                                <option value="{{ $trainer->id }}" {{ old('trainer_id') == $trainer->id ? 'selected' : '' }}>
-                                                    {{ $trainer->name }} ({{ $trainer->email }})
+                                                <option value="{{ $trainer->id }}" 
+                                                    {{ (isset($booking) && $booking->trainer_id == $trainer->id) || old('trainer_id') == $trainer->id ? 'selected' : '' }}>
+                                                    {{ $trainer->name }} - {{ $trainer->email }}
                                                 </option>
                                             @endforeach
                                         </select>
@@ -192,15 +252,15 @@
                                     </div>
                                 </div>
                                 
-                                <!-- Client Selection -->
                                 <div class="col-xl-6 col-lg-6 col-md-6 col-sm-12">
                                     <div class="mb-3">
-                                        <label for="client_id" class="form-label">Client <span class="text-danger">*</span></label>
+                                        <label for="client_id" class="form-label">Select Client <span class="text-danger">*</span></label>
                                         <select class="form-control select2" name="client_id" id="client_id" required>
-                                            <option value="">Select Client</option>
+                                            <option value="">Choose a client...</option>
                                             @foreach($clients as $client)
-                                                <option value="{{ $client->id }}" {{ old('client_id') == $client->id ? 'selected' : '' }}>
-                                                    {{ $client->name }} ({{ $client->email }})
+                                                <option value="{{ $client->id }}" 
+                                                    {{ (isset($booking) && $booking->client_id == $client->id) || old('client_id') == $client->id ? 'selected' : '' }}>
+                                                    {{ $client->name }} - {{ $client->email }}
                                                 </option>
                                             @endforeach
                                         </select>
@@ -215,17 +275,18 @@
                         <!-- Date and Availability Selection -->
                         <div class="form-section">
                             <div class="section-title">
-                                <i class="ri-calendar-2-line"></i>
-                                Schedule Selection
+                                <i class="ri-calendar-line me-2"></i>Date and Availability Selection
+                                @if(isset($booking))
+                                    <small class="text-muted ms-2">(Current booking date: {{ $booking->date->format('M j, Y') }})</small>
+                                @endif
                             </div>
                             
                             <div class="row">
-                                <!-- Date Range -->
                                 <div class="col-xl-6 col-lg-6 col-md-6 col-sm-12">
                                     <div class="mb-3">
                                         <label for="start_date" class="form-label">Start Date <span class="text-danger">*</span></label>
                                         <input type="date" class="form-control" name="start_date" id="start_date" 
-                                               value="{{ old('start_date', date('Y-m-d')) }}" required>
+                                               value="{{ isset($booking) ? $booking->date->format('Y-m-d') : old('start_date') }}" required>
                                         @error('start_date')
                                             <div class="invalid-feedback d-block">{{ $message }}</div>
                                         @enderror
@@ -236,7 +297,7 @@
                                     <div class="mb-3">
                                         <label for="end_date" class="form-label">End Date <span class="text-danger">*</span></label>
                                         <input type="date" class="form-control" name="end_date" id="end_date" 
-                                               value="{{ old('end_date', date('Y-m-d', strtotime('+7 days'))) }}" required>
+                                               value="{{ isset($booking) ? $booking->date->format('Y-m-d') : old('end_date') }}" required>
                                         @error('end_date')
                                             <div class="invalid-feedback d-block">{{ $message }}</div>
                                         @enderror
@@ -246,82 +307,141 @@
                             
                             <div class="row">
                                 <div class="col-12">
-                                    <button type="button" id="checkAvailabilityBtn" class="btn btn-primary btn-wave waves-effect waves-light">
-                                        <i class="ri-search-line me-1"></i> Check Availability
+                                    <button type="button" class="btn btn-primary" id="checkAvailabilityBtn">
+                                        <i class="ri-search-line me-1"></i> 
+                                        @if(isset($booking))
+                                            Check New Availability
+                                        @else
+                                            Check Availability
+                                        @endif
                                     </button>
+                                    @if(isset($booking))
+                                        <small class="text-muted d-block mt-2">
+                                            <i class="ri-information-line me-1"></i>
+                                            You can change the date and time by selecting new availability slots
+                                        </small>
+                                    @endif
                                 </div>
                             </div>
                         </div>
 
                         <!-- Loading Spinner -->
-                        <div class="loading-spinner" id="loadingSpinner">
+                        <div id="loadingSpinner" class="loading-spinner" style="display: none;">
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">Loading...</span>
                             </div>
-                            <p class="mt-2">Checking trainer availability...</p>
+                            <span class="ms-2">Checking availability...</span>
                         </div>
 
-                        <!-- Available Slots -->
+                        <!-- Available Time Slots -->
                         <div id="availabilitySection" style="display: none;">
                             <div class="form-section">
                                 <div class="section-title">
-                                    <i class="ri-time-line"></i>
-                                    Available Time Slots
+                                    <i class="ri-time-line me-2"></i>Available Time Slots
+                                    @if(isset($booking))
+                                        <small class="text-muted ms-2">(Select a new time slot to reschedule)</small>
+                                    @endif
                                 </div>
-                                <div id="availableSlots">
-                                    <!-- Slots will be populated by JavaScript -->
-                                </div>
+                                <div id="availableSlots"></div>
                             </div>
                         </div>
 
-                        <!-- Selected Slot Details -->
-                        <div id="selectedSlotSection" style="display: none;">
+                        <!-- Selected Session Details -->
+                        <div id="selectedSlotSection" style="{{ isset($booking) ? '' : 'display: none;' }}">
                             <div class="form-section">
                                 <div class="section-title">
-                                    <i class="ri-check-line"></i>
-                                    Selected Session Details
+                                    <i class="ri-calendar-check-line me-2"></i>Session Details
                                 </div>
+                                
+                                <!-- Hidden fields for booking data -->
+                                <input type="hidden" name="booking_date" id="bookingDate" value="{{ isset($booking) ? $booking->date->format('Y-m-d') : old('booking_date') }}">
+                                <input type="hidden" name="start_time" id="bookingStartTime" value="{{ isset($booking) ? $booking->start_time->format('H:i') : old('start_time') }}">
+                                <input type="hidden" name="end_time" id="bookingEndTime" value="{{ isset($booking) ? $booking->end_time->format('H:i') : old('end_time') }}">
                                 
                                 <div class="row">
                                     <div class="col-xl-4 col-lg-6 col-md-6 col-sm-12">
                                         <div class="mb-3">
                                             <label class="form-label">Selected Date</label>
-                                            <input type="text" class="form-control" id="selectedDate" readonly>
-                                            <input type="hidden" name="booking_date" id="bookingDate">
+                                            <input type="text" class="form-control" id="selectedDate" readonly 
+                                                   value="{{ isset($booking) ? $booking->date->format('l, F j, Y') : '' }}">
                                         </div>
                                     </div>
                                     
                                     <div class="col-xl-4 col-lg-6 col-md-6 col-sm-12">
                                         <div class="mb-3">
                                             <label class="form-label">Start Time</label>
-                                            <input type="text" class="form-control" id="selectedStartTime" readonly>
-                                            <input type="hidden" name="start_time" id="bookingStartTime">
+                                            <input type="text" class="form-control" id="selectedStartTime" readonly 
+                                                   value="{{ isset($booking) ? $booking->start_time->format('H:i') : '' }}">
                                         </div>
                                     </div>
                                     
                                     <div class="col-xl-4 col-lg-6 col-md-6 col-sm-12">
                                         <div class="mb-3">
                                             <label class="form-label">End Time</label>
-                                            <input type="text" class="form-control" id="selectedEndTime" readonly>
-                                            <input type="hidden" name="end_time" id="bookingEndTime">
+                                            <input type="text" class="form-control" id="selectedEndTime" readonly 
+                                                   value="{{ isset($booking) ? $booking->end_time->format('H:i') : '' }}">
                                         </div>
                                     </div>
                                 </div>
                                 
-                                <!-- Session Type -->
+                                <!-- Session Type and Status -->
                                 <div class="row">
                                     <div class="col-xl-6 col-lg-6 col-md-6 col-sm-12">
                                         <div class="mb-3">
                                             <label for="session_type" class="form-label">Session Type</label>
                                             <select class="form-control" name="session_type" id="session_type">
-                                                <option value="personal_training" {{ old('session_type') == 'personal_training' ? 'selected' : '' }}>Personal Training</option>
-                                                <option value="consultation" {{ old('session_type') == 'consultation' ? 'selected' : '' }}>Consultation</option>
-                                                <option value="assessment" {{ old('session_type') == 'assessment' ? 'selected' : '' }}>Assessment</option>
-                                                <option value="follow_up" {{ old('session_type') == 'follow_up' ? 'selected' : '' }}>Follow-up</option>
+                                                <option value="personal_training" {{ (isset($booking) && $booking->session_type == 'personal_training') || old('session_type') == 'personal_training' ? 'selected' : '' }}>Personal Training</option>
+                                                <option value="consultation" {{ (isset($booking) && $booking->session_type == 'consultation') || old('session_type') == 'consultation' ? 'selected' : '' }}>Consultation</option>
+                                                <option value="assessment" {{ (isset($booking) && $booking->session_type == 'assessment') || old('session_type') == 'assessment' ? 'selected' : '' }}>Assessment</option>
+                                                <option value="follow_up" {{ (isset($booking) && $booking->session_type == 'follow_up') || old('session_type') == 'follow_up' ? 'selected' : '' }}>Follow-up</option>
                                             </select>
                                             @error('session_type')
                                                 <div class="invalid-feedback d-block">{{ $message }}</div>
                                             @enderror
+                                        </div>
+                                    </div>
+
+                                    <div class="col-xl-6 col-lg-6 col-md-6 col-sm-12">
+                                        <div class="mb-3">
+                                            <label for="status" class="form-label">Booking Status</label>
+                                            <select class="form-control" name="status" id="status">
+                                                <option value="pending" {{ (isset($booking) && $booking->status == 'pending') || old('status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                                                <option value="confirmed" {{ (isset($booking) && $booking->status == 'confirmed') || old('status') == 'confirmed' ? 'selected' : '' }}>Confirmed</option>
+                                                <option value="cancelled" {{ (isset($booking) && $booking->status == 'cancelled') || old('status') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                                            </select>
+                                            @error('status')
+                                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Timezone Selection -->
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="mb-3">
+                                            <label for="timezone" class="form-label">
+                                                <i class="ri-time-zone-line me-1"></i>
+                                                Meeting Timezone
+                                            </label>
+                                            <select class="form-control select2 select2-hidden-accessible" name="timezone" id="timezone">
+                                                @php
+                                                    $defaultTimezone = $currentUser->timezone ?? 'UTC';
+                                                    $selectedTimezone = isset($booking) ? ($booking->timezone ?? $defaultTimezone) : old('timezone', $defaultTimezone);
+                                                @endphp
+                                                @foreach($timezones as $timezone)
+                                                    <option value="{{ $timezone }}" {{ $selectedTimezone == $timezone ? 'selected' : '' }}>
+                                                        {{ $timezone }} ({{ now()->setTimezone($timezone)->format('P') }})
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                            @error('timezone')
+                                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                                            @enderror
+                                            <div class="form-text">
+                                                <i class="ri-information-line me-1"></i>
+                                                This timezone will be used for the Google Calendar event and meeting times.
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -332,10 +452,32 @@
                                         <div class="mb-3">
                                             <label for="notes" class="form-label">Session Notes</label>
                                             <textarea class="form-control" name="notes" id="notes" rows="3" 
-                                                      placeholder="Add any special instructions or notes for this session...">{{ old('notes') }}</textarea>
+                                                      placeholder="Add any special instructions or notes for this session...">{{ isset($booking) ? $booking->notes : old('notes') }}</textarea>
                                             @error('notes')
                                                 <div class="invalid-feedback d-block">{{ $message }}</div>
                                             @enderror
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Meeting Agenda -->
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="mb-3">
+                                            <label for="meeting_agenda" class="form-label">
+                                                <i class="ri-file-list-3-line me-1"></i>
+                                                Meeting Agenda <span class="text-muted">(This will be used as the calendar event title)</span>
+                                            </label>
+                                            <input type="text" class="form-control" name="meeting_agenda" id="meeting_agenda" 
+                                                   value="{{ isset($booking) ? $booking->meeting_agenda : old('meeting_agenda') }}"
+                                                   placeholder="Enter the meeting agenda or title for this session...">
+                                            @error('meeting_agenda')
+                                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                                            @enderror
+                                            <div class="form-text">
+                                                <i class="ri-information-line me-1"></i>
+                                                This agenda will appear as the title in Google Calendar and help participants understand the session's purpose.
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -347,24 +489,49 @@
                                         <strong>Google Calendar Integration</strong>
                                     </div>
                                     <ul class="mb-0">
-                                        <li>A Google Calendar event will be automatically created</li>
-                                        <li>A Google Meet link will be generated for the session</li>
-                                        <li>Both trainer and client will receive calendar invitations</li>
-                                        <li>The session will appear in the trainer's Google Calendar</li>
+                                        @if(isset($booking))
+                                            @if($booking->hasGoogleCalendarEvent())
+                                                <li>Google Calendar event is already created</li>
+                                                @if($booking->hasGoogleMeetLink())
+                                                    <li>Google Meet link: <a href="{{ $booking->meet_link }}" target="_blank">{{ $booking->meet_link }}</a></li>
+                                                @endif
+                                                <li>Updates will sync with Google Calendar</li>
+                                            @else
+                                                <li>Google Calendar event will be created upon saving</li>
+                                                <li>A Google Meet link will be generated for the session</li>
+                                            @endif
+                                        @else
+                                            <li>A Google Calendar event will be automatically created</li>
+                                            <li>A Google Meet link will be generated for the session</li>
+                                            <li>Both trainer and client will receive calendar invitations</li>
+                                            <li>The session will appear in the trainer's Google Calendar</li>
+                                        @endif
                                     </ul>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Submit Button -->
-                        <div class="row" id="submitSection" style="display: none;">
-                            <div class="col-12">
-                                <div class="d-flex justify-content-end gap-2">
+                        <div class="booking-actions">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    @if(isset($booking))
+                                        <button type="button" class="delete-btn" onclick="confirmDelete('{{ $booking->id }}')">
+                                            <i class="ri-delete-bin-line me-1"></i> Delete Booking
+                                        </button>
+                                    @endif
+                                </div>
+                                <div class="d-flex gap-2">
                                     <button type="button" class="btn btn-secondary" onclick="resetForm()">
                                         <i class="ri-refresh-line me-1"></i> Reset
                                     </button>
-                                    <button type="submit" class="btn btn-success btn-wave waves-effect waves-light">
-                                        <i class="ri-calendar-check-line me-1"></i> Create Google Calendar Booking
+                                    <button type="submit" class="btn btn-success btn-wave waves-effect waves-light" id="submitBtn">
+                                        <i class="ri-calendar-check-line me-1"></i> 
+                                        @if(isset($booking))
+                                            Update Google Calendar Booking
+                                        @else
+                                            Create Google Calendar Booking
+                                        @endif
                                     </button>
                                 </div>
                             </div>
@@ -375,6 +542,37 @@
         </div>
     </div>
     <!-- End::row-1 -->
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title" id="deleteModalLabel">Delete Booking</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete this booking? This action will:</p>
+                    <ul>
+                        <li>Permanently delete the booking from the system</li>
+                        <li>Remove the Google Calendar event (if exists)</li>
+                        <li>Cancel any Google Meet links</li>
+                        <li>This action cannot be undone</li>
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form id="deleteForm" method="POST" style="display: inline;">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-danger">
+                            <i class="ri-delete-bin-line me-1"></i> Delete Booking
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @section('scripts')
@@ -425,7 +623,31 @@
 
             // Form submission
             $('#googleCalendarBookingForm').on('submit', function(e) {
-                if (!$('#bookingDate').val() || !$('#bookingStartTime').val()) {
+                const bookingDate = $('#bookingDate').val();
+                const bookingStartTime = $('#bookingStartTime').val();
+                const trainerId = $('#trainer_id').val();
+                const clientId = $('#client_id').val();
+                
+                console.log('Form submission validation:', {
+                    bookingDate: bookingDate,
+                    bookingStartTime: bookingStartTime,
+                    trainerId: trainerId,
+                    clientId: clientId
+                });
+                
+                if (!trainerId) {
+                    e.preventDefault();
+                    alert('Please select a trainer.');
+                    return false;
+                }
+                
+                if (!clientId) {
+                    e.preventDefault();
+                    alert('Please select a client.');
+                    return false;
+                }
+                
+                if (!bookingDate || !bookingStartTime) {
                     e.preventDefault();
                     alert('Please select a time slot before creating the booking.');
                     return false;
@@ -603,13 +825,58 @@
         }
 
         function resetForm() {
-            $('#googleCalendarBookingForm')[0].reset();
-            $('.select2').val(null).trigger('change');
-            $('.availability-slot').removeClass('selected');
-            $('#availabilitySection').hide();
-            $('#selectedSlotSection').hide();
-            $('#submitSection').hide();
-            $('#trainerConnectionStatus').hide();
-        }
-    </script>
-@endsection
+             $('#googleCalendarBookingForm')[0].reset();
+             $('.select2').val(null).trigger('change');
+             $('.availability-slot').removeClass('selected');
+             $('#availabilitySection').hide();
+             $('#selectedSlotSection').hide();
+             $('#submitSection').hide();
+             $('#trainerConnectionStatus').hide();
+         }
+
+         function confirmDelete(bookingId) {
+             $('#deleteForm').attr('action', '{{ route("admin.bookings.destroy", ":id") }}'.replace(':id', bookingId));
+             $('#deleteModal').modal('show');
+         }
+
+         // Form submission handling
+         $('#googleCalendarBookingForm').on('submit', function(e) {
+             @if(isset($booking))
+             // For editing, show confirmation if date/time changed
+             const originalDate = $('input[name="original_date"]').val();
+             const originalStartTime = $('input[name="original_start_time"]').val();
+             const originalEndTime = $('input[name="original_end_time"]').val();
+             
+             const newDate = $('#bookingDate').val();
+             const newStartTime = $('#bookingStartTime').val();
+             const newEndTime = $('#bookingEndTime').val();
+             
+             if (originalDate !== newDate || originalStartTime !== newStartTime || originalEndTime !== newEndTime) {
+                 if (!confirm('This will update the Google Calendar event. Are you sure you want to continue?')) {
+                     e.preventDefault();
+                     return false;
+                 }
+             }
+             @else
+             // For new bookings, ensure a time slot is selected
+             if (!$('#bookingDate').val() || !$('#bookingStartTime').val() || !$('#bookingEndTime').val()) {
+                 e.preventDefault();
+                 alert('Please select a time slot before submitting.');
+                 return false;
+             }
+             @endif
+         });
+
+         // Auto-check trainer connection if editing existing booking
+         @if(isset($booking))
+         $(document).ready(function() {
+             if ($('#trainer_id').val()) {
+                 checkTrainerGoogleConnection($('#trainer_id').val());
+             }
+             
+             // Show availability section for editing
+             $('#availabilitySection').show();
+         });
+         @endif
+     </script>
+ @endsection

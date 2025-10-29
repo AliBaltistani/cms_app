@@ -9,6 +9,7 @@ use App\Models\Availability;
 use App\Models\BlockedTime;
 use App\Models\SessionCapacity;
 use App\Models\BookingSetting;
+use App\Services\AvailabilityService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -1167,11 +1168,27 @@ class BookingController extends Controller
     {
         try {
             $schedule = Schedule::findOrFail($id);
+
+            // Delete Google Calendar event if it exists
+            $googleMessage = '';
+            if ($schedule->hasGoogleCalendarEvent()) {
+                try {
+                    $googleCalendarService = new \App\Services\GoogleCalendarService();
+                    $googleCalendarService->deleteCalendarEvent($schedule);
+                    $googleMessage = ' and Google Calendar event deleted';
+                } catch (\Exception $e) {
+                    Log::error('Failed to delete Google Calendar event for booking ' . $schedule->id . ': ' . $e->getMessage());
+                    $googleMessage = ' (Google Calendar event could not be deleted)';
+                }
+            }
+
             $schedule->delete();
+
+            $message = 'Booking deleted successfully' . $googleMessage;
 
             return response()->json([
                 'success' => true,
-                'message' => 'Booking deleted successfully'
+                'message' => $message
             ]);
 
         } catch (\Exception $e) {
@@ -1377,7 +1394,38 @@ class BookingController extends Controller
             ->select('id', 'name', 'email')
             ->get();
 
-        return view('admin.bookings.google-calendar-booking', compact('trainers', 'clients'));
+        // Get current authenticated user and available timezones
+        $user = auth()->user();
+        $timezones = timezone_identifiers_list();
+
+        return view('admin.bookings.google-calendar-booking', compact('trainers', 'clients', 'user', 'timezones'));
+    }
+
+    /**
+     * Show the Google Calendar booking form for editing
+     */
+    public function editGoogleCalendarBooking(int $id)
+    {
+        $booking = Schedule::with([
+            'trainer:id,name,email',
+            'client:id,name,email'
+        ])->findOrFail($id);
+
+        $trainers = User::where('role', 'trainer')
+            ->select('id', 'name', 'email')
+            ->get();
+
+        $clients = User::where('role', 'client')
+            ->select('id', 'name', 'email')
+            ->get();
+
+        // Get current authenticated user for timezone default
+        $currentUser = auth()->user();
+
+        // Get all available timezones
+        $timezones = timezone_identifiers_list();
+
+        return view('admin.bookings.google-calendar-booking', compact('trainers', 'clients', 'booking', 'currentUser', 'timezones'));
     }
 
     /**
@@ -1418,12 +1466,22 @@ class BookingController extends Controller
     {
         $request->validate([
             'trainer_id' => 'required|exists:users,id',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date'
+            'start_date' => 'required|date|after_or_equal:today',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'slot_duration' => 'nullable|integer|min:15|max:240'
         ]);
 
         try {
-            $trainer = User::findOrFail($request->trainer_id);
+            // Load trainer with all related settings
+            $trainer = User::with([
+                'availabilities', 
+                'sessionCapacity', 
+                'bookingSettings', 
+                'blockedTimes' => function($query) use ($request) {
+                    $query->whereBetween('date', [$request->start_date, $request->end_date])
+                          ->orWhere('is_recurring', true);
+                }
+            ])->findOrFail($request->trainer_id);
             
             if ($trainer->role !== 'trainer') {
                 return response()->json([
@@ -1432,6 +1490,43 @@ class BookingController extends Controller
                 ], 400);
             }
 
+            // Check if trainer has availability settings
+            if ($trainer->availabilities->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Trainer has not configured their availability schedule yet.',
+                    'trainer_info' => [
+                        'id' => $trainer->id,
+                        'name' => $trainer->name,
+                        'has_availability' => false
+                    ]
+                ], 400);
+            }
+
+            // Check booking settings
+            $bookingSettings = $trainer->bookingSettings;
+            if ($bookingSettings && !$bookingSettings->allow_self_booking) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This trainer does not allow self-booking. Please contact them directly.',
+                    'trainer_info' => [
+                        'id' => $trainer->id,
+                        'name' => $trainer->name,
+                        'allows_self_booking' => false
+                    ]
+                ], 400);
+            }
+
+            $slotDuration = $request->slot_duration ?? 60;
+            
+            // Use session capacity duration if available
+            if ($trainer->sessionCapacity && $trainer->sessionCapacity->session_duration_minutes) {
+                $slotDuration = $trainer->sessionCapacity->session_duration_minutes;
+            }
+
+            // Use the enhanced AvailabilityService for comprehensive availability checking
+            $availabilityService = new AvailabilityService();
+            
             // Check if trainer has Google Calendar connected
             $googleController = new \App\Http\Controllers\GoogleController();
             $connectionStatus = $googleController->getTrainerConnectionStatus($trainer);
@@ -1443,48 +1538,99 @@ class BookingController extends Controller
                     $availableSlots = $googleCalendarService->getAvailableSlots(
                         $trainer,
                         $request->start_date,
-                        $request->end_date
+                        $request->end_date,
+                        $slotDuration
                     );
+                    $source = 'google_calendar';
                 } catch (\Exception $e) {
                     // If Google Calendar fails, fall back to local availability
-                    \Log::warning('Google Calendar failed, falling back to local availability', [
+                    Log::warning('Google Calendar failed, falling back to local availability', [
                         'trainer_id' => $trainer->id,
                         'error' => $e->getMessage()
                     ]);
-                    $availableSlots = $this->getLocalAvailableSlots($trainer, $request->start_date, $request->end_date);
+                    $availableSlots = $availabilityService->getAvailableSlots(
+                        $trainer, 
+                        $request->start_date, 
+                        $request->end_date,
+                        $slotDuration
+                    );
+                    $source = 'local_fallback';
                 }
             } else {
-                // Use local availability system when Google Calendar is not connected
-                $availableSlots = $this->getLocalAvailableSlots($trainer, $request->start_date, $request->end_date);
+                // Use AvailabilityService for local availability system
+                $availableSlots = $availabilityService->getAvailableSlots(
+                    $trainer, 
+                    $request->start_date, 
+                    $request->end_date,
+                    $slotDuration
+                );
+                $source = 'local';
             }
 
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'available_slots' => $availableSlots
+                    'available_slots' => $availableSlots,
+                    'source' => $source,
+                    'google_calendar_connected' => $connectionStatus['connected'],
+                    'availability_service' =>  $availabilityService,
+                    'trainer_info' => [
+                        'id' => $trainer->id,
+                        'name' => $trainer->name,
+                        'has_availability' => true,
+                        'allows_self_booking' => $bookingSettings ? $bookingSettings->allow_self_booking : true,
+                        'requires_approval' => $bookingSettings ? $bookingSettings->require_approval : false,
+                        'allow_weekend_booking' => $bookingSettings ? $bookingSettings->allow_weekend_booking : true
+                    ],
+                    'settings' => [
+                        'slot_duration' => $slotDuration,
+                        'session_capacity' => $trainer->sessionCapacity ? [
+                            'max_daily_sessions' => $trainer->sessionCapacity->max_daily_sessions,
+                            'max_weekly_sessions' => $trainer->sessionCapacity->max_weekly_sessions,
+                            'break_between_sessions' => $trainer->sessionCapacity->break_between_sessions_minutes
+                        ] : null,
+                        'booking_restrictions' => $bookingSettings ? [
+                            'advance_booking_days' => $bookingSettings->advance_booking_days,
+                            'cancellation_hours' => $bookingSettings->cancellation_hours,
+                            'earliest_booking_time' => $bookingSettings->earliest_booking_time,
+                            'latest_booking_time' => $bookingSettings->latest_booking_time
+                        ] : null
+                    ]
                 ]
             ]);
         } catch (\Exception $e) {
+            Log::error('Error fetching trainer available slots', [
+                'trainer_id' => $request->trainer_id,
+                'start_date' => $request->start_date,
+                'end_date' => $request->end_date,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error fetching available slots: ' . $e->getMessage()
+                'message' => 'Error fetching available slots. Please try again later.'
             ], 500);
         }
     }
 
     /**
-     * Store Google Calendar booking
+     * Update Google Calendar booking with comprehensive validation
      */
-    public function storeGoogleCalendarBooking(Request $request)
+    public function updateGoogleCalendarBooking(Request $request, int $id)
     {
+        $booking = Schedule::findOrFail($id);
+
         $request->validate([
             'trainer_id' => 'required|exists:users,id',
             'client_id' => 'required|exists:users,id',
-            'booking_date' => 'required|date',
+            'booking_date' => 'required|date|after_or_equal:today',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
             'session_type' => 'required|string|in:personal_training,consultation,assessment,follow_up',
-            'notes' => 'nullable|string'
+            'notes' => 'nullable|string|max:500',
+            'meeting_agenda' => 'nullable|string|max:255',
+            'timezone' => 'required|string|in:' . implode(',', timezone_identifiers_list())
         ]);
 
         try {
@@ -1508,53 +1654,229 @@ class BookingController extends Controller
                 return redirect()->back()->withErrors(['trainer_id' => 'Trainer does not have Google Calendar connected.']);
             }
 
-            // Create datetime objects
-            $sessionDateTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $request->booking_date . ' ' . $request->start_time);
-            $endDateTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $request->booking_date . ' ' . $request->end_time);
+            // Use AvailabilityService for comprehensive availability checking (excluding current booking)
+            $availabilityService = new AvailabilityService();
+            $availabilityCheck = $availabilityService->checkAvailability(
+                $trainer,
+                $request->booking_date,
+                $request->start_time,
+                $request->end_time,
+                $id // Exclude current booking from conflict checking
+            );
 
-            // Check for conflicting bookings
-            $conflictingBooking = Schedule::where('trainer_id', $trainer->id)
-                ->where('date', $request->booking_date)
-                ->where(function ($query) use ($request) {
-                    $query->whereBetween('start_time', [$request->start_time, $request->end_time])
-                          ->orWhereBetween('end_time', [$request->start_time, $request->end_time])
-                          ->orWhere(function ($q) use ($request) {
-                              $q->where('start_time', '<=', $request->start_time)
-                                ->where('end_time', '>=', $request->end_time);
-                          });
-                })
-                ->first();
+            // if (!$availabilityCheck['available']) {
+            //     $errorMessage = implode(' ', $availabilityCheck['reasons']);
+                
+            //     // Determine which field to show the error on based on the reason
+            //     $errorField = 'start_time'; // default
+            //     if (str_contains($errorMessage, 'not available on')) {
+            //         $errorField = 'booking_date';
+            //     } elseif (str_contains($errorMessage, 'daily sessions limit') || str_contains($errorMessage, 'weekly sessions limit')) {
+            //         $errorField = 'booking_date';
+            //     }
+                
+            //     return redirect()->back()->withErrors([$errorField => $errorMessage]);
+            // }
 
-            if ($conflictingBooking) {
-                return redirect()->back()->withErrors(['booking_date' => 'Trainer already has a booking during this time slot.']);
+            $oldStatus = $booking->status;
+
+            // Update the booking
+            $booking->update([
+                'trainer_id' => $trainer->id,
+                'client_id' => $client->id,
+                'date' => $request->booking_date,
+                'start_time' => $request->start_time,
+                'end_time' => $request->end_time,
+                'notes' => $request->notes,
+                'session_type' => $request->session_type,
+                'meeting_agenda' => $request->meeting_agenda,
+                'timezone' => $request->timezone
+            ]);
+
+            // Handle Google Calendar event updates
+            $googleMessage = '';
+            try {
+                if ($booking->hasGoogleCalendarEvent()) {
+                    $googleCalendarService = new \App\Services\GoogleCalendarService();
+                    $eventData = $googleCalendarService->updateCalendarEvent($booking);
+                    $googleMessage = ' and Google Calendar event updated';
+                } else {
+                    $googleCalendarService = new \App\Services\GoogleCalendarService();
+                    $eventData = $googleCalendarService->createCalendarEvent($booking);
+                    $googleMessage = ' with new Google Calendar event and Meet link';
+                }
+            } catch (\Exception $e) {
+                Log::error('Failed to update Google Calendar event for booking ' . $booking->id . ': ' . $e->getMessage());
+                $googleMessage = ' (Google Calendar event could not be updated: ' . $e->getMessage() . ')';
+            }
+
+            $message = 'Booking updated successfully' . $googleMessage;
+
+            return redirect()->route('admin.bookings.show', $booking->id)
+                ->with('success', $message);
+
+        } catch (\Exception $e) {
+            Log::error('Error updating Google Calendar booking: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => 'An error occurred while updating the booking: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Delete Google Calendar booking with Google Calendar event cleanup
+     */
+    public function destroyGoogleCalendarBooking(int $id)
+    {
+        try {
+            $booking = Schedule::findOrFail($id);
+
+            // Delete Google Calendar event if it exists
+            $googleMessage = '';
+            if ($booking->hasGoogleCalendarEvent()) {
+                try {
+                    $googleCalendarService = new \App\Services\GoogleCalendarService();
+                    $googleCalendarService->deleteCalendarEvent($booking);
+                    $googleMessage = ' and Google Calendar event deleted';
+                } catch (\Exception $e) {
+                    Log::error('Failed to delete Google Calendar event for booking ' . $booking->id . ': ' . $e->getMessage());
+                    $googleMessage = ' (Google Calendar event could not be deleted: ' . $e->getMessage() . ')';
+                }
+            }
+
+            // Delete the booking
+            $booking->delete();
+
+            $message = 'Booking deleted successfully' . $googleMessage;
+
+            return redirect()->route('admin.bookings.index')
+                ->with('success', $message);
+
+        } catch (\Exception $e) {
+            Log::error('Error deleting Google Calendar booking: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => 'An error occurred while deleting the booking: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Store Google Calendar booking with comprehensive validation
+     */
+    public function storeGoogleCalendarBooking(Request $request)
+    {
+        // Debug logging
+        Log::info('Google Calendar booking form submitted', [
+            'all_data' => $request->all(),
+            'method' => $request->method(),
+            'url' => $request->url()
+        ]);
+
+        $request->validate([
+            'trainer_id' => 'required|exists:users,id',
+            'client_id' => 'required|exists:users,id',
+            'booking_date' => 'required|date|after_or_equal:today',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
+            'session_type' => 'required|string|in:personal_training,consultation,assessment,follow_up',
+            'notes' => 'nullable|string|max:500',
+            'meeting_agenda' => 'nullable|string|max:255'
+        ]);
+
+        try {
+            $trainer = User::findOrFail($request->trainer_id);
+            $client = User::findOrFail($request->client_id);
+
+            // Verify roles
+            if ($trainer->role !== 'trainer') {
+                return redirect()->back()->withErrors(['trainer_id' => 'Selected user is not a trainer.']);
+            }
+
+            if ($client->role !== 'client') {
+                return redirect()->back()->withErrors(['client_id' => 'Selected user is not a client.']);
+            }
+
+            // Check if trainer has Google Calendar connected
+            $googleController = new \App\Http\Controllers\GoogleController();
+            $connectionStatus = $googleController->getTrainerConnectionStatus($trainer);
+
+            if (!$connectionStatus['connected']) {
+                return redirect()->back()->withErrors(['trainer_id' => 'Trainer does not have Google Calendar connected.']);
+            }
+
+            // Use AvailabilityService for comprehensive availability checking
+            $availabilityService = new AvailabilityService();
+            $availabilityCheck = $availabilityService->checkAvailability(
+                $trainer,
+                $request->booking_date,
+                $request->start_time,
+                $request->end_time
+            );
+
+            // if (!$availabilityCheck['available']) {
+            //     $errorMessage = implode(' ', $availabilityCheck['reasons']);
+                
+            //     // Determine which field to show the error on based on the reason
+            //     $errorField = 'start_time'; // default
+            //     if (str_contains($errorMessage, 'not available on')) {
+            //         $errorField = 'booking_date';
+            //     } elseif (str_contains($errorMessage, 'daily sessions limit') || str_contains($errorMessage, 'weekly sessions limit')) {
+            //         $errorField = 'booking_date';
+            //     }
+                
+            //     return redirect()->back()->withErrors([$errorField => $errorMessage]);
+            // }
+
+            // 5. Check booking approval settings
+            $bookingSettings = BookingSetting::where('trainer_id', $trainer->id)->first();
+            $initialStatus = 'confirmed'; // Default for admin bookings
+            
+            if ($bookingSettings && $bookingSettings->require_approval) {
+                $initialStatus = 'pending';
             }
 
             // Create the booking
+            Log::info('Creating schedule with data:', [
+                'trainer_id' => $trainer->id,
+                'client_id' => $client->id,
+                'date' => $request->booking_date,
+                'start_time' => $request->start_time,
+                'end_time' => $request->end_time,
+                'status' => $initialStatus,
+                'notes' => $request->notes,
+                'session_type' => $request->session_type
+            ]);
+
             $schedule = Schedule::create([
                 'trainer_id' => $trainer->id,
                 'client_id' => $client->id,
                 'date' => $request->booking_date,
                 'start_time' => $request->start_time,
                 'end_time' => $request->end_time,
-                'status' => 'confirmed',
+                'status' => $initialStatus,
                 'notes' => $request->notes,
-                'session_type' => $request->session_type
+                'session_type' => $request->session_type,
+                'meeting_agenda' => $request->meeting_agenda
             ]);
 
-            // Create Google Calendar event
-            try {
-                $googleCalendarService = new \App\Services\GoogleCalendarService();
-                $eventData = $googleCalendarService->createEvent($schedule);
+            Log::info('Schedule created successfully', ['schedule_id' => $schedule->id]);
 
-                return redirect()->route('admin.bookings.index')
-                    ->with('success', 'Booking created successfully with Google Calendar event and Meet link!');
-            } catch (\Exception $e) {
-                // If Google Calendar event creation fails, still keep the booking but notify
-                Log::error('Failed to create Google Calendar event for booking ' . $schedule->id . ': ' . $e->getMessage());
-                
-                return redirect()->route('admin.bookings.index')
-                    ->with('warning', 'Booking created successfully, but failed to create Google Calendar event: ' . $e->getMessage());
+            // Create Google Calendar event only if booking is confirmed
+            $googleMessage = '';
+            if ($initialStatus === 'confirmed') {
+                try {
+                    $googleCalendarService = new \App\Services\GoogleCalendarService();
+                    $eventData = $googleCalendarService->createEvent($schedule);
+                    $googleMessage = ' with Google Calendar event and Meet link';
+                } catch (\Exception $e) {
+                    // If Google Calendar event creation fails, still keep the booking but notify
+                    Log::error('Failed to create Google Calendar event for booking ' . $schedule->id . ': ' . $e->getMessage());
+                    $googleMessage = ' (Google Calendar event could not be created: ' . $e->getMessage() . ')';
+                }
             }
+
+            $message = $initialStatus === 'confirmed' 
+                ? 'Booking created successfully' . $googleMessage
+                : 'Booking created and is pending trainer approval';
+
+            return redirect()->route('admin.bookings.show', $schedule->id)
+                ->with('success', $message);
 
         } catch (\Exception $e) {
             Log::error('Error creating Google Calendar booking: ' . $e->getMessage());
@@ -1572,117 +1894,9 @@ class BookingController extends Controller
      */
     private function getLocalAvailableSlots(User $trainer, string $startDate, string $endDate): array
     {
-        $startDate = \Carbon\Carbon::parse($startDate);
-        $endDate = \Carbon\Carbon::parse($endDate);
-        
-        // Get trainer's weekly availability
-        $weeklyAvailability = \App\Models\Availability::where('trainer_id', $trainer->id)
-            ->get()
-            ->keyBy('day_of_week');
-
-        // Get blocked times for the date range
-        $blockedTimes = \App\Models\BlockedTime::where('trainer_id', $trainer->id)
-            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-            ->get()
-            ->groupBy('date');
-
-        // Get existing bookings for the date range
-        $existingBookings = \App\Models\Schedule::where('trainer_id', $trainer->id)
-            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-            ->where('status', '!=', 'cancelled')
-            ->get()
-            ->groupBy('date');
-
-        $availableSlots = [];
-        $currentDate = $startDate->copy();
-
-        while ($currentDate->lte($endDate)) {
-            $dateString = $currentDate->format('Y-m-d');
-            $dayOfWeek = $currentDate->dayOfWeek;
-            
-            // Get weekly availability for this day
-            $dayAvailability = $weeklyAvailability->get($dayOfWeek);
-            
-            if ($dayAvailability) {
-                $timeSlots = [];
-                
-                // Generate morning slots if available
-                if ($dayAvailability->morning_start_time && $dayAvailability->morning_end_time) {
-                    $morningSlots = $this->generateTimeSlots(
-                        $dayAvailability->morning_start_time,
-                        $dayAvailability->morning_end_time,
-                        60 // 60 minutes per slot
-                    );
-                    $timeSlots = array_merge($timeSlots, $morningSlots);
-                }
-                
-                // Generate evening slots if available
-                if ($dayAvailability->evening_start_time && $dayAvailability->evening_end_time) {
-                    $eveningSlots = $this->generateTimeSlots(
-                        $dayAvailability->evening_start_time,
-                        $dayAvailability->evening_end_time,
-                        60 // 60 minutes per slot
-                    );
-                    $timeSlots = array_merge($timeSlots, $eveningSlots);
-                }
-                
-                // Filter out blocked times and existing bookings
-                $dayBlockedTimes = $blockedTimes->get($dateString, collect());
-                $dayBookings = $existingBookings->get($dateString, collect());
-                
-                foreach ($timeSlots as $slot) {
-                    $slotStart = \Carbon\Carbon::createFromFormat('H:i', $slot['start_time']);
-                    $slotEnd = \Carbon\Carbon::createFromFormat('H:i', $slot['end_time']);
-                    $slotDateTime = $currentDate->copy()->setTime($slotStart->hour, $slotStart->minute);
-                    
-                    // Skip past slots
-                    if ($slotDateTime->lt(\Carbon\Carbon::now())) {
-                        continue;
-                    }
-                    
-                    $isAvailable = true;
-                    
-                    // Check against blocked times
-                    foreach ($dayBlockedTimes as $blockedTime) {
-                        $blockedStart = \Carbon\Carbon::createFromFormat('H:i:s', $blockedTime->start_time);
-                        $blockedEnd = \Carbon\Carbon::createFromFormat('H:i:s', $blockedTime->end_time);
-                        
-                        if ($slotStart->lt($blockedEnd) && $slotEnd->gt($blockedStart)) {
-                            $isAvailable = false;
-                            break;
-                        }
-                    }
-                    
-                    // Check against existing bookings
-                    if ($isAvailable) {
-                        foreach ($dayBookings as $booking) {
-                            $bookingStart = \Carbon\Carbon::createFromFormat('H:i:s', $booking->start_time);
-                            $bookingEnd = \Carbon\Carbon::createFromFormat('H:i:s', $booking->end_time);
-                            
-                            if ($slotStart->lt($bookingEnd) && $slotEnd->gt($bookingStart)) {
-                                $isAvailable = false;
-                                break;
-                            }
-                        }
-                    }
-                    
-                    if ($isAvailable) {
-                        $availableSlots[] = [
-                            'start' => $slotDateTime->toISOString(),
-                            'end' => $slotDateTime->copy()->addHour()->toISOString(),
-                            'start_time' => $slot['start_time'],
-                            'end_time' => $slot['end_time'],
-                            'date' => $dateString,
-                            'display' => $slotStart->format('g:i A') . ' - ' . $slotEnd->format('g:i A')
-                        ];
-                    }
-                }
-            }
-            
-            $currentDate->addDay();
-        }
-
-        return $availableSlots;
+        // Use AvailabilityService to get available slots
+        $availabilityService = new AvailabilityService();
+        return $availabilityService->getAvailableSlots($trainer, $startDate, $endDate);
     }
 
     /**
@@ -1714,5 +1928,84 @@ class BookingController extends Controller
         }
         
         return $slots;
+    }
+
+    /**
+     * Sync a booking with Google Calendar
+     * 
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function syncWithGoogleCalendar($id)
+    {
+        try {
+            $booking = Schedule::findOrFail($id);
+            $trainer = $booking->trainer;
+
+            // Initialize Google Calendar service
+            $googleService = new \App\Services\GoogleCalendarService();
+
+            // Check if trainer has Google Calendar connected
+            if (!$googleService->isTrainerConnected($trainer)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Trainer\'s Google Calendar is not connected. Please connect Google Calendar first.'
+                ], 400);
+            }
+
+            // Update sync status to pending
+            $booking->update([
+                'google_calendar_sync_status' => 'pending'
+            ]);
+
+            // Use the GoogleCalendarService to create/update the event
+            $result = $googleService->createEvent($booking);
+
+            if ($result['success']) {
+                // Update booking with Google Calendar details
+                $booking->update([
+                    'google_event_id' => $result['event_id'],
+                    'meet_link' => $result['meet_link'] ?? null,
+                    'google_calendar_sync_status' => 'synced',
+                    'google_calendar_last_synced_at' => now(),
+                    'status' => $result['status'] ?? 'confirmed'
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Booking successfully synced with Google Calendar!',
+                    'data' => [
+                        'event_id' => $result['event_id'],
+                        'meet_link' => $result['meet_link'] ?? null,
+                        'sync_status' => 'synced'
+                    ]
+                ]);
+            } else {
+                // Update sync status to failed
+                $booking->update([
+                    'google_calendar_sync_status' => 'failed'
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message'] ?? 'Failed to sync with Google Calendar. Please try again.'
+                ], 500);
+            }
+
+        } catch (\Exception $e) {
+            // Update sync status to failed
+            if (isset($booking)) {
+                $booking->update([
+                    'google_calendar_sync_status' => 'failed'
+                ]);
+            }
+
+            Log::error('Google Calendar sync failed: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while syncing with Google Calendar: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

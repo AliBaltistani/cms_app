@@ -268,7 +268,8 @@ class NutritionRestrictionFactory extends Factory
         
         // Custom restrictions
         if ($this->faker->boolean(25)) {
-            $numCustom = $this->faker->numberBetween(1, 3);
+            $maxCustom = min(3, count($this->customRestrictions));
+            $numCustom = $this->faker->numberBetween(1, $maxCustom);
             $base['custom_restrictions'] = $this->faker->randomElements($this->customRestrictions, $numCustom);
         }
         

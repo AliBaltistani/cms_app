@@ -9,10 +9,12 @@ use App\Models\BlockedTime;
 use App\Models\SessionCapacity;
 use App\Models\BookingSetting;
 use App\Models\User;
+use App\Services\GoogleCalendarService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 /**
@@ -29,6 +31,21 @@ use Carbon\Carbon;
  */
 class ClientBookingController extends ApiBaseController
 {
+    /**
+     * Google Calendar Service instance
+     * 
+     * @var GoogleCalendarService
+     */
+    protected $googleCalendarService;
+
+    /**
+     * Constructor
+     */
+    public function __construct(GoogleCalendarService $googleCalendarService)
+    {
+        $this->googleCalendarService = $googleCalendarService;
+    }
+
     /**
      * Get trainer availability for a specific date range
      * 
@@ -288,17 +305,41 @@ class ClientBookingController extends ApiBaseController
 
             // Create Google Calendar event if booking is confirmed and trainer is connected
             $googleEventResult = null;
-            if ($status === Schedule::STATUS_CONFIRMED) {
-                $googleEventResult = $schedule->createGoogleCalendarEvent();
+            if ($status === Schedule::STATUS_CONFIRMED && $this->googleCalendarService->isTrainerConnected($trainer)) {
+                try {
+                    $googleEventResult = $this->googleCalendarService->createCalendarEvent($schedule);
+                } catch (\Exception $e) {
+                    Log::warning('Failed to create Google Calendar event for client booking', [
+                        'schedule_id' => $schedule->id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
             }
 
-            // Prepare response data
-            $responseData = $schedule->toArray();
+            // Prepare response data in Event format
+            $startDateTime = Carbon::parse($schedule->date . ' ' . $schedule->start_time);
+            $endDateTime = Carbon::parse($schedule->date . ' ' . $schedule->end_time);
+            
+            $responseData = [
+                'id' => $schedule->id,
+                'title' => 'Training Session',
+                'date' => $startDateTime->toISOString(),
+                'time' => $startDateTime->format('g:i A') . ' - ' . $endDateTime->format('g:i A'),
+                'googleLink' => $schedule->meet_link ?? '',
+                'trainer' => $schedule->trainer->name,
+                'status' => $schedule->status,
+                'notes' => $schedule->notes,
+                'duration_minutes' => $schedule->getDurationInMinutes(),
+                'google_event_id' => $schedule->google_event_id,
+                'created_at' => $schedule->created_at->toISOString(),
+                'updated_at' => $schedule->updated_at->toISOString()
+            ];
+
+            // Update meet_link if Google Calendar event was created
             if ($googleEventResult && isset($googleEventResult['meet_link'])) {
-                $responseData['meet_link'] = $googleEventResult['meet_link'];
+                $responseData['googleLink'] = $googleEventResult['meet_link'];
                 $responseData['google_event_created'] = true;
             } else {
-                $responseData['meet_link'] = null;
                 $responseData['google_event_created'] = false;
             }
 
@@ -391,9 +432,217 @@ class ClientBookingController extends ApiBaseController
             }
 
             $schedule->update(['status' => Schedule::STATUS_CANCELLED]);
+
+            // Delete Google Calendar event if exists
+            if ($schedule->hasGoogleCalendarEvent() && $this->googleCalendarService->isTrainerConnected($schedule->trainer)) {
+                try {
+                    $this->googleCalendarService->deleteCalendarEvent($schedule);
+                } catch (\Exception $e) {
+                    Log::warning('Failed to delete Google Calendar event for cancelled booking', [
+                        'schedule_id' => $schedule->id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+
             $schedule->load(['trainer:id,name,email,phone']);
 
             return $this->sendResponse($schedule, 'Booking cancelled successfully');
+
+        } catch (\Exception $e) {
+            return $this->sendError('Server Error', ['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get unified schedule for both trainers and clients
+     * Returns events in the required format with role-based filtering
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getUnifiedSchedule(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $userId = $user->id;
+            $userRole = $user->role;
+
+            // Validate request parameters
+            $validator = Validator::make($request->all(), [
+                'start_date' => 'nullable|date|after_or_equal:today',
+                'end_date' => 'nullable|date|after:start_date',
+                'status' => 'nullable|in:pending,confirmed,cancelled'
+            ]);
+
+            if ($validator->fails()) {
+                return $this->sendError('Validation Error', $validator->errors(), 422);
+            }
+
+            // Set default date range if not provided
+            $startDate = $request->start_date ? Carbon::parse($request->start_date)->toDateString() : Carbon::today()->toDateString();
+            $endDate = $request->end_date ? Carbon::parse($request->end_date)->toDateString() : Carbon::today()->addDays(30)->toDateString();
+
+            // Build query based on user role
+            $query = Schedule::with(['trainer:id,name,email,phone', 'client:id,name,email,phone']);
+
+            if ($userRole === 'trainer') {
+                $query->forTrainer($userId);
+            } elseif ($userRole === 'client') {
+                $query->forClient($userId);
+            } else {
+                return $this->sendError('Unauthorized access', [], 403);
+            }
+
+            // Apply filters
+            $query->dateRange($startDate, $endDate);
+
+            if ($request->has('status')) {
+                $query->withStatus($request->status);
+            } else {
+                // Exclude cancelled by default
+                $query->where('status', '!=', Schedule::STATUS_CANCELLED);
+            }
+
+            $schedules = $query->orderBy('date')
+                ->orderBy('start_time')
+                ->get();
+
+            // Transform to required Event format
+            $events = $schedules->map(function ($schedule) use ($userRole) {
+                try {
+                    // Ensure proper date and time format
+                    $dateStr = $schedule->date instanceof Carbon ? $schedule->date->toDateString() : $schedule->date;
+                    $startTimeStr = $schedule->start_time;
+                    $endTimeStr = $schedule->end_time;
+                    
+                    $startDateTime = Carbon::createFromFormat('Y-m-d H:i:s', $dateStr . ' ' . $startTimeStr);
+                    $endDateTime = Carbon::createFromFormat('Y-m-d H:i:s', $dateStr . ' ' . $endTimeStr);
+                    
+                    // Determine title based on user role
+                    if ($userRole === 'trainer') {
+                        $title = 'Session with ' . ($schedule->client ? $schedule->client->name : 'Client');
+                    } else {
+                        $title = 'Training Session';
+                    }
+
+                    return [
+                        'id' => $schedule->id,
+                        'title' => $title,
+                        'date' => $startDateTime->toISOString(),
+                        'time' => $startDateTime->format('g:i A') . ' - ' . $endDateTime->format('g:i A'),
+                        'googleLink' => $schedule->meet_link ?? '',
+                        'trainer' => $schedule->trainer ? $schedule->trainer->name : 'Unknown',
+                        'client' => $userRole === 'trainer' && $schedule->client ? $schedule->client->name : null,
+                        'status' => $schedule->status,
+                        'notes' => $schedule->notes,
+                        'duration_minutes' => $schedule->getDurationInMinutes(),
+                        'google_event_id' => $schedule->google_event_id,
+                        'created_at' => $schedule->created_at->toISOString(),
+                        'updated_at' => $schedule->updated_at->toISOString()
+                    ];
+                } catch (\Exception $e) {
+                    // Log the error and return a basic event structure
+                    Log::error('Error parsing schedule event: ' . $e->getMessage(), [
+                        'schedule_id' => $schedule->id,
+                        'date' => $schedule->date,
+                        'start_time' => $schedule->start_time,
+                        'end_time' => $schedule->end_time
+                    ]);
+                    
+                    return [
+                        'id' => $schedule->id,
+                        'title' => 'Training Session',
+                        'date' => $schedule->date,
+                        'time' => $schedule->start_time . ' - ' . $schedule->end_time,
+                        'googleLink' => $schedule->meet_link ?? '',
+                        'trainer' => $schedule->trainer ? $schedule->trainer->name : 'Unknown',
+                        'client' => null,
+                        'status' => $schedule->status,
+                        'notes' => $schedule->notes,
+                        'duration_minutes' => 60, // Default duration
+                        'google_event_id' => $schedule->google_event_id,
+                        'created_at' => $schedule->created_at->toISOString(),
+                        'updated_at' => $schedule->updated_at->toISOString()
+                    ];
+                }
+            });
+
+            return $this->sendResponse($events, 'Schedule retrieved successfully');
+
+        } catch (\Exception $e) {
+            return $this->sendError('Server Error', ['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get client bookings in Event format
+     * Updated to return the required Event structure
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getClientBookingsAsEvents(Request $request): JsonResponse
+    {
+        try {
+            $clientId = Auth::id();
+            
+            // Validate request parameters
+            $validator = Validator::make($request->all(), [
+                'start_date' => 'nullable|date',
+                'end_date' => 'nullable|date|after_or_equal:start_date',
+                'status' => 'nullable|in:pending,confirmed,cancelled'
+            ]);
+
+            if ($validator->fails()) {
+                return $this->sendError('Validation Error', $validator->errors(), 422);
+            }
+
+            $query = Schedule::forClient($clientId)
+                ->with(['trainer:id,name,email,phone']);
+
+            // Filter by status if provided
+            if ($request->has('status')) {
+                $query->withStatus($request->status);
+            } else {
+                // Exclude cancelled by default
+                $query->where('status', '!=', Schedule::STATUS_CANCELLED);
+            }
+
+            // Filter by date range if provided
+            if ($request->has('start_date') && $request->has('end_date')) {
+                $query->dateRange($request->start_date, $request->end_date);
+            } else {
+                // Default to upcoming bookings
+                $query->where('date', '>=', now()->toDateString());
+            }
+
+            $bookings = $query->orderBy('date')
+                ->orderBy('start_time')
+                ->get();
+
+            // Transform to required Event format
+            $events = $bookings->map(function ($schedule) {
+                $startDateTime = Carbon::parse($schedule->date . ' ' . $schedule->start_time);
+                $endDateTime = Carbon::parse($schedule->date . ' ' . $schedule->end_time);
+                
+                return [
+                    'id' => $schedule->id,
+                    'title' => 'Session With' . $schedule->trainer->name,
+                    'date' => $startDateTime->toISOString(),
+                    'time' => $startDateTime->format('g:i A') . ' - ' . $endDateTime->format('g:i A'),
+                    'googleLink' => $schedule->meet_link ?? '',
+                    'trainer' => $schedule->trainer->name,
+                    'status' => $schedule->status,
+                    'notes' => $schedule->notes,
+                    'duration_minutes' => $schedule->getDurationInMinutes(),
+                    'google_event_id' => $schedule->google_event_id,
+                    'created_at' => $schedule->created_at->toISOString(),
+                    'updated_at' => $schedule->updated_at->toISOString()
+                ];
+            });
+
+            return $this->sendResponse($events, 'Client sessions retrieved successfully');
 
         } catch (\Exception $e) {
             return $this->sendError('Server Error', ['error' => $e->getMessage()], 500);
@@ -464,5 +713,92 @@ class ClientBookingController extends ApiBaseController
             
             return true;
         });
+    }
+
+    /**
+     * Check if trainer has Google Calendar connected
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function checkTrainerGoogleCalendarStatus(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'trainer_id' => 'required|exists:users,id'
+            ]);
+
+            if ($validator->fails()) {
+                return $this->sendError('Validation Error', $validator->errors(), 422);
+            }
+
+            $trainer = User::find($request->trainer_id);
+            $isConnected = $this->googleCalendarService->isTrainerConnected($trainer);
+
+            return $this->sendResponse([
+                'trainer_id' => $trainer->id,
+                'trainer_name' => $trainer->name,
+                'google_calendar_connected' => $isConnected
+            ], 'Google Calendar connection status retrieved successfully');
+
+        } catch (\Exception $e) {
+            Log::error('Error checking trainer Google Calendar status', [
+                'trainer_id' => $request->trainer_id,
+                'error' => $e->getMessage()
+            ]);
+
+            return $this->sendError('Server Error', 'Unable to check Google Calendar status', 500);
+        }
+    }
+
+    /**
+     * Get trainer's Google Calendar events for a specific date range
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getTrainerGoogleCalendarEvents(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'trainer_id' => 'required|exists:users,id',
+                'start_date' => 'required|date',
+                'end_date' => 'required|date|after_or_equal:start_date'
+            ]);
+
+            if ($validator->fails()) {
+                return $this->sendError('Validation Error', $validator->errors(), 422);
+            }
+
+            $trainer = User::find($request->trainer_id);
+            
+            if (!$this->googleCalendarService->isTrainerConnected($trainer)) {
+                return $this->sendError('Calendar Not Connected', 'Trainer has not connected their Google Calendar', 400);
+            }
+
+            $events = $this->googleCalendarService->getCalendarEvents(
+                $trainer,
+                $request->start_date,
+                $request->end_date
+            );
+
+            return $this->sendResponse([
+                'trainer_id' => $trainer->id,
+                'trainer_name' => $trainer->name,
+                'events' => $events,
+                'date_range' => [
+                    'start_date' => $request->start_date,
+                    'end_date' => $request->end_date
+                ]
+            ], 'Google Calendar events retrieved successfully');
+
+        } catch (\Exception $e) {
+            Log::error('Error retrieving trainer Google Calendar events', [
+                'trainer_id' => $request->trainer_id,
+                'error' => $e->getMessage()
+            ]);
+
+            return $this->sendError('Server Error', 'Unable to retrieve Google Calendar events', 500);
+        }
     }
 }

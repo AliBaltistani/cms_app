@@ -411,12 +411,16 @@ Route::middleware('auth')->group(function () {
             // Google Calendar Booking Routes
             Route::get('/google-calendar', [\App\Http\Controllers\Admin\BookingController::class, 'googleCalendarBooking'])->name('admin.bookings.google-calendar');
             Route::post('/google-calendar', [\App\Http\Controllers\Admin\BookingController::class, 'storeGoogleCalendarBooking'])->name('admin.bookings.google-calendar.store');
+            Route::get('/google-calendar/{id}/edit', [\App\Http\Controllers\Admin\BookingController::class, 'editGoogleCalendarBooking'])->name('admin.bookings.google-calendar.edit');
+            Route::put('/google-calendar/{id}', [\App\Http\Controllers\Admin\BookingController::class, 'updateGoogleCalendarBooking'])->name('admin.bookings.google-calendar.update');
+            Route::delete('/google-calendar/{id}', [\App\Http\Controllers\Admin\BookingController::class, 'destroyGoogleCalendarBooking'])->name('admin.bookings.google-calendar.destroy');
+            Route::post('/{id}/sync-google-calendar', [\App\Http\Controllers\Admin\BookingController::class, 'syncWithGoogleCalendar'])->name('admin.bookings.sync-google-calendar');
             Route::get('/trainer/{trainerId}/google-connection', [\App\Http\Controllers\Admin\BookingController::class, 'checkTrainerGoogleConnection'])->name('admin.bookings.trainer.google-connection');
             Route::get('/trainer/available-slots', [\App\Http\Controllers\Admin\BookingController::class, 'getTrainerAvailableSlots'])->name('admin.bookings.trainer.available-slots');
             
             // Admin Google Calendar Authentication Routes
             Route::get('/google/connect/{trainerId}', [\App\Http\Controllers\GoogleController::class, 'adminInitiatedTrainerConnect'])->name('admin.google.connect');
-            Route::get('/google/callback', [\App\Http\Controllers\GoogleController::class, 'adminInitiatedTrainerCallback'])->name('admin.google.callback');
+            // Route::get('/google/callback', [\App\Http\Controllers\GoogleController::class, 'adminInitiatedTrainerCallback'])->name('admin.google.callback');
         });
 
         /**

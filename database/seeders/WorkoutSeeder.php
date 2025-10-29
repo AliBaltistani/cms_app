@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Workout;
 use App\Models\WorkoutVideo;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Faker\Factory as Faker;
 
@@ -12,6 +13,23 @@ class WorkoutSeeder extends Seeder
     public function run(): void
     {
         $faker = Faker::create();
+        
+        // Get existing trainers to assign workouts to
+        $trainers = User::where('role', 'trainer')->get();
+        
+        // If no trainers exist, create a default one
+        if ($trainers->isEmpty()) {
+            $trainers = collect([
+                User::create([
+                    'name' => 'Default Trainer',
+                    'email' => 'trainer@example.com',
+                    'phone' => '+92-300-0000000',
+                    'role' => 'trainer',
+                    'password' => bcrypt('password'),
+                    'email_verified_at' => now(),
+                ])
+            ]);
+        }
         
         $workoutTypes = [
             'cardio' => ['Running', 'Cycling', 'HIIT', 'Jump Rope', 'Dancing'],
@@ -38,6 +56,7 @@ class WorkoutSeeder extends Seeder
                     'duration' => $faker->numberBetween(15, 90),
                     'description' => $faker->paragraph(),
                     'is_active' => $faker->boolean(85), // 85% chance of being active
+                    'user_id' => $trainers->random()->id, // Assign to a random trainer
                 ]);
 
                 // Add 3-6 videos per workout

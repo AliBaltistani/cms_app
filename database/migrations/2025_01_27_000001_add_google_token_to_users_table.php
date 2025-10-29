@@ -25,7 +25,7 @@ return new class extends Migration
     public function up()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->json('google_token')->nullable()->after('timezone');
+            $table->json('google_token')->nullable();
         });
     }
 

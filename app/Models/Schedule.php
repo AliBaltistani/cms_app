@@ -26,6 +26,7 @@ use Carbon\Carbon;
  * @property string $end_time
  * @property string $status
  * @property string|null $notes
+ * @property string|null $meeting_agenda
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */
@@ -46,9 +47,11 @@ class Schedule extends Model
         'end_time',
         'status',
         'notes',
+        'meeting_agenda',
         'session_type',
         'google_event_id',
-        'meet_link'
+        'meet_link',
+        'timezone'
     ];
 
     /**

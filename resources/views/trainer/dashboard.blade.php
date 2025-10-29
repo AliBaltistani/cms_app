@@ -168,13 +168,13 @@
                     <p class="text-muted fs-13 mb-2">{{ Str::limit($testimonial->comments, 120) }}</p>
                     <div class="d-flex align-items-center gap-3">
                         <button class="btn btn-sm btn-outline-success like-btn" 
-                                onclick="likeTestimonial({{ $testimonial->id }})" 
+                                onclick="likeTestimonial('{{ $testimonial->id }}')" 
                                 data-testimonial-id="{{ $testimonial->id }}">
                             <i class="ri-thumb-up-line me-1"></i>
                             <span class="likes-count">{{ $testimonial->likes }}</span>
                         </button>
                         <button class="btn btn-sm btn-outline-danger dislike-btn" 
-                                onclick="dislikeTestimonial({{ $testimonial->id }})" 
+                                onclick="dislikeTestimonial('{{ $testimonial->id }}')" 
                                 data-testimonial-id="{{ $testimonial->id }}">
                             <i class="ri-thumb-down-line me-1"></i>
                             <span class="dislikes-count">{{ $testimonial->dislikes }}</span>

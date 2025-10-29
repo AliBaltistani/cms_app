@@ -64,7 +64,7 @@ class NutritionPlanFactory extends Factory
             'client_id' => $this->faker->boolean(60) ? User::where('role', 'client')->inRandomOrder()->first()?->id : null,
             'plan_name' => $this->faker->randomElement($planNames),
             'description' => $this->faker->paragraph(3),
-            'media_url' => $this->faker->boolean(40) ? 'nutrition-plans/' . $this->faker->uuid() . '.jpg' : null,
+            'image_url' => $this->faker->boolean(40) ? 'nutrition-plans/' . $this->faker->uuid() . '.jpg' : null,
             'status' => $this->faker->randomElement($statuses),
             'is_global' => $this->faker->boolean(20), // 20% chance of being global
             'tags' => $this->faker->randomElement($tags),

@@ -438,7 +438,7 @@
             
             // Delete booking from modal
             document.querySelector('#bookingModal #deleteBookingBtn').addEventListener('click', function() {
-                if (currentEvent && confirm('Are you sure you want to delete this booking?')) {
+                if (currentEvent && confirm('Are you sure you want to delete this booking? This will also remove the Google Calendar event if it exists.')) {
                     fetch(`{{ route('admin.bookings.delete-event', 'PLACEHOLDER') }}`.replace('PLACEHOLDER', currentEvent.id), {
                         method: 'DELETE',
                         headers: {
@@ -464,7 +464,7 @@
             
             // Delete booking from details modal
             document.querySelector('#eventDetailsModal #deleteBookingBtn').addEventListener('click', function() {
-                if (confirm('Are you sure you want to delete this booking?')) {
+                if (confirm('Are you sure you want to delete this booking? This will also remove the Google Calendar event if it exists.')) {
                     fetch(`{{ route('admin.bookings.delete-event', 'PLACEHOLDER') }}`.replace('PLACEHOLDER', currentEvent.id), {
                         method: 'DELETE',
                         headers: {

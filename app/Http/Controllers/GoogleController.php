@@ -39,9 +39,28 @@ class GoogleController extends Controller
     public function __construct()
     {
         $this->googleClient = new Google_Client();
-        $this->googleClient->setClientId(env('GOOGLE_CLIENT_ID'));
-        $this->googleClient->setClientSecret(env('GOOGLE_CLIENT_SECRET'));
-        $this->googleClient->setRedirectUri(env('GOOGLE_REDIRECT_URI'));
+        
+        // Get Google OAuth configuration
+        $clientId = config('services.google.client_id', env('GOOGLE_CLIENT_ID'));
+        $clientSecret = config('services.google.client_secret', env('GOOGLE_CLIENT_SECRET'));
+        $redirectUri = config('services.google.redirect_uri', env('GOOGLE_REDIRECT_URI'));
+        
+        // Validate required configuration
+        if (empty($clientId)) {
+            throw new Exception('Google Client ID is not configured. Please set GOOGLE_CLIENT_ID in your .env file.');
+        }
+        
+        if (empty($clientSecret)) {
+            throw new Exception('Google Client Secret is not configured. Please set GOOGLE_CLIENT_SECRET in your .env file.');
+        }
+        
+        if (empty($redirectUri)) {
+            throw new Exception('Google Redirect URI is not configured. Please set GOOGLE_REDIRECT_URI in your .env file.');
+        }
+        
+        $this->googleClient->setClientId($clientId);
+        $this->googleClient->setClientSecret($clientSecret);
+        $this->googleClient->setRedirectUri($redirectUri);
         $this->googleClient->addScope(Google_Service_Calendar::CALENDAR);
         $this->googleClient->addScope(Google_Service_Oauth2::USERINFO_EMAIL);
         $this->googleClient->addScope(Google_Service_Oauth2::USERINFO_PROFILE);
@@ -183,8 +202,8 @@ class GoogleController extends Controller
                 // Decode and verify state data
                 try {
                     $stateData = json_decode(base64_decode($state), true);
-                    if (!$stateData || !isset($stateData['user_id'], $stateData['timestamp'])) {
-                        throw new Exception('Invalid state data structure');
+                    if (!$stateData || !isset($stateData['timestamp'])) {
+                        throw new Exception('Invalid state data structure - missing timestamp');
                     }
 
                     // Check if state is not too old (5 minutes max)
@@ -192,10 +211,29 @@ class GoogleController extends Controller
                         throw new Exception('OAuth state expired');
                     }
 
-                    Log::info('OAuth state verified successfully', [
-                        'user_id' => $stateData['user_id'],
-                        'state_age' => time() - $stateData['timestamp']
-                    ]);
+                    // Detect flow type and validate accordingly
+                    if (isset($stateData['type']) && $stateData['type'] === 'admin_initiated') {
+                        // Admin-initiated flow validation
+                        if (!isset($stateData['admin_id'], $stateData['trainer_id'])) {
+                            throw new Exception('Invalid admin-initiated state data structure');
+                        }
+                        
+                        Log::info('Admin-initiated OAuth state verified successfully', [
+                            'admin_id' => $stateData['admin_id'],
+                            'trainer_id' => $stateData['trainer_id'],
+                            'state_age' => time() - $stateData['timestamp']
+                        ]);
+                    } else {
+                        // Regular trainer-initiated flow validation
+                        if (!isset($stateData['user_id'])) {
+                            throw new Exception('Invalid regular state data structure - missing user_id');
+                        }
+                        
+                        Log::info('Regular OAuth state verified successfully', [
+                            'user_id' => $stateData['user_id'],
+                            'state_age' => time() - $stateData['timestamp']
+                        ]);
+                    }
 
                 } catch (Exception $e) {
                     Log::error('Google OAuth callback: State verification failed', [
@@ -232,22 +270,81 @@ class GoogleController extends Controller
                 return redirect()->route('login')->with('error', 'Please login first to connect Google Calendar');
             }
 
-            $user = Auth::user();
+            $authenticatedUser = Auth::user();
             
-            // Verify user is a trainer
-            if ($user->role !== 'trainer') {
-                Log::warning('Non-trainer user attempting Google OAuth', [
-                    'user_id' => $user->id,
-                    'user_role' => $user->role
-                ]);
-                
-                if ($request->expectsJson()) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Only trainers can connect Google Calendar'
-                    ], 403);
+            // Determine target user and validate permissions based on flow type
+            if (isset($stateData['type']) && $stateData['type'] === 'admin_initiated') {
+                // Admin-initiated flow: admin is authenticated, connecting trainer's account
+                if ($authenticatedUser->role !== 'admin') {
+                    Log::warning('Non-admin user in admin-initiated Google OAuth flow', [
+                        'user_id' => $authenticatedUser->id,
+                        'user_role' => $authenticatedUser->role,
+                        'expected_admin_id' => $stateData['admin_id']
+                    ]);
+                    
+                    if ($request->expectsJson()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Only admins can initiate trainer Google Calendar connections'
+                        ], 403);
+                    }
+                    return redirect()->route('admin.dashboard')->with('error', 'Unauthorized action');
                 }
-                return redirect()->route('admin.dashboard')->with('error', 'Only trainers can connect Google Calendar');
+                
+                // Verify the authenticated admin matches the state data
+                if ($authenticatedUser->id != $stateData['admin_id']) {
+                    Log::error('Admin ID mismatch in OAuth callback', [
+                        'authenticated_admin_id' => $authenticatedUser->id,
+                        'state_admin_id' => $stateData['admin_id']
+                    ]);
+                    
+                    if ($request->expectsJson()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Admin session mismatch. Please try again.'
+                        ], 401);
+                    }
+                    return redirect()->route('login')->with('error', 'Session mismatch. Please login and try again.');
+                }
+                
+                // Get the trainer to connect
+                $targetUser = User::find($stateData['trainer_id']);
+                if (!$targetUser || $targetUser->role !== 'trainer') {
+                    Log::error('Invalid trainer in admin-initiated OAuth', [
+                        'trainer_id' => $stateData['trainer_id'],
+                        'trainer_exists' => !is_null($targetUser),
+                        'trainer_role' => $targetUser ? $targetUser->role : 'N/A'
+                    ]);
+                    
+                    if ($request->expectsJson()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Invalid trainer specified'
+                        ], 400);
+                    }
+                    return redirect()->route('admin.dashboard')->with('error', 'Invalid trainer specified');
+                }
+                
+                $user = $targetUser; // The user whose Google account we're connecting
+                
+            } else {
+                // Regular trainer-initiated flow: trainer is authenticated and connecting their own account
+                if ($authenticatedUser->role !== 'trainer') {
+                    Log::warning('Non-trainer user attempting regular Google OAuth', [
+                        'user_id' => $authenticatedUser->id,
+                        'user_role' => $authenticatedUser->role
+                    ]);
+                    
+                    if ($request->expectsJson()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Only trainers can connect Google Calendar'
+                        ], 403);
+                    }
+                    return redirect()->route('admin.dashboard')->with('error', 'Only trainers can connect Google Calendar');
+                }
+                
+                $user = $authenticatedUser; // The trainer connecting their own account
             }
 
             Log::info('Attempting to exchange authorization code for token', [
@@ -329,7 +426,13 @@ class GoogleController extends Controller
                         'message' => 'Google Calendar connected successfully (user info verification skipped)'
                     ]);
                 }
-                return redirect()->route('trainer.google.index')->with('success', 'Google Calendar connected successfully!');
+                
+                // Redirect based on flow type
+                if (isset($stateData['type']) && $stateData['type'] === 'admin_initiated') {
+                    return redirect()->route('admin.dashboard')->with('success', 'Google Calendar connected successfully for trainer!');
+                } else {
+                    return redirect()->route('trainer.google.index')->with('success', 'Google Calendar connected successfully!');
+                }
             }
 
             Log::info('Google user info retrieved', [
@@ -358,7 +461,12 @@ class GoogleController extends Controller
                 ]);
             }
 
-            return redirect()->route('trainer.google-calendar')->with('success', 'Google Calendar connected successfully');
+            // Redirect based on flow type
+            if (isset($stateData['type']) && $stateData['type'] === 'admin_initiated') {
+                return redirect()->route('admin.dashboard')->with('success', 'Google Calendar connected successfully for trainer ' . $user->name . '!');
+            } else {
+                return redirect()->route('trainer.google-calendar')->with('success', 'Google Calendar connected successfully');
+            }
 
         } catch (Exception $e) {
             Log::error('Google OAuth callback exception', [
@@ -814,7 +922,7 @@ class GoogleController extends Controller
      * @return \Illuminate\Http\RedirectResponse
      */
     public function adminInitiatedTrainerConnect(Request $request, $trainerId)
-    {
+    {  
         try {
             // Check if user is authenticated and is an admin
             if (!Auth::check()) {
@@ -850,12 +958,25 @@ class GoogleController extends Controller
             // Store state in session for verification
             session(['google_oauth_state' => $state]);
 
+            // Validate Google Client configuration before proceeding
+            if (empty($this->googleClient->getClientId())) {
+                throw new Exception('Google Client ID is not properly configured');
+            }
+            
+            if (empty($this->googleClient->getClientSecret())) {
+                throw new Exception('Google Client Secret is not properly configured');
+            }
+            
+            if (empty($this->googleClient->getRedirectUri())) {
+                throw new Exception('Google Redirect URI is not properly configured');
+            }
+          
             // Set state parameter in Google Client
             $this->googleClient->setState($state);
-
+            
             // Generate OAuth URL with state parameter
             $authUrl = $this->googleClient->createAuthUrl();
-
+ 
             Log::info('Admin-initiated trainer Google OAuth redirect initiated', [
                 'admin_id' => $user->id,
                 'trainer_id' => $trainer->id,

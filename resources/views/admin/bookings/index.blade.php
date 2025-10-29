@@ -1,11 +1,5 @@
 @extends('layouts.master')
 
-@section('styles')
-    <!-- Data table css -->
-    <link rel="stylesheet" href="{{ asset('assets/libs/datatables.net-bs5/css/dataTables.bootstrap5.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/libs/datatables.net-responsive-bs5/css/responsive.bootstrap5.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/libs/datatables.net-buttons-bs5/css/buttons.bootstrap5.min.css') }}">
-@endsection
 
 @section('content')
     <!-- Page Header -->
@@ -22,9 +16,9 @@
             </div>
         </div>
         <div class="ms-auto pageheader-btn">
-            <a href="{{ route('admin.bookings.create') }}" class="btn btn-primary btn-wave waves-effect waves-light me-2">
+            <!-- <a href="{{ route('admin.bookings.create') }}" class="btn btn-primary btn-wave waves-effect waves-light me-2">
                 <i class="ri-add-line fw-semibold align-middle me-1"></i> Create Booking
-            </a>
+            </a> -->
             <a href="{{ route('admin.bookings.google-calendar') }}" class="btn btn-success btn-wave waves-effect waves-light me-2">
                 <i class="ri-calendar-line fw-semibold align-middle me-1"></i> Google Calendar Booking
             </a>
@@ -124,6 +118,7 @@
                                     <th>Date</th>
                                     <th>Time</th>
                                     <th>Status</th>
+                                    <th>Google Calendar</th>
                                     <th>Created</th>
                                     <th>Actions</th>
                                 </tr>
@@ -138,7 +133,13 @@
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 <div class="avatar avatar-sm me-2">
-                                                    <img src="{{ $booking->trainer->profile_image ? asset('storage/' . $booking->trainer->profile_image) : asset('assets/images/faces/9.jpg') }}" alt="trainer" class="avatar-img rounded-circle">
+                                                    @if($booking->trainer->profile_image)
+                                                        <img src="{{ asset('storage/' . $booking->trainer->profile_image) }}" alt="trainer" class="avatar-img rounded-circle">
+                                                    @else
+                                                        <div class="avatar-img rounded-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold" style="width: 32px; height: 32px;">
+                                                            {{ strtoupper(substr($booking->trainer->name, 0, 1)) }}
+                                                        </div>
+                                                    @endif
                                                 </div>
                                                 <div>
                                                     <span class="fw-semibold">{{ $booking->trainer->name }}</span>
@@ -149,7 +150,13 @@
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 <div class="avatar avatar-sm me-2">
-                                                    <img src="{{ $booking->client->profile_image ? asset('storage/' . $booking->client->profile_image) : asset('assets/images/faces/9.jpg') }}" alt="client" class="avatar-img rounded-circle">
+                                                    @if($booking->client->profile_image)
+                                                        <img src="{{ asset('storage/' . $booking->client->profile_image) }}" alt="client" class="avatar-img rounded-circle">
+                                                    @else
+                                                        <div class="avatar-img rounded-circle bg-success d-flex align-items-center justify-content-center text-white fw-bold" style="width: 32px; height: 32px;">
+                                                            {{ strtoupper(substr($booking->client->name, 0, 1)) }}
+                                                        </div>
+                                                    @endif
                                                 </div>
                                                 <div>
                                                     <span class="fw-semibold">{{ $booking->client->name }}</span>
@@ -175,18 +182,50 @@
                                             @endif
                                         </td>
                                         <td>
+                                            @if($booking->google_event_id)
+                                                <div class="d-flex align-items-center">
+                                                    <i class="ri-google-line text-primary me-1"></i>
+                                                    <span class="badge bg-success-transparent">Synced</span>
+                                                </div>
+                                                @if($booking->meet_link)
+                                                    <small class="text-muted d-block">
+                                                        <i class="ri-video-line me-1"></i>Meet Ready
+                                                    </small>
+                                                @endif
+                                            @else
+                                                <div class="d-flex align-items-center">
+                                                    <i class="ri-calendar-line text-muted me-1"></i>
+                                                    <span class="badge bg-secondary-transparent">Not Synced</span>
+                                                </div>
+                                            @endif
+                                        </td>
+                                        <td>
                                             <span class="fw-semibold">{{ $booking->created_at->format('M d, Y') }}</span>
                                             <br><small class="text-muted">{{ $booking->created_at->format('h:i A') }}</small>
                                         </td>
                                         <td>
                                             <div class="hstack gap-2 fs-15">
-                                                <a href="{{ route('admin.bookings.show', $booking->id) }}" class="btn btn-icon btn-sm btn-info-transparent rounded-pill">
+                                                <a href="{{ route('admin.bookings.show', $booking->id) }}" class="btn btn-icon btn-sm btn-info-transparent rounded-pill" title="View Details">
                                                     <i class="ri-eye-line"></i>
                                                 </a>
-                                                <a href="{{ route('admin.bookings.edit', $booking->id) }}" class="btn btn-icon btn-sm btn-primary-transparent rounded-pill">
+                                                <a href="{{ route('admin.bookings.google-calendar.edit', $booking->id) }}" class="btn btn-icon btn-sm btn-primary-transparent rounded-pill" title="Edit Booking">
                                                     <i class="ri-edit-line"></i>
                                                 </a>
-                                                <button class="btn btn-icon btn-sm btn-danger-transparent rounded-pill" onclick="deleteBooking('{{ $booking->id }}')">
+                                                @if($booking->google_event_id)
+                                                    <button class="btn btn-icon btn-sm btn-success-transparent rounded-pill" onclick="syncToGoogleCalendar('{{ $booking->id }}')" title="Sync to Google Calendar">
+                                                        <i class="ri-refresh-line"></i>
+                                                    </button>
+                                                    @if($booking->meet_link)
+                                                        <a href="{{ $booking->meet_link }}" target="_blank" class="btn btn-icon btn-sm btn-warning-transparent rounded-pill" title="Join Google Meet">
+                                                            <i class="ri-video-line"></i>
+                                                        </a>
+                                                    @endif
+                                                @else
+                                                    <button class="btn btn-icon btn-sm btn-secondary-transparent rounded-pill" onclick="createGoogleCalendarEvent('{{ $booking->id }}')" title="Create Google Calendar Event">
+                                                        <i class="ri-google-line"></i>
+                                                    </button>
+                                                @endif
+                                                <button class="btn btn-icon btn-sm btn-danger-transparent rounded-pill" onclick="deleteBooking('{{ $booking->id }}')" title="Delete Booking">
                                                     <i class="ri-delete-bin-line"></i>
                                                 </button>
                                             </div>
@@ -194,7 +233,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="9" class="text-center py-4">
+                                        <td colspan="10" class="text-center py-4">
                                             <div class="d-flex flex-column align-items-center">
                                                 <i class="ri-calendar-line fs-1 text-muted mb-2"></i>
                                                 <h6 class="fw-semibold mb-1">No Bookings Found</h6>
@@ -235,14 +274,22 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Are you sure you want to delete this booking? This action cannot be undone.</p>
+                    <p>Are you sure you want to delete this booking? This action will:</p>
+                    <ul>
+                        <li>Permanently delete the booking from the system</li>
+                        <li>Remove the Google Calendar event (if exists)</li>
+                        <li>Cancel any Google Meet links</li>
+                        <li>This action cannot be undone</li>
+                    </ul>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <form id="deleteForm" method="POST" style="display: inline;">
                         @csrf
                         @method('DELETE')
-                        <button type="submit" class="btn btn-danger">Delete</button>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="ri-delete-bin-line me-1"></i> Delete Booking
+                        </button>
                     </form>
                 </div>
             </div>
@@ -276,11 +323,6 @@
 @endsection
 
 @section('scripts')
-    <!-- Datatables Cdn -->
-    <script src="{{ asset('assets/libs/datatables.net/js/jquery.dataTables.min.js') }}"></script>
-    <script src="{{ asset('assets/libs/datatables.net-bs5/js/dataTables.bootstrap5.min.js') }}"></script>
-    <script src="{{ asset('assets/libs/datatables.net-responsive/js/dataTables.responsive.min.js') }}"></script>
-    <script src="{{ asset('assets/libs/datatables.net-responsive-bs5/js/responsive.bootstrap5.min.js') }}"></script>
 
     <script>
         $(document).ready(function() {
@@ -308,7 +350,7 @@
         });
 
         function deleteBooking(id) {
-            $('#deleteForm').attr('action', '/admin/bookings/' + id);
+            $('#deleteForm').attr('action', '/admin/bookings/google-calendar/' + id);
             $('#deleteModal').modal('show');
         }
 
@@ -332,6 +374,76 @@
             $('#bulkActionBtn').text(status === 'confirmed' ? 'Confirm Bookings' : 'Cancel Bookings');
             
             $('#bulkActionModal').modal('show');
+        }
+
+        function syncToGoogleCalendar(bookingId) {
+            if (confirm('Are you sure you want to sync this booking to Google Calendar?')) {
+                // Show loading state
+                const button = event.target.closest('button');
+                const originalHtml = button.innerHTML;
+                button.innerHTML = '<i class="ri-loader-2-line"></i>';
+                button.disabled = true;
+
+                fetch(`/admin/bookings/${bookingId}/sync-google-calendar`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Booking synced to Google Calendar successfully!');
+                        location.reload();
+                    } else {
+                        alert('Error syncing to Google Calendar: ' + (data.message || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error syncing to Google Calendar. Please try again.');
+                })
+                .finally(() => {
+                    button.innerHTML = originalHtml;
+                    button.disabled = false;
+                });
+            }
+        }
+
+        function createGoogleCalendarEvent(bookingId) {
+            if (confirm('Are you sure you want to create a Google Calendar event for this booking?')) {
+                // Show loading state
+                const button = event.target.closest('button');
+                const originalHtml = button.innerHTML;
+                button.innerHTML = '<i class="ri-loader-2-line"></i>';
+                button.disabled = true;
+
+                fetch(`/admin/bookings/${bookingId}/sync-google-calendar`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Google Calendar event created successfully!');
+                        location.reload();
+                    } else {
+                        alert('Error creating Google Calendar event: ' + (data.message || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error creating Google Calendar event. Please try again.');
+                })
+                .finally(() => {
+                    button.innerHTML = originalHtml;
+                    button.disabled = false;
+                });
+            }
         }
     </script>
 @endsection
