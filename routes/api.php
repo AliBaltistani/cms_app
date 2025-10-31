@@ -511,6 +511,37 @@ Route::prefix('sms/webhook')->name('sms.webhook.')->group(function () {
 
 /**
  * =============================================================================
+ * GOOGLE CALENDAR BOOKING ROUTES
+ * =============================================================================
+ */
+
+/**
+ * Google Calendar Booking Routes
+ * Comprehensive API endpoints for Google Calendar integration and booking management
+ * Mirrors the admin panel Google Calendar booking functionality for mobile/API access
+ */
+Route::middleware(['auth:sanctum'])->prefix('google-calendar-booking')->name('google-calendar-booking.')->group(function () {
+    
+    // Connection Status and Authentication
+    Route::get('/connection-status', [\App\Http\Controllers\Api\GoogleCalendarBookingController::class, 'checkConnectionStatus'])->name('connection-status');
+    Route::get('/auth-url', [\App\Http\Controllers\Api\GoogleCalendarBookingController::class, 'getAuthUrl'])->name('auth-url');
+    
+    // Available Slots and Scheduling
+    Route::get('/available-slots', [\App\Http\Controllers\Api\GoogleCalendarBookingController::class, 'getAvailableSlots'])->name('available-slots');
+    
+    // Booking Management
+    Route::post('/create-booking', [\App\Http\Controllers\Api\GoogleCalendarBookingController::class, 'createBooking'])->name('create-booking');
+    Route::post('/store-booking', [\App\Http\Controllers\Api\GoogleCalendarBookingController::class, 'storeGoogleCalendarBooking'])->name('store-booking');
+    
+    // Helper Endpoints for Form Data
+    Route::get('/trainers', [\App\Http\Controllers\Api\GoogleCalendarBookingController::class, 'getTrainers'])->name('trainers');
+    Route::get('/clients', [\App\Http\Controllers\Api\GoogleCalendarBookingController::class, 'getClients'])->name('clients');
+    Route::get('/timezones', [\App\Http\Controllers\Api\GoogleCalendarBookingController::class, 'getTimezones'])->name('timezones');
+    Route::get('/session-types', [\App\Http\Controllers\Api\GoogleCalendarBookingController::class, 'getSessionTypes'])->name('session-types');
+});
+
+/**
+ * =============================================================================
  * API FALLBACK ROUTES
  * =============================================================================
  */
@@ -534,7 +565,8 @@ Route::fallback(function () {
                 'trainer' => '/api/trainer/*',
                 'client' => '/api/client/*',
                 'system' => '/api/system/*',
-                'sms' => '/api/sms/*'
+                'sms' => '/api/sms/*',
+                'google-calendar-booking' => '/api/google-calendar-booking/*'
             ]
         ]
     ], 404);
