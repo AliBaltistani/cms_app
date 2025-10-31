@@ -132,11 +132,13 @@ class SessionBookingController extends ApiBaseController
 
             // Validation rules
             $rules = [
+                'title' => 'nullable|string|max:255',
                 'date' => 'required|date|after_or_equal:today',
                 'start_time' => 'required|date_format:H:i',
                 'end_time' => 'required|date_format:H:i|after:start_time',
                 'notes' => 'nullable|string|max:500',
-                'session_type' => 'nullable|string|max:100'
+                'session_type' => 'nullable|string|max:100',
+                'status' => 'nullable|string|in:' . implode(',', [Schedule::STATUS_PENDING, Schedule::STATUS_CONFIRMED, Schedule::STATUS_CANCELLED])
             ];
 
             // Role-specific validation
@@ -171,6 +173,26 @@ class SessionBookingController extends ApiBaseController
                 return $this->sendError('Validation Error', ['error' => 'Invalid trainer or client'], 422);
             }
 
+            // Get or create booking settings for the trainer
+            $bookingSettings = \App\Models\BookingSetting::getOrCreateForTrainer($trainerId);
+            
+            // Check if self-booking is allowed (only for client bookings)
+            if ($user->role === 'client' && !$bookingSettings->allow_self_booking) {
+                return $this->sendError('Booking Not Allowed', ['error' => 'Self-booking is not allowed for this trainer'], 403);
+            }
+
+        
+            // Validate booking against trainer's settings
+            // if ($user->role === 'client') {
+            //     if (!$bookingSettings->isBookingAllowed($request->date, $request->start_time)) {
+            //         return $this->sendError('Booking Not Allowed', [
+            //             'error' => 'Booking not allowed based on trainer settings',
+            //             'booking_rules' => $bookingSettings->getBookingRules()
+            //         ], 403);
+            //     }
+            // }
+ 
+          
             // Check for conflicts
             $conflictingBooking = Schedule::where('trainer_id', $trainerId)
                 ->where('date', $request->date)
@@ -189,6 +211,20 @@ class SessionBookingController extends ApiBaseController
                 return $this->sendError('Conflict Error', ['error' => 'Time slot conflicts with existing booking'], 409);
             }
 
+            // Determine booking status based on settings and user role
+            $bookingStatus = Schedule::STATUS_CONFIRMED;
+            
+            if ($user->role === 'client') {
+                // For client bookings, check if approval is required
+                $bookingStatus = $bookingSettings->require_approval 
+                    ? Schedule::STATUS_PENDING 
+                    : Schedule::STATUS_CONFIRMED;
+            } else {
+                // Trainers can always create confirmed bookings
+                $bookingStatus = $request->get('status', Schedule::STATUS_CONFIRMED);
+            }
+
+            
             // Create the booking
             $booking = Schedule::create([
                 'trainer_id' => $trainerId,
@@ -196,18 +232,29 @@ class SessionBookingController extends ApiBaseController
                 'date' => $request->date,
                 'start_time' => $request->start_time,
                 'end_time' => $request->end_time,
-                'status' => $user->role === 'trainer' ? Schedule::STATUS_CONFIRMED : Schedule::STATUS_PENDING,
-                'notes' => $request->notes
-                // 'session_type' => $request->session_type
+                'status' => $bookingStatus,
+                'notes' => $request->get('notes') ?: $request->get('note'), // Support both 'notes' and 'note'
+                'meeting_agenda' => $request->get('title'), // Map 'title' to 'meeting_agenda'
+                'session_type' => $request->session_type
             ]);
-
+            
+            
             // Load relationships
             $booking->load(['trainer:id,name,email,phone', 'client:id,name,email,phone']);
 
             // Create Google Calendar event if booking is confirmed
             $googleEventResult = null;
+            $googleMessage = '';
             if ($booking->status === Schedule::STATUS_CONFIRMED) {
-                $googleEventResult = $booking->createGoogleCalendarEvent();
+                try {
+                    $googleCalendarService = new \App\Services\GoogleCalendarService();
+                    $googleEventResult = $googleCalendarService->createEvent($booking);
+                    $googleMessage = ' with Google Calendar event and Meet link';
+                } catch (\Exception $e) {
+                    // If Google Calendar event creation fails, still keep the booking but notify
+                    Log::error('Failed to create Google Calendar event for booking ' . $booking->id . ': ' . $e->getMessage());
+                    $googleMessage = ' (Google Calendar event could not be created: ' . $e->getMessage() . ')';
+                }
             }
 
             // Prepare response data
@@ -238,14 +285,7 @@ class SessionBookingController extends ApiBaseController
                 $responseData['google_event_created'] = false;
             }
 
-            $message = 'Booking created successfully';
-            if ($booking->status === Schedule::STATUS_CONFIRMED) {
-                if ($googleEventResult) {
-                    $message .= ' with Google Calendar event and Meet link';
-                } else {
-                    $message .= ' (Google Calendar event could not be created)';
-                }
-            }
+            $message = 'Booking created successfully' . $googleMessage;
 
             return $this->sendResponse($responseData, $message, 201);
 

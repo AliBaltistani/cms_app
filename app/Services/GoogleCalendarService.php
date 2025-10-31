@@ -517,6 +517,94 @@ class GoogleCalendarService
     }
 
     /**
+     * Get calendar events for a trainer within a date range
+     * 
+     * @param User $trainer
+     * @param string $startDate
+     * @param string $endDate
+     * @return array
+     * @throws Exception
+     */
+    public function getCalendarEvents(User $trainer, string $startDate, string $endDate): array
+    {
+        try {
+            if (!$trainer->google_token || $trainer->role !== 'trainer') {
+                throw new Exception('Trainer does not have Google Calendar connected');
+            }
+
+            // Set access token
+            $this->googleClient->setAccessToken($trainer->google_token);
+
+            // Check if token is expired and refresh if needed
+            if ($this->googleClient->isAccessTokenExpired()) {
+                if ($this->googleClient->getRefreshToken()) {
+                    $newToken = $this->googleClient->fetchAccessTokenWithRefreshToken();
+                    if (isset($newToken['error'])) {
+                        throw new Exception('Failed to refresh Google access token');
+                    }
+                    $trainer->google_token = $newToken;
+                    $trainer->save();
+                } else {
+                    throw new Exception('Google access token expired and no refresh token available');
+                }
+            }
+
+            // Create Calendar service
+            $calendarService = new Google_Service_Calendar($this->googleClient);
+
+            // Set time range
+            $timeMin = \Carbon\Carbon::parse($startDate)->startOfDay()->toRfc3339String();
+            $timeMax = \Carbon\Carbon::parse($endDate)->endOfDay()->toRfc3339String();
+
+            // Get events from Google Calendar
+            $optParams = [
+                'orderBy' => 'startTime',
+                'singleEvents' => true,
+                'timeMin' => $timeMin,
+                'timeMax' => $timeMax,
+                'maxResults' => 250
+            ];
+
+            $events = $calendarService->events->listEvents('primary', $optParams);
+            $eventList = [];
+
+            foreach ($events->getItems() as $event) {
+                $start = $event->getStart()->getDateTime() ?: $event->getStart()->getDate();
+                $end = $event->getEnd()->getDateTime() ?: $event->getEnd()->getDate();
+                
+                $eventList[] = [
+                    'id' => $event->getId(),
+                    'summary' => $event->getSummary(),
+                    'description' => $event->getDescription(),
+                    'start' => $start,
+                    'end' => $end,
+                    'location' => $event->getLocation(),
+                    'status' => $event->getStatus(),
+                    'html_link' => $event->getHtmlLink(),
+                    'created' => $event->getCreated(),
+                    'updated' => $event->getUpdated()
+                ];
+            }
+
+            Log::info('Google Calendar events retrieved', [
+                'trainer_id' => $trainer->id,
+                'event_count' => count($eventList),
+                'date_range' => [$startDate, $endDate]
+            ]);
+
+            return $eventList;
+
+        } catch (Exception $e) {
+            Log::error('Failed to retrieve Google Calendar events', [
+                'trainer_id' => $trainer->id,
+                'error' => $e->getMessage()
+            ]);
+
+            throw new Exception('Failed to retrieve Google Calendar events: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Alias for createCalendarEvent method
      * 
      * @param Schedule $schedule
