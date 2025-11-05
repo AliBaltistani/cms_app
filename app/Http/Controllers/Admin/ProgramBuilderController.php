@@ -3,6 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ProgramBuilder\StoreWeekRequest;
+use App\Http\Requests\ProgramBuilder\StoreDayRequest;
+use App\Http\Requests\ProgramBuilder\StoreCircuitRequest;
+use App\Http\Requests\ProgramBuilder\StoreExerciseRequest;
+use App\Http\Requests\ProgramBuilder\UpdateExerciseRequest;
+use App\Http\Requests\ProgramBuilder\UpdateExerciseWorkoutRequest;
 use App\Models\Program;
 use App\Models\Week;
 use App\Models\Day;
@@ -10,6 +16,7 @@ use App\Models\Circuit;
 use App\Models\ProgramExercise;
 use App\Models\ExerciseSet;
 use App\Models\Workout;
+use App\Models\ProgramColumnConfig;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -33,6 +40,102 @@ use Illuminate\Support\Facades\Validator;
  */
 class ProgramBuilderController extends Controller
 {
+    /**
+     * Return default column configuration structure.
+     * Mirrors the client default to ensure consistency when initializing.
+     */
+    private function defaultColumnConfig(): array
+    {
+        return [
+            [ 'id' => 'exercise', 'name' => 'Exercise', 'width' => '25%', 'type' => 'text', 'required' => true ],
+            [ 'id' => 'set1',    'name' => 'Set 1 - rep / w',  'width' => '12%', 'type' => 'text', 'required' => false ],
+            [ 'id' => 'set2',    'name' => 'Set 2 - rep / w',  'width' => '12%', 'type' => 'text', 'required' => false ],
+            [ 'id' => 'set3',    'name' => 'Set 3 - rep / w',  'width' => '12%', 'type' => 'text', 'required' => false ],
+            [ 'id' => 'set4',    'name' => 'Set 4 - reps / w', 'width' => '12%', 'type' => 'text', 'required' => false ],
+            [ 'id' => 'set5',    'name' => 'Set 5 - reps / w', 'width' => '12%', 'type' => 'text', 'required' => false ],
+            [ 'id' => 'notes',   'name' => 'Notes',            'width' => '15%', 'type' => 'text', 'required' => false ],
+        ];
+    }
+
+    /**
+     * Get the program's column configuration.
+     *
+     * @param  Program $program The Program instance resolved from route.
+     * @return JsonResponse     Returns JSON with success flag and columns array.
+     * @throws \Exception      On unexpected retrieval errors (logged internally).
+     */
+    public function getColumnConfig(Program $program): JsonResponse
+    {
+        try {
+            $config = ProgramColumnConfig::where('program_id', $program->id)->first();
+
+            if (!$config) {
+                // Initialize with defaults
+                $config = ProgramColumnConfig::create([
+                    'program_id' => $program->id,
+                    'columns' => $this->defaultColumnConfig(),
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'columns' => $config->columns,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in ProgramBuilderController@getColumnConfig: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load program column configuration',
+            ], 500);
+        }
+    }
+
+    /**
+     * Update the program's column configuration.
+     *
+     * @param  Request $request The incoming request containing the columns array.
+     * @param  Program $program The Program instance resolved from route.
+     * @return JsonResponse     Returns JSON with success flag and saved columns array.
+     * @throws \Exception      On unexpected save errors (logged internally).
+     */
+    public function updateColumnConfig(Request $request, Program $program): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'columns' => 'required|array|min:1',
+                'columns.*.id' => 'required|string|max:100',
+                'columns.*.name' => 'required|string|max:255',
+                'columns.*.width' => 'required|string|max:10',
+                'columns.*.type' => 'required|string|in:text,number',
+                'columns.*.required' => 'required|boolean',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $config = ProgramColumnConfig::updateOrCreate(
+                ['program_id' => $program->id],
+                ['columns' => $request->input('columns')]
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Column configuration updated',
+                'columns' => $config->columns,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in ProgramBuilderController@updateColumnConfig: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update program column configuration',
+            ], 500);
+        }
+    }
     /**
      * Show the program builder interface
      * 
@@ -58,28 +161,16 @@ class ProgramBuilderController extends Controller
      * @param  \App\Models\Program  $program
      * @return \Illuminate\Http\JsonResponse
      */
-    public function addWeek(Request $request, Program $program): JsonResponse
+    public function addWeek(StoreWeekRequest $request, Program $program): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'week_number' => 'required|integer|min:1',
-                'title' => 'nullable|string|max:255',
-                'description' => 'nullable|string'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
+            $validated = $request->validated();
 
             $week = Week::create([
                 'program_id' => $program->id,
-                'week_number' => $request->week_number,
-                'title' => $request->title,
-                'description' => $request->description
+                'week_number' => $validated['week_number'],
+                'title' => $validated['title'] ?? null,
+                'description' => $validated['description'] ?? null
             ]);
 
             return response()->json([
@@ -103,30 +194,17 @@ class ProgramBuilderController extends Controller
      * @param  \App\Models\Week  $week
      * @return \Illuminate\Http\JsonResponse
      */
-    public function addDay(Request $request, Week $week): JsonResponse
+    public function addDay(StoreDayRequest $request, Week $week): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'day_number' => 'required|integer|min:1',
-                'title' => 'required|string|max:255',
-                'description' => 'nullable|string',
-                'cool_down' => 'nullable|string'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
+            $validated = $request->validated();
 
             $day = Day::create([
                 'week_id' => $week->id,
-                'day_number' => $request->day_number,
-                'title' => $request->title,
-                'description' => $request->description,
-                'cool_down' => $request->cool_down
+                'day_number' => $validated['day_number'],
+                'title' => $validated['title'] ?? null,
+                'description' => $validated['description'] ?? null,
+                'cool_down' => $validated['cool_down'] ?? null
             ]);
 
             return response()->json([
@@ -150,28 +228,16 @@ class ProgramBuilderController extends Controller
      * @param  \App\Models\Day  $day
      * @return \Illuminate\Http\JsonResponse
      */
-    public function addCircuit(Request $request, Day $day): JsonResponse
+    public function addCircuit(StoreCircuitRequest $request, Day $day): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'circuit_number' => 'required|integer|min:1',
-                'title' => 'nullable|string|max:255',
-                'description' => 'nullable|string'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
+            $validated = $request->validated();
 
             $circuit = Circuit::create([
                 'day_id' => $day->id,
-                'circuit_number' => $request->circuit_number,
-                'title' => $request->title,
-                'description' => $request->description
+                'circuit_number' => $validated['circuit_number'],
+                'title' => $validated['title'] ?? null,
+                'description' => $validated['description'] ?? null
             ]);
 
             return response()->json([
@@ -195,42 +261,25 @@ class ProgramBuilderController extends Controller
      * @param  \App\Models\Circuit  $circuit
      * @return \Illuminate\Http\JsonResponse
      */
-    public function addExercise(Request $request, Circuit $circuit): JsonResponse
+    public function addExercise(StoreExerciseRequest $request, Circuit $circuit): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'workout_id' => 'required|exists:workouts,id',
-                'order' => 'required|integer|min:0',
-                'tempo' => 'nullable|string|max:50',
-                'rest_interval' => 'nullable|string|max:50',
-                'notes' => 'nullable|string',
-                'sets' => 'required|array|min:1',
-                'sets.*.set_number' => 'required|integer|min:1',
-                'sets.*.reps' => 'nullable|integer|min:0',
-                'sets.*.weight' => 'nullable|numeric|min:0'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
+            $validated = $request->validated();
 
             DB::beginTransaction();
 
             $programExercise = ProgramExercise::create([
                 'circuit_id' => $circuit->id,
-                'workout_id' => $request->workout_id,
-                'order' => $request->order,
-                'tempo' => $request->tempo,
-                'rest_interval' => $request->rest_interval,
-                'notes' => $request->notes
+                'workout_id' => $validated['workout_id'] ?? null,
+                'name' => $validated['name'] ?? null,
+                'order' => $validated['order'],
+                'tempo' => $validated['tempo'] ?? null,
+                'rest_interval' => $validated['rest_interval'] ?? null,
+                'notes' => $validated['notes'] ?? null
             ]);
 
             // Add exercise sets
-            foreach ($request->sets as $setData) {
+            foreach ($validated['sets'] as $setData) {
                 ExerciseSet::create([
                     'program_exercise_id' => $programExercise->id,
                     'set_number' => $setData['set_number'],
@@ -265,23 +314,13 @@ class ProgramBuilderController extends Controller
      * @param  \App\Models\ProgramExercise  $programExercise
      * @return \Illuminate\Http\JsonResponse
      */
-    public function updateExerciseWorkout(Request $request, ProgramExercise $programExercise): JsonResponse
+    public function updateExerciseWorkout(UpdateExerciseWorkoutRequest $request, ProgramExercise $programExercise): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'workout_id' => 'required|exists:workouts,id'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
+            $validated = $request->validated();
 
             $programExercise->update([
-                'workout_id' => $request->workout_id
+                'workout_id' => $validated['workout_id']
             ]);
 
             $programExercise->load(['workout', 'exerciseSets']);
@@ -307,29 +346,13 @@ class ProgramBuilderController extends Controller
      * @param  \App\Models\ProgramExercise  $programExercise
      * @return \Illuminate\Http\JsonResponse
      */
-    public function updateExercise(Request $request, ProgramExercise $programExercise): JsonResponse
+    public function updateExercise(UpdateExerciseRequest $request, ProgramExercise $programExercise): JsonResponse
     {
         try {
             // Debug: Log the program exercise ID to ensure it's not null
             Log::info('UpdateExercise called with ProgramExercise ID: ' . $programExercise->id);
             
-            $validator = Validator::make($request->all(), [
-                'tempo' => 'nullable|string|max:50',
-                'rest_interval' => 'nullable|string|max:50',
-                'notes' => 'nullable|string',
-                'sets' => 'required|array|min:1',
-                'sets.*.set_number' => 'required|integer|min:1',
-                'sets.*.reps' => 'nullable|integer|min:0',
-                'sets.*.weight' => 'nullable|numeric|min:0'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
+            $validated = $request->validated();
 
             // Ensure the program exercise exists and has a valid ID
             if (!$programExercise || !$programExercise->id) {
@@ -343,15 +366,16 @@ class ProgramBuilderController extends Controller
             DB::beginTransaction();
 
             $programExercise->update([
-                'tempo' => $request->tempo,
-                'rest_interval' => $request->rest_interval,
-                'notes' => $request->notes
+                'name' => $validated['name'] ?? $programExercise->name,
+                'tempo' => $validated['tempo'] ?? null,
+                'rest_interval' => $validated['rest_interval'] ?? null,
+                'notes' => $validated['notes'] ?? null
             ]);
 
             // Delete existing sets and recreate
             $programExercise->exerciseSets()->delete();
 
-            foreach ($request->sets as $setData) {
+            foreach ($validated['sets'] as $setData) {
                 // Debug: Log the program exercise ID before creating sets
                 Log::info('Creating ExerciseSet with program_exercise_id: ' . $programExercise->id);
                 
@@ -617,6 +641,7 @@ class ProgramBuilderController extends Controller
                         $newExercise = ProgramExercise::create([
                             'circuit_id' => $newCircuit->id,
                             'workout_id' => $originalExercise->workout_id,
+                            'name' => $originalExercise->name,
                             'order' => $originalExercise->order,
                             'tempo' => $originalExercise->tempo,
                             'rest_interval' => $originalExercise->rest_interval,
@@ -645,10 +670,15 @@ class ProgramBuilderController extends Controller
                 'program_id' => $originalWeek->program_id
             ]);
 
+            // Reload the newly created week with nested relationships for UI rendering
+            $newWeekLoaded = Week::with([
+                'days.circuits.programExercises.exerciseSets'
+            ])->find($newWeek->id);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Week duplicated successfully',
-                'week' => $newWeek
+                'week' => $newWeekLoaded
             ]);
 
         } catch (\Exception $e) {
@@ -657,6 +687,108 @@ class ProgramBuilderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while duplicating the week'
+            ], 500);
+        }
+    }
+
+    /**
+     * Duplicate a day with its circuits, exercises and sets
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Models\Day  $day
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function duplicateDay(Request $request, Day $day): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'day_number' => 'required|integer|min:1',
+                'title' => 'nullable|string|max:255',
+                'description' => 'nullable|string',
+                'cool_down' => 'nullable|string'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Enforce unique day_number within the same week
+            $existingDay = Day::where('week_id', $day->week_id)
+                              ->where('day_number', $request->day_number)
+                              ->first();
+            if ($existingDay) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Day number already exists in this week',
+                    'errors' => ['day_number' => ['Day number already exists']]
+                ], 422);
+            }
+
+            DB::beginTransaction();
+
+            // Load original day with nested relations
+            $originalDay = Day::with(['circuits.programExercises.exerciseSets'])->find($day->id);
+
+            // Create the new day
+            $newDay = Day::create([
+                'week_id' => $originalDay->week_id,
+                'day_number' => $request->day_number,
+                'title' => $request->title ?: $originalDay->title,
+                'description' => $request->description ?: $originalDay->description,
+                'cool_down' => $request->cool_down ?: $originalDay->cool_down,
+            ]);
+
+            // Duplicate circuits
+            foreach ($originalDay->circuits as $originalCircuit) {
+                $newCircuit = Circuit::create([
+                    'day_id' => $newDay->id,
+                    'circuit_number' => $originalCircuit->circuit_number,
+                    'title' => $originalCircuit->title,
+                    'description' => $originalCircuit->description,
+                ]);
+
+                foreach ($originalCircuit->programExercises as $originalExercise) {
+                    $newExercise = ProgramExercise::create([
+                        'circuit_id' => $newCircuit->id,
+                        'workout_id' => $originalExercise->workout_id,
+                        'name' => $originalExercise->name,
+                        'order' => $originalExercise->order,
+                        'tempo' => $originalExercise->tempo,
+                        'rest_interval' => $originalExercise->rest_interval,
+                        'notes' => $originalExercise->notes,
+                    ]);
+
+                    foreach ($originalExercise->exerciseSets as $originalSet) {
+                        ExerciseSet::create([
+                            'program_exercise_id' => $newExercise->id,
+                            'set_number' => $originalSet->set_number,
+                            'reps' => $originalSet->reps,
+                            'weight' => $originalSet->weight,
+                        ]);
+                    }
+                }
+            }
+
+            DB::commit();
+
+            // Load the duplicated day with relations for UI
+            $newDayLoaded = Day::with(['circuits.programExercises.exerciseSets'])->find($newDay->id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Day duplicated successfully',
+                'day' => $newDayLoaded,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error in ProgramBuilderController@duplicateDay: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while duplicating the day'
             ], 500);
         }
     }

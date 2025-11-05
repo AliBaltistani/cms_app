@@ -365,6 +365,7 @@ class ProgramController extends Controller
                         foreach ($circuit->programExercises as $programExercise) {
                             $duplicatedProgramExercise = $duplicatedCircuit->programExercises()->create([
                                 'workout_id' => $programExercise->workout_id,
+                                'name' => $programExercise->name,
                                 'order' => $programExercise->order,
                                 'tempo' => $programExercise->tempo,
                                 'rest_interval' => $programExercise->rest_interval,
@@ -474,6 +475,7 @@ class ProgramController extends Controller
                         foreach ($circuit->programExercises as $programExercise) {
                             $assignedProgramExercise = $assignedCircuit->programExercises()->create([
                                 'workout_id' => $programExercise->workout_id,
+                                'name' => $programExercise->name,
                                 'order' => $programExercise->order,
                                 'tempo' => $programExercise->tempo,
                                 'rest_interval' => $programExercise->rest_interval,

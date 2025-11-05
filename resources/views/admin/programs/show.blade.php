@@ -71,9 +71,9 @@
             <a href="{{ route('program-builder.show', $program->id) }}" class="btn btn-success me-2">
                 <i class="fas fa-hammer me-2"></i>Program Builder
             </a>
-            <a href="{{ route('programs.edit', $program->id) }}" class="btn btn-primary me-2">
+            {{-- <a href="{{ route('programs.edit', $program->id) }}" class="btn btn-primary me-2">
                 <i class="fas fa-edit me-2"></i>Edit Program
-            </a>
+            </a> --}}
             <a href="{{ route('programs.index') }}" class="btn btn-secondary">
                 <i class="fas fa-arrow-left me-2"></i>Back to Programs
             </a>

@@ -31,6 +31,7 @@ class ProgramExercise extends Model
     protected $fillable = [
         'circuit_id',
         'workout_id',
+        'name',
         'order',
         'tempo',
         'rest_interval',

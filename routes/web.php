@@ -273,6 +273,9 @@ Route::middleware('auth')->group(function () {
         // Program Builder Routes
         Route::prefix('program-builder')->group(function () {
             Route::get('/{program}', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'show'])->name('program-builder.show');
+            // Column Configuration (CRUD via whole-array upserts)
+            Route::get('/{program}/columns', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'getColumnConfig'])->name('program-builder.columns.show');
+            Route::put('/{program}/columns', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'updateColumnConfig'])->name('program-builder.columns.update');
             
             // Week management
             Route::post('/{program}/weeks', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'addWeek'])->name('program-builder.weeks.store');
@@ -285,6 +288,7 @@ Route::middleware('auth')->group(function () {
             // Day management
             Route::post('/weeks/{week}/days', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'addDay'])->name('program-builder.days.store');
             Route::get('/days/{day}/edit', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'editDay'])->name('program-builder.days.edit');
+            Route::post('/days/{day}/duplicate', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'duplicateDay'])->name('program-builder.days.duplicate');
             Route::put('/days/{day}', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'updateDay'])->name('program-builder.days.update');
             Route::delete('/days/{day}', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'removeDay'])->name('program-builder.days.destroy');
             Route::put('/weeks/{week}/days/reorder', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'reorderDays'])->name('program-builder.days.reorder');
