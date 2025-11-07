@@ -77,7 +77,7 @@ Route::middleware('auth:sanctum')->group(function () {
      * Unified Schedule API
      * Accessible by both trainers and clients with role-based filtering
      */
-    Route::get('/schedule', [\App\Http\Controllers\Api\ClientBookingController::class, 'getUnifiedSchedule'])->name('api.schedule.unified');
+    // Route::get('/appointment', [\App\Http\Controllers\Api\ClientBookingController::class, 'getUnifiedSchedule'])->name('api.appointment.unified');
 
     /**
      * =========================================================================
@@ -309,17 +309,19 @@ Route::middleware('auth:sanctum')->group(function () {
          * Client Booking Management
          * Complete booking operations for clients with Google Calendar integration
          */
-        Route::prefix('bookings')->name('bookings.')->group(function () {
-            // Basic booking operations
-            Route::get('/', [\App\Http\Controllers\Api\ClientBookingController::class, 'getClientBookings'])->name('index');
-            Route::get('/events', [\App\Http\Controllers\Api\ClientBookingController::class, 'getClientBookingsAsEvents'])->name('events');
-            Route::post('/', [\App\Http\Controllers\Api\ClientBookingController::class, 'requestBooking'])->name('store');
-            Route::delete('/{id}', [\App\Http\Controllers\Api\ClientBookingController::class, 'cancelBooking'])->name('cancel');
+        // Route::prefix('appointment')->name('appointment.')->group(function () {
+        //     // Basic booking operations
+        //     Route::get('/', [\App\Http\Controllers\Api\ClientBookingController::class, 'getClientBookings'])->name('index');
+        //     Route::get('/events', [\App\Http\Controllers\Api\ClientBookingController::class, 'getClientBookingsAsEvents'])->name('events');
+        //     Route::post('/', [\App\Http\Controllers\Api\ClientBookingController::class, 'requestBooking'])->name('store');
+        //     Route::put('/{id}', [\App\Http\Controllers\Api\ClientBookingController::class, 'updateBooking'])->name('update');
+        //     Route::delete('/{id}/destroy', [\App\Http\Controllers\Api\ClientBookingController::class, 'deleteBooking'])->name('destroy');
+        //     // Route::delete('/{id}', [\App\Http\Controllers\Api\ClientBookingController::class, 'cancelBooking'])->name('cancel');
             
-            // Google Calendar integration
-            Route::get('/trainer-google-calendar/status', [\App\Http\Controllers\Api\ClientBookingController::class, 'checkTrainerGoogleCalendarStatus'])->name('trainer-google-calendar.status');
-            Route::get('/trainer-google-calendar/events', [\App\Http\Controllers\Api\ClientBookingController::class, 'getTrainerGoogleCalendarEvents'])->name('trainer-google-calendar.events');
-        });
+        //     // Google Calendar integration
+        //     Route::get('/trainer-google-calendar/status', [\App\Http\Controllers\Api\ClientBookingController::class, 'checkTrainerGoogleCalendarStatus'])->name('trainer-google-calendar.status');
+        //     Route::get('/trainer-google-calendar/events', [\App\Http\Controllers\Api\ClientBookingController::class, 'getTrainerGoogleCalendarEvents'])->name('trainer-google-calendar.events');
+        // });
 
         /**
          * Client Trainer Management
@@ -450,7 +452,7 @@ Route::prefix('system')->name('api.system.')->group(function () {
  * Unified API for session booking management with role-based access control
  * Supports both client-initiated and trainer-initiated bookings with Google Calendar integration
  */
-Route::middleware(['auth:sanctum'])->prefix('session-bookings')->name('api.session-bookings.')->group(function () {
+Route::middleware(['auth:sanctum'])->prefix('appointment')->name('api.appointment.')->group(function () {
     // Basic CRUD operations
     Route::get('/', [SessionBookingController::class, 'index'])->name('index');
     Route::post('/', [SessionBookingController::class, 'store'])->name('store');
@@ -459,7 +461,7 @@ Route::middleware(['auth:sanctum'])->prefix('session-bookings')->name('api.sessi
     Route::delete('/{id}', [SessionBookingController::class, 'destroy'])->name('destroy');
     
     // Status management (trainers only)
-    Route::patch('/{id}/status', [SessionBookingController::class, 'updateStatus'])->name('update-status');
+    // Route::patch('/{id}/status', [SessionBookingController::class, 'updateStatus'])->name('update-status');
     
     // Availability and scheduling
     Route::get('/available-slots', [SessionBookingController::class, 'getAvailableSlots'])->name('available-slots');

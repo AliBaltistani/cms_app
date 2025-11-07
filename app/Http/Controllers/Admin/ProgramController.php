@@ -189,7 +189,9 @@ class ProgramController extends Controller
                 'is_active' => $request->has('is_active')
             ]);
 
-            return redirect()->route('programs.index')
+            // return redirect()->route('programs.index')
+            //                ->with('success', 'Program created successfully.');
+            return redirect()->route('program-builder.show', $program->id)
                            ->with('success', 'Program created successfully.');
         } catch (\Exception $e) {
             Log::error('Error in ProgramController@store: ' . $e->getMessage());

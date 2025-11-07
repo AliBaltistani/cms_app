@@ -207,159 +207,97 @@ class ClientBookingController extends ApiBaseController
         try {
             $validator = Validator::make($request->all(), [
                 'trainer_id' => 'required|exists:users,id',
+                'client_id' => 'required|exists:users,id',
                 'date' => 'required|date|after_or_equal:today',
                 'start_time' => 'required|date_format:H:i',
+                'end_time' => 'required|date_format:H:i|after:start_time',
+                'status' => 'required|in:pending,confirmed,cancelled',
                 'notes' => 'nullable|string|max:500',
+                'title' => 'nullable|string|max:255',
+                'timezone' => 'nullable|string|max:255',
             ]);
 
             if ($validator->fails()) {
                 return $this->sendError('Validation Error', $validator->errors(), 422);
             }
 
-            $clientId = Auth::id();
-            $trainerId = $request->trainer_id;
-
-            // Verify trainer exists and is active
-            $trainer = User::where('id', $trainerId)
+            // Verify trainer and client roles (match Admin store logic)
+            $trainer = User::where('id', $request->trainer_id)
                 ->where('role', 'trainer')
                 ->first();
 
-            if (!$trainer) {
-                return $this->sendError('Trainer not found', [], 404);
+            $client = User::where('id', $request->client_id)
+                ->where('role', 'client')
+                ->first();
+
+            if (!$trainer || !$client) {
+                return $this->sendError('Invalid trainer or client selected', [], 404);
             }
 
-            // Get trainer's booking settings and session capacity
-            $bookingSettings = BookingSetting::getOrCreateForTrainer($trainerId);
-            $sessionCapacity = SessionCapacity::getOrCreateForTrainer($trainerId);
+            // Check for conflicts (unless admin override)
+            if (!$request->has('override_conflicts')) {
+                $conflictingBooking = Schedule::where('trainer_id', $request->trainer_id)
+                    ->where('date', $request->date)
+                    ->where('status', '!=', Schedule::STATUS_CANCELLED)
+                    ->where(function ($query) use ($request) {
+                        $query->whereBetween('start_time', [$request->start_time, $request->end_time])
+                              ->orWhereBetween('end_time', [$request->start_time, $request->end_time])
+                              ->orWhere(function ($q) use ($request) {
+                                  $q->where('start_time', '<=', $request->start_time)
+                                    ->where('end_time', '>=', $request->end_time);
+                              });
+                    })
+                    ->exists();
 
-            // Calculate end time based on session duration
-            $startTime = Carbon::createFromFormat('H:i', $request->start_time);
-            $endTime = $startTime->copy()->addMinutes($sessionCapacity->session_duration_minutes);
-
-            // Validate booking is allowed
-            if (!$bookingSettings->isBookingAllowed($request->date, $request->start_time)) {
-                return $this->sendError('Booking not allowed for this date and time');
+                if ($conflictingBooking) {
+                    return $this->sendError('Time slot conflicts with existing booking');
+                }
             }
 
-            // Check for conflicts with existing bookings
-            $conflictingBooking = Schedule::forTrainer($trainerId)
-                ->where('date', $request->date)
-                ->where('status', '!=', Schedule::STATUS_CANCELLED)
-                ->where(function ($query) use ($request, $endTime) {
-                    $query->whereBetween('start_time', [$request->start_time, $endTime->format('H:i:s')])
-                          ->orWhereBetween('end_time', [$request->start_time, $endTime->format('H:i:s')])
-                          ->orWhere(function ($q) use ($request, $endTime) {
-                              $q->where('start_time', '<=', $request->start_time)
-                                ->where('end_time', '>=', $endTime->format('H:i:s'));
-                          });
-                })
-                ->exists();
-
-            if ($conflictingBooking) {
-                return $this->sendError('Time slot is already booked');
-            }
-
-            // Check for blocked times
-            $blockedTime = BlockedTime::forTrainer($trainerId)
-                ->forDate($request->date)
-                ->where(function ($query) use ($request, $endTime) {
-                    $query->where(function ($q) use ($request, $endTime) {
-                        $q->where('start_time', '<=', $request->start_time)
-                          ->where('end_time', '>', $request->start_time);
-                    })->orWhere(function ($q) use ($request, $endTime) {
-                        $q->where('start_time', '<', $endTime->format('H:i:s'))
-                          ->where('end_time', '>=', $endTime->format('H:i:s'));
-                    });
-                })
-                ->exists();
-
-            if ($blockedTime) {
-                return $this->sendError('Time slot is blocked by trainer');
-            }
-
-            // Check daily capacity
-            if (!$sessionCapacity->canAcceptMoreSessionsOnDate($request->date)) {
-                return $this->sendError('Trainer has reached daily session limit');
-            }
-
-            // Check weekly capacity
-            if (!$sessionCapacity->canAcceptMoreSessionsInWeek($request->date)) {
-                return $this->sendError('Trainer has reached weekly session limit');
-            }
-
-            // Determine initial status based on booking settings
-            $status = $bookingSettings->require_approval ? Schedule::STATUS_PENDING : Schedule::STATUS_CONFIRMED;
-
-            // Create the booking
+            // Create the booking (mirror Admin store)
             $schedule = Schedule::create([
-                'trainer_id' => $trainerId,
-                'client_id' => $clientId,
+                'trainer_id' => $request->trainer_id,
+                'client_id' => $request->client_id,
                 'date' => $request->date,
                 'start_time' => $request->start_time,
-                'end_time' => $endTime->format('H:i:s'),
-                'status' => $status,
+                'end_time' => $request->end_time,
+                'status' => $request->status,
                 'notes' => $request->notes,
             ]);
 
-            $schedule->load(['trainer:id,name,email,phone', 'client:id,name,email,phone']);
-
-            // Create Google Calendar event if booking is confirmed and trainer is connected
+            // Create Google Calendar event if booking is confirmed
             $googleEventResult = null;
-            if ($status === Schedule::STATUS_CONFIRMED && $this->googleCalendarService->isTrainerConnected($trainer)) {
-                try {
-                    $googleEventResult = $this->googleCalendarService->createCalendarEvent($schedule);
-                } catch (\Exception $e) {
-                    Log::warning('Failed to create Google Calendar event for client booking', [
-                        'schedule_id' => $schedule->id,
-                        'error' => $e->getMessage()
-                    ]);
+            if ($request->status === Schedule::STATUS_CONFIRMED) {
+                $googleEventResult = $schedule->createGoogleCalendarEvent();
+            }
+
+            $message = 'Booking created successfully';
+            if ($request->status === Schedule::STATUS_CONFIRMED) {
+                if ($googleEventResult) {
+                    $message .= ' with Google Calendar event and Meet link';
+                } else {
+                    $message .= ' (Google Calendar event could not be created)';
                 }
             }
 
-            // Prepare response data in Event format
-            $startDateTime = Carbon::parse($schedule->date . ' ' . $schedule->start_time);
-            $endDateTime = Carbon::parse($schedule->date . ' ' . $schedule->end_time);
-            
+            // Prepare response data similar to Admin flow
             $responseData = [
                 'id' => $schedule->id,
-                'title' => 'Training Session',
-                'date' => $startDateTime->toISOString(),
-                'time' => $startDateTime->format('g:i A') . ' - ' . $endDateTime->format('g:i A'),
-                'googleLink' => $schedule->meet_link ?? '',
-                'trainer' => $schedule->trainer->name,
+                'trainer_id' => $schedule->trainer_id,
+                'client_id' => $schedule->client_id,
+                'date' => $schedule->date,
+                'start_time' => $schedule->start_time,
+                'end_time' => $schedule->end_time,
                 'status' => $schedule->status,
                 'notes' => $schedule->notes,
-                'duration_minutes' => $schedule->getDurationInMinutes(),
+                'meet_link' => $schedule->meet_link,
                 'google_event_id' => $schedule->google_event_id,
-                'created_at' => $schedule->created_at->toISOString(),
-                'updated_at' => $schedule->updated_at->toISOString()
             ];
-
-            // Update meet_link if Google Calendar event was created
-            if ($googleEventResult && isset($googleEventResult['meet_link'])) {
-                $responseData['googleLink'] = $googleEventResult['meet_link'];
-                $responseData['google_event_created'] = true;
-            } else {
-                $responseData['google_event_created'] = false;
-            }
-
-            $message = $status === Schedule::STATUS_PENDING 
-                ? 'Booking request submitted successfully. Waiting for trainer approval.' 
-                : 'Booking confirmed successfully.';
-
-            // Add Google Calendar status to message if applicable
-            if ($status === Schedule::STATUS_CONFIRMED) {
-                if ($googleEventResult) {
-                    $message .= ' Google Calendar event created with Meet link.';
-                } else {
-                    $message .= ' Note: Google Calendar event could not be created.';
-                }
-            }
 
             return $this->sendResponse($responseData, $message);
 
         } catch (\Exception $e) {
-            return $this->sendError('Server Error', ['error' => $e->getMessage()], 500);
+            return $this->sendError('Error creating booking', ['error' => $e->getMessage()], 500);
         }
     }
 
@@ -451,6 +389,125 @@ class ClientBookingController extends ApiBaseController
 
         } catch (\Exception $e) {
             return $this->sendError('Server Error', ['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Update the specified booking (API)
+     * Mirrors Admin BookingController::update with JSON responses
+     * 
+     * @param Request $request
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function updateBooking(Request $request, int $id): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'trainer_id' => 'required|exists:users,id',
+            'client_id' => 'required|exists:users,id',
+            'date' => 'required|date',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
+            'status' => 'required|in:pending,confirmed,cancelled',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('Validation Error', $validator->errors(), 422);
+        }
+
+        try {
+            
+            $booking = Schedule::findOrFail($id);
+            // Check for conflicts (unless admin override or same booking)
+            if (!$request->has('override_conflicts')) {
+                $conflictingBooking = Schedule::where('trainer_id', $request->trainer_id)
+                    ->where('date', $request->date)
+                    ->where('id', '!=', $id)
+                    ->where('status', '!=', Schedule::STATUS_CANCELLED)
+                    ->where(function ($query) use ($request) {
+                        $query->whereBetween('start_time', [$request->start_time, $request->end_time])
+                              ->orWhereBetween('end_time', [$request->start_time, $request->end_time])
+                              ->orWhere(function ($q) use ($request) {
+                                  $q->where('start_time', '<=', $request->start_time)
+                                    ->where('end_time', '>=', $request->end_time);
+                              });
+                    })
+                    ->exists();
+
+                if ($conflictingBooking) {
+                    return $this->sendError('Time slot conflicts with existing booking');
+                }
+            }
+
+            $oldStatus = $booking->status;
+            
+            $booking->update([
+                'trainer_id' => $request->trainer_id,
+                'client_id' => $request->client_id,
+                'date' => $request->date,
+                'start_time' => $request->start_time,
+                'end_time' => $request->end_time,
+                'status' => $request->status,
+                'notes' => $request->notes,
+            ]);
+
+            // Handle Google Calendar events based on status change
+            $googleMessage = '';
+            
+            if ($request->status === Schedule::STATUS_CONFIRMED && $oldStatus !== Schedule::STATUS_CONFIRMED) {
+                // Create or update Google Calendar event when confirming
+                $googleEventResult = $booking->hasGoogleCalendarEvent() 
+                    ? $booking->updateGoogleCalendarEvent() 
+                    : $booking->createGoogleCalendarEvent();
+                    
+                if ($googleEventResult) {
+                    $googleMessage = ' with Google Calendar event and Meet link';
+                } else {
+                    $googleMessage = ' (Google Calendar event could not be created)';
+                }
+            } elseif ($request->status === Schedule::STATUS_CANCELLED && $booking->hasGoogleCalendarEvent()) {
+                // Delete Google Calendar event when cancelling
+                $deleteResult = $booking->deleteGoogleCalendarEvent();
+                if ($deleteResult) {
+                    $googleMessage = ' and Google Calendar event deleted';
+                } else {
+                    $googleMessage = ' (Google Calendar event could not be deleted)';
+                }
+            } elseif ($oldStatus !== $request->status && $booking->hasGoogleCalendarEvent()) {
+                // Update existing Google Calendar event for other status changes
+                $updateResult = $booking->updateGoogleCalendarEvent();
+                if ($updateResult) {
+                    $googleMessage = ' and Google Calendar event updated';
+                }
+            }
+
+            $message = 'Booking updated successfully' . $googleMessage;
+
+            return $this->sendResponse($booking, $message);
+
+        } catch (\Exception $e) {
+            return $this->sendError('Error updating booking: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Remove the specified booking (API)
+     * Mirrors Admin BookingController::destroy with JSON responses
+     * 
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function deleteBooking(int $id): JsonResponse
+    {
+        try {
+            $booking = Schedule::findOrFail($id);
+            $booking->delete();
+
+            return $this->sendResponse(['deleted' => true], 'Booking deleted successfully');
+
+        } catch (\Exception $e) {
+            return $this->sendError('Error deleting booking: ' . $e->getMessage());
         }
     }
 

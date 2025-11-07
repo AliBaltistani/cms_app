@@ -372,10 +372,10 @@
         alert.style.backgroundColor = 'rgba(0,0,0,0.03)';
         alert.innerHTML = `<i class="bi ${type === 'success' ? 'bi-check-circle' : (type === 'error' ? 'bi-exclamation-triangle' : 'bi-info-circle')} me-2" style="color:${color}"></i>${message}`;
         const headerCard = document.querySelector('.card-body');
-        if (headerCard) {
-            headerCard.insertAdjacentElement('afterend', alert);
-            setTimeout(() => alert.remove(), 4000);
-        }
+        // if (headerCard) {
+        //     headerCard.insertAdjacentElement('afterend', alert);
+        //     setTimeout(() => alert.remove(), 4000);
+        // }
     }
 
     function showAjaxError(err, fallbackMsg = 'Operation failed') {

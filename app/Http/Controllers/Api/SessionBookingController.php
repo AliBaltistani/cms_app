@@ -56,7 +56,9 @@ class SessionBookingController extends ApiBaseController
             $user = Auth::user();
             $perPage = $request->get('per_page', 15);
             $status = $request->get('status');
-            $startDate = $request->get('start_date');
+            // Default to filtering from "today" onward if no start_date provided
+            // Uses the app timezone to respect localization preferences
+            $startDate = $request->get('start_date', Carbon::now(config('app.timezone'))->toDateString());
             $endDate = $request->get('end_date');
 
             // Build query based on user role
@@ -75,8 +77,11 @@ class SessionBookingController extends ApiBaseController
                 $query->withStatus($status);
             }
 
-            if ($startDate && $endDate) {
+            // Apply date filters: if end_date present use range, else return from today onward
+            if ($endDate) {
                 $query->dateRange($startDate, $endDate);
+            } else {
+                $query->whereDate('date', '>=', $startDate);
             }
 
             // Order by date and time
@@ -88,13 +93,13 @@ class SessionBookingController extends ApiBaseController
             $transformedBookings = $bookings->getCollection()->map(function ($booking) {
                 return [
                     'id' => $booking->id,
-                    'trainer' => $booking->trainer,
-                    'client' => $booking->client,
+                    'title' => $booking->meeting_agenda,
                     'date' => $booking->date->format('Y-m-d'),
                     'start_time' => $booking->start_time->format('H:i'),
                     'end_time' => $booking->end_time->format('H:i'),
                     'status' => $booking->status,
                     'notes' => $booking->notes,
+                    'timezone' => $booking->timezone,
                     'duration_minutes' => $booking->getDurationInMinutes(),
                     'google_event_id' => $booking->google_event_id,
                     'meet_link' => $booking->meet_link,
@@ -102,7 +107,9 @@ class SessionBookingController extends ApiBaseController
                     'has_meet_link' => $booking->hasGoogleMeetLink(),
                     'can_be_cancelled' => $booking->canBeCancelled(),
                     'created_at' => $booking->created_at,
-                    'updated_at' => $booking->updated_at
+                    'updated_at' => $booking->updated_at,
+                    'trainer' => $booking->trainer,
+                    'client' => $booking->client
                 ];
             });
 
@@ -132,10 +139,13 @@ class SessionBookingController extends ApiBaseController
 
             // Validation rules
             $rules = [
-                'title' => 'nullable|string|max:255',
+                'trainer_id' => 'required|exists:users,id',
+                'client_id' => 'required|exists:users,id',
+                'title' => 'required|string|max:255',
                 'date' => 'required|date|after_or_equal:today',
                 'start_time' => 'required|date_format:H:i',
                 'end_time' => 'required|date_format:H:i|after:start_time',
+                'timezone' => 'required|string',
                 'notes' => 'nullable|string|max:500',
                 'session_type' => 'nullable|string|max:100',
                 'status' => 'nullable|string|in:' . implode(',', [Schedule::STATUS_PENDING, Schedule::STATUS_CONFIRMED, Schedule::STATUS_CANCELLED])
@@ -173,121 +183,79 @@ class SessionBookingController extends ApiBaseController
                 return $this->sendError('Validation Error', ['error' => 'Invalid trainer or client'], 422);
             }
 
-            // Get or create booking settings for the trainer
-            $bookingSettings = \App\Models\BookingSetting::getOrCreateForTrainer($trainerId);
-            
-            // Check if self-booking is allowed (only for client bookings)
-            if ($user->role === 'client' && !$bookingSettings->allow_self_booking) {
-                return $this->sendError('Booking Not Allowed', ['error' => 'Self-booking is not allowed for this trainer'], 403);
+            // Check for conflicts (unless override flag provided)
+            if (!$request->has('override_conflicts')) {
+                $conflictingBooking = Schedule::where('trainer_id', $trainerId)
+                    ->where('date', $request->date)
+                    ->where('status', '!=', Schedule::STATUS_CANCELLED)
+                    ->where(function ($query) use ($request) {
+                        $query->whereBetween('start_time', [$request->start_time, $request->end_time])
+                              ->orWhereBetween('end_time', [$request->start_time, $request->end_time])
+                              ->orWhere(function ($q) use ($request) {
+                                  $q->where('start_time', '<=', $request->start_time)
+                                    ->where('end_time', '>=', $request->end_time);
+                              });
+                    })
+                    ->exists();
+
+                if ($conflictingBooking) {
+                    return $this->sendError('Conflict Error', ['error' => 'Time slot conflicts with existing booking'], 409);
+                }
             }
 
-        
-            // Validate booking against trainer's settings
-            // if ($user->role === 'client') {
-            //     if (!$bookingSettings->isBookingAllowed($request->date, $request->start_time)) {
-            //         return $this->sendError('Booking Not Allowed', [
-            //             'error' => 'Booking not allowed based on trainer settings',
-            //             'booking_rules' => $bookingSettings->getBookingRules()
-            //         ], 403);
-            //     }
-            // }
- 
-          
-            // Check for conflicts
-            $conflictingBooking = Schedule::where('trainer_id', $trainerId)
-                ->where('date', $request->date)
-                ->where('status', '!=', Schedule::STATUS_CANCELLED)
-                ->where(function ($query) use ($request) {
-                    $query->whereBetween('start_time', [$request->start_time, $request->end_time])
-                          ->orWhereBetween('end_time', [$request->start_time, $request->end_time])
-                          ->orWhere(function ($q) use ($request) {
-                              $q->where('start_time', '<=', $request->start_time)
-                                ->where('end_time', '>=', $request->end_time);
-                          });
-                })
-                ->exists();
+            // Create the booking (default to pending if status not provided)
+            $status = $request->get('status', Schedule::STATUS_PENDING);
 
-            if ($conflictingBooking) {
-                return $this->sendError('Conflict Error', ['error' => 'Time slot conflicts with existing booking'], 409);
-            }
-
-            // Determine booking status based on settings and user role
-            $bookingStatus = Schedule::STATUS_CONFIRMED;
-            
-            if ($user->role === 'client') {
-                // For client bookings, check if approval is required
-                $bookingStatus = $bookingSettings->require_approval 
-                    ? Schedule::STATUS_PENDING 
-                    : Schedule::STATUS_CONFIRMED;
-            } else {
-                // Trainers can always create confirmed bookings
-                $bookingStatus = $request->get('status', Schedule::STATUS_CONFIRMED);
-            }
-
-            
-            // Create the booking
-            $booking = Schedule::create([
+            $schedule = Schedule::create([
                 'trainer_id' => $trainerId,
                 'client_id' => $clientId,
+                'timezone' => $request->timezone,
                 'date' => $request->date,
                 'start_time' => $request->start_time,
                 'end_time' => $request->end_time,
-                'status' => $bookingStatus,
-                'notes' => $request->get('notes') ?: $request->get('note'), // Support both 'notes' and 'note'
-                'meeting_agenda' => $request->get('title'), // Map 'title' to 'meeting_agenda'
-                'session_type' => $request->session_type
+                'status' => $status,
+                'notes' => $request->notes,
+                'meeting_agenda' => $request->title,
+                'session_type' => $request->session_type,
             ]);
-            
-            
-            // Load relationships
-            $booking->load(['trainer:id,name,email,phone', 'client:id,name,email,phone']);
 
             // Create Google Calendar event if booking is confirmed
             $googleEventResult = null;
-            $googleMessage = '';
-            if ($booking->status === Schedule::STATUS_CONFIRMED) {
-                try {
-                    $googleCalendarService = new \App\Services\GoogleCalendarService();
-                    $googleEventResult = $googleCalendarService->createEvent($booking);
-                    $googleMessage = ' with Google Calendar event and Meet link';
-                } catch (\Exception $e) {
-                    // If Google Calendar event creation fails, still keep the booking but notify
-                    Log::error('Failed to create Google Calendar event for booking ' . $booking->id . ': ' . $e->getMessage());
-                    $googleMessage = ' (Google Calendar event could not be created: ' . $e->getMessage() . ')';
+            if ($schedule->status === Schedule::STATUS_CONFIRMED) {
+                $googleEventResult = $schedule->createGoogleCalendarEvent();
+            }
+
+            $message = 'Booking created successfully';
+            if ($schedule->status === Schedule::STATUS_CONFIRMED) {
+                if ($googleEventResult) {
+                    $message .= ' with Google Calendar event and Meet link';
+                } else {
+                    $message .= ' (Google Calendar event could not be created)';
+                     $schedule->update([
+                        'status' => Schedule::STATUS_PENDING,
+                        'notes' => 'Google Calendar event creation failed: ' . $googleEventResult,
+                     ]);
                 }
             }
 
             // Prepare response data
             $responseData = [
-                'id' => $booking->id,
-                'trainer' => $booking->trainer,
-                'client' => $booking->client,
-                'date' => $booking->date->format('Y-m-d'),
-                'start_time' => $booking->start_time->format('H:i'),
-                'end_time' => $booking->end_time->format('H:i'),
-                'status' => $booking->status,
-                'notes' => $booking->notes,
-                'session_type' => $booking->session_type,
-                'duration_minutes' => $booking->getDurationInMinutes(),
-                'google_event_id' => $booking->google_event_id,
-                'meet_link' => $booking->meet_link,
-                'has_google_event' => $booking->hasGoogleCalendarEvent(),
-                'has_meet_link' => $booking->hasGoogleMeetLink(),
-                'can_be_cancelled' => $booking->canBeCancelled(),
-                'created_at' => $booking->created_at,
-                'updated_at' => $booking->updated_at
+                'id' => $schedule->id,
+                'trainer_id' => $schedule->trainer_id,
+                'client_id' => $schedule->client_id,
+                "title" => $schedule->meeting_agenda,
+                'timezone' => $schedule->timezone,
+                'date' => is_object($schedule->date) ? $schedule->date->format('Y-m-d') : $schedule->date,
+                'start_time' => is_object($schedule->start_time) ? $schedule->start_time->format('H:i') : $schedule->start_time,
+                'end_time' => is_object($schedule->end_time) ? $schedule->end_time->format('H:i') : $schedule->end_time,
+                'status' => $schedule->status,
+                'notes' => $schedule->notes,
+                'session_type' => $schedule->session_type,
+                'meet_link' => $schedule->meet_link,
+                'google_event_id' => $schedule->google_event_id,
             ];
 
-            if ($googleEventResult && isset($googleEventResult['meet_link'])) {
-                $responseData['meet_link'] = $googleEventResult['meet_link'];
-                $responseData['google_event_created'] = true;
-            } else {
-                $responseData['google_event_created'] = false;
-            }
-
-            $message = 'Booking created successfully' . $googleMessage;
-
-            return $this->sendResponse($responseData, $message, 201);
+            return $this->sendResponse($responseData, $message);
 
         } catch (\Exception $e) {
             Log::error('Error creating booking', [
@@ -329,8 +297,8 @@ class SessionBookingController extends ApiBaseController
 
             $responseData = [
                 'id' => $booking->id,
-                'trainer' => $booking->trainer,
-                'client' => $booking->client,
+                'title' => $booking->meeting_agenda,
+                'timezone' => $booking->timezone,
                 'date' => $booking->date->format('Y-m-d'),
                 'start_time' => $booking->start_time->format('H:i'),
                 'end_time' => $booking->end_time->format('H:i'),
@@ -344,7 +312,9 @@ class SessionBookingController extends ApiBaseController
                 'has_meet_link' => $booking->hasGoogleMeetLink(),
                 'can_be_cancelled' => $booking->canBeCancelled(),
                 'created_at' => $booking->created_at,
-                'updated_at' => $booking->updated_at
+                'updated_at' => $booking->updated_at,
+                'trainer' => $booking->trainer,
+                'client' => $booking->client
             ];
 
             return $this->sendResponse($responseData, 'Booking retrieved successfully');
@@ -371,148 +341,109 @@ class SessionBookingController extends ApiBaseController
         try {
             $user = Auth::user();
 
-            $query = Schedule::query();
-
-            // Apply user role restrictions
-            if ($user->role === 'trainer') {
-                $query->forTrainer($user->id);
-            } elseif ($user->role === 'client') {
-                $query->forClient($user->id);
-            } else {
-                return $this->sendError('Unauthorized', ['error' => 'Invalid user role'], 403);
+            // Only trainers can update bookings
+            if ($user->role !== 'trainer') {
+                return $this->sendError('Unauthorized', ['error' => 'Only trainers can update bookings'], 403);
             }
 
-            $booking = $query->find($id);
-
-            if (!$booking) {
-                return $this->sendError('Not Found', ['error' => 'Booking not found'], 404);
-            }
-
-            // Validation rules
-            $rules = [
-                'date' => 'sometimes|required|date',
-                'start_time' => 'sometimes|required|date_format:H:i',
-                'end_time' => 'sometimes|required|date_format:H:i|after:start_time',
-                'status' => 'sometimes|required|in:' . implode(',', array_keys(Schedule::getStatuses())),
+            $validator = Validator::make($request->all(),  [
+                'trainer_id' => 'required|exists:users,id',
+                'client_id' => 'required|exists:users,id',
+                'title' => 'required|string|max:255',
+                'date' => 'required|date|after_or_equal:today',
+                'start_time' => 'required|date_format:H:i',
+                'end_time' => 'required|date_format:H:i|after:start_time',
+                'timezone' => 'required|string',
                 'notes' => 'nullable|string|max:500',
-                'session_type' => 'nullable|string|max:100'
-            ];
-
-            // Only trainers can change certain fields
-            if ($user->role === 'trainer') {
-                $rules['client_id'] = 'sometimes|required|exists:users,id';
-            } elseif ($user->role === 'client') {
-                $rules['trainer_id'] = 'sometimes|required|exists:users,id';
-                // Clients can only update notes and session_type for pending bookings
-                if ($booking->status !== Schedule::STATUS_PENDING) {
-                    $rules = array_intersect_key($rules, array_flip(['notes', 'session_type']));
-                }
-            }
-
-            $validator = Validator::make($request->all(), $rules);
+                'session_type' => 'nullable|string|max:100',
+                'status' => 'nullable|string|in:' . implode(',', [Schedule::STATUS_PENDING, Schedule::STATUS_CONFIRMED, Schedule::STATUS_CANCELLED])
+            ]);
 
             if ($validator->fails()) {
                 return $this->sendError('Validation Error', $validator->errors(), 422);
             }
 
-            // Check for conflicts if date/time is being changed
-            if ($request->has(['date', 'start_time', 'end_time'])) {
-                $conflictingBooking = Schedule::where('trainer_id', $booking->trainer_id)
-                    ->where('date', $request->get('date', $booking->date))
+            // Restrict to trainer's own bookings
+            $booking = Schedule::where('trainer_id', $user->id)->find($id);
+
+            if (!$booking) {
+                return $this->sendError('Not Found', ['error' => 'Booking not found'], 404);
+            }
+
+            // Enforce trainer ownership as per payload
+            if ((int) $request->trainer_id !== (int) $user->id) {
+                return $this->sendError('Unauthorized', ['error' => 'You can only update your own bookings'], 403);
+            }
+
+            // Check for conflicts (unless override or same booking)
+            if (!$request->has('override_conflicts')) {
+                $conflictingBooking = Schedule::where('trainer_id', $request->trainer_id)
+                    ->where('date', $request->date)
                     ->where('id', '!=', $id)
                     ->where('status', '!=', Schedule::STATUS_CANCELLED)
-                    ->where(function ($query) use ($request, $booking) {
-                        $startTime = $request->get('start_time', $booking->start_time->format('H:i'));
-                        $endTime = $request->get('end_time', $booking->end_time->format('H:i'));
-                        
-                        $query->whereBetween('start_time', [$startTime, $endTime])
-                              ->orWhereBetween('end_time', [$startTime, $endTime])
-                              ->orWhere(function ($q) use ($startTime, $endTime) {
-                                  $q->where('start_time', '<=', $startTime)
-                                    ->where('end_time', '>=', $endTime);
+                    ->where(function ($query) use ($request) {
+                        $query->whereBetween('start_time', [$request->start_time, $request->end_time])
+                              ->orWhereBetween('end_time', [$request->start_time, $request->end_time])
+                              ->orWhere(function ($q) use ($request) {
+                                  $q->where('start_time', '<=', $request->start_time)
+                                    ->where('end_time', '>=', $request->end_time);
                               });
                     })
                     ->exists();
 
                 if ($conflictingBooking) {
-                    return $this->sendError('Conflict Error', ['error' => 'Time slot conflicts with existing booking'], 409);
+                    return $this->sendError('Time slot conflicts with existing booking');
                 }
             }
 
             $oldStatus = $booking->status;
 
-            // Update the booking
-            $booking->update($request->only([
-                'date', 'start_time', 'end_time', 'status', 'notes', 'session_type', 'trainer_id', 'client_id'
-            ]));
+            $booking->update([
+                'trainer_id' => $request->trainer_id,
+                'client_id' => $request->client_id,
+                'meeting_agenda' => $request->title,
+                'date' => $request->date,
+                'start_time' => $request->start_time,
+                'end_time' => $request->end_time,
+                'status' => $request->status,
+                'notes' => $request->notes,
+                'timezone' => $request->timezone,
+                'session_type' => $request->session_type,
+            ]);
 
-            // Load relationships
-            $booking->load(['trainer:id,name,email,phone', 'client:id,name,email,phone']);
-
-            // Handle Google Calendar events based on status change
+            // Handle Google Calendar events based on status change (same logic as ClientBookingController)
             $googleMessage = '';
-            $googleEventResult = null;
 
-            if ($request->has('status')) {
-                if ($request->status === Schedule::STATUS_CONFIRMED && $oldStatus !== Schedule::STATUS_CONFIRMED) {
-                    // Create or update Google Calendar event when confirming
-                    $googleEventResult = $booking->hasGoogleCalendarEvent() 
-                        ? $booking->updateGoogleCalendarEvent() 
-                        : $booking->createGoogleCalendarEvent();
-                        
-                    if ($googleEventResult) {
-                        $googleMessage = ' with Google Calendar event and Meet link';
-                    } else {
-                        $googleMessage = ' (Google Calendar event could not be created)';
-                    }
-                } elseif ($request->status === Schedule::STATUS_CANCELLED && $booking->hasGoogleCalendarEvent()) {
-                    // Delete Google Calendar event when cancelling
-                    $deleteResult = $booking->deleteGoogleCalendarEvent();
-                    if ($deleteResult) {
-                        $googleMessage = ' and Google Calendar event deleted';
-                    } else {
-                        $googleMessage = ' (Google Calendar event could not be deleted)';
-                    }
-                } elseif ($oldStatus !== $request->status && $booking->hasGoogleCalendarEvent()) {
-                    // Update existing Google Calendar event for other status changes
-                    $updateResult = $booking->updateGoogleCalendarEvent();
-                    if ($updateResult) {
-                        $googleMessage = ' and Google Calendar event updated';
-                    }
+            if ($request->status === Schedule::STATUS_CONFIRMED && $oldStatus !== Schedule::STATUS_CONFIRMED) {
+                // Create or update Google Calendar event when confirming
+                $googleEventResult = $booking->hasGoogleCalendarEvent()
+                    ? $booking->updateGoogleCalendarEvent()
+                    : $booking->createGoogleCalendarEvent();
+                
+                if ($googleEventResult) {
+                    $googleMessage = ' with Google Calendar event and Meet link';
+                } else {
+                    $googleMessage = ' (Google Calendar event could not be created)';
                 }
-            }
-
-            // Prepare response data
-            $responseData = [
-                'id' => $booking->id,
-                'trainer' => $booking->trainer,
-                'client' => $booking->client,
-                'date' => $booking->date->format('Y-m-d'),
-                'start_time' => $booking->start_time->format('H:i'),
-                'end_time' => $booking->end_time->format('H:i'),
-                'status' => $booking->status,
-                'notes' => $booking->notes,
-                'session_type' => $booking->session_type,
-                'duration_minutes' => $booking->getDurationInMinutes(),
-                'google_event_id' => $booking->google_event_id,
-                'meet_link' => $booking->meet_link,
-                'has_google_event' => $booking->hasGoogleCalendarEvent(),
-                'has_meet_link' => $booking->hasGoogleMeetLink(),
-                'can_be_cancelled' => $booking->canBeCancelled(),
-                'created_at' => $booking->created_at,
-                'updated_at' => $booking->updated_at
-            ];
-
-            if ($googleEventResult && isset($googleEventResult['meet_link'])) {
-                $responseData['meet_link'] = $googleEventResult['meet_link'];
-                $responseData['google_event_created'] = true;
-            } else {
-                $responseData['google_event_created'] = false;
+            } elseif ($request->status === Schedule::STATUS_CANCELLED && $booking->hasGoogleCalendarEvent()) {
+                // Delete Google Calendar event when cancelling
+                $deleteResult = $booking->deleteGoogleCalendarEvent();
+                if ($deleteResult) {
+                    $googleMessage = ' and Google Calendar event deleted';
+                } else {
+                    $googleMessage = ' (Google Calendar event could not be deleted)';
+                }
+            } elseif ($oldStatus !== $request->status && $booking->hasGoogleCalendarEvent()) {
+                // Update existing Google Calendar event for other status changes
+                $updateResult = $booking->updateGoogleCalendarEvent();
+                if ($updateResult) {
+                    $googleMessage = ' and Google Calendar event updated';
+                }
             }
 
             $message = 'Booking updated successfully' . $googleMessage;
 
-            return $this->sendResponse($responseData, $message);
+            return $this->sendResponse($booking, $message);
 
         } catch (\Exception $e) {
             Log::error('Error updating booking', [
@@ -536,18 +467,13 @@ class SessionBookingController extends ApiBaseController
         try {
             $user = Auth::user();
 
-            $query = Schedule::query();
-
-            // Apply user role restrictions
-            if ($user->role === 'trainer') {
-                $query->forTrainer($user->id);
-            } elseif ($user->role === 'client') {
-                $query->forClient($user->id);
-            } else {
-                return $this->sendError('Unauthorized', ['error' => 'Invalid user role'], 403);
+            // Only trainers can delete bookings
+            if ($user->role !== 'trainer') {
+                return $this->sendError('Unauthorized', ['error' => 'Only trainers can delete bookings'], 403);
             }
 
-            $booking = $query->find($id);
+            // Restrict to trainer's own bookings
+            $booking = Schedule::where('trainer_id', $user->id)->find($id);
 
             if (!$booking) {
                 return $this->sendError('Not Found', ['error' => 'Booking not found'], 404);
@@ -568,7 +494,7 @@ class SessionBookingController extends ApiBaseController
 
             $message = 'Booking deleted successfully' . $googleMessage;
 
-            return $this->sendResponse(null, $message);
+            return $this->sendResponse(['deleted' => true], $message);
 
         } catch (\Exception $e) {
             Log::error('Error deleting booking', [
