@@ -165,7 +165,7 @@
         justify-content: space-between;
         align-items: center;
         gap: 0.5rem;
-        width: 150px;
+        min-width: 105px;
     }
 
     .column-remove-btn {
@@ -330,7 +330,7 @@
     // - CSRF token helper for AJAX requests
     // =====================================================================
     const PROGRAM_ID = '{{ $program->id }}';
-    const BASE_PROGRAM_BUILDER_URL = '{{ url('/admin/program-builder') }}';
+    const BASE_PROGRAM_BUILDER_URL = "{{ url('/admin/program-builder') }}";
     const WORKOUTS = @json($workouts);
     // Suppress backend persistence during initial render to avoid duplicates
     let SUPPRESS_PERSIST = false;
@@ -372,10 +372,10 @@
         alert.style.backgroundColor = 'rgba(0,0,0,0.03)';
         alert.innerHTML = `<i class="bi ${type === 'success' ? 'bi-check-circle' : (type === 'error' ? 'bi-exclamation-triangle' : 'bi-info-circle')} me-2" style="color:${color}"></i>${message}`;
         const headerCard = document.querySelector('.card-body');
-        // if (headerCard) {
-        //     headerCard.insertAdjacentElement('afterend', alert);
-        //     setTimeout(() => alert.remove(), 4000);
-        // }
+        if (headerCard) {
+            headerCard.insertAdjacentElement('afterend', alert);
+            setTimeout(() => alert.remove(), 4000);
+        }
     }
 
     function showAjaxError(err, fallbackMsg = 'Operation failed') {
@@ -835,20 +835,41 @@
         initTooltips(weekEl);
     }
 
-    function renderDayIntoExisting(weekIndex, d, dayId) {
-        const dayEl = document.getElementById(dayId);
-        if (!dayEl) { return; }
-        dayEl.dataset.dayId = String(d.id);
-        const badge = dayEl.querySelector('.badge');
-        if (badge) { badge.textContent = `Day ${d.day_number}`; }
-        const nameInput = dayEl.querySelector(`#${dayId}-name`);
-        if (nameInput) { nameInput.value = d.title || ''; }
-        bindDayTitleAutosave(dayId);
-        const circuits = (d.circuits || []).sort((a,b) => (a.circuit_number||0) - (b.circuit_number||0));
-        circuits.forEach(c => {
-            SUPPRESS_PERSIST = true;
-            addCircuit(dayId);
-            SUPPRESS_PERSIST = false;
+function renderDayIntoExisting(weekIndex, d, dayId) {
+    const dayEl = document.getElementById(dayId);
+    if (!dayEl) { return; }
+    dayEl.dataset.dayId = String(d.id);
+    const badge = dayEl.querySelector('.badge');
+    if (badge) { badge.textContent = `Day ${d.day_number}`; }
+    const nameInput = dayEl.querySelector(`#${dayId}-name`);
+    if (nameInput) { nameInput.value = d.title || ''; }
+    bindDayTitleAutosave(dayId);
+    // Render cool down and custom rows (day-level specials) if present
+    try {
+        const cdVal = (d.cool_down || '').trim();
+        if (cdVal) {
+            // Add cool down row and set its value
+            addCoolDown(dayId);
+            const cdInput = dayEl.querySelector('td.cool-down input, td.cool-down textarea');
+            if (cdInput) { cdInput.value = cdVal; }
+        }
+        const customRows = Array.isArray(d.custom_rows || d.customRows) ? (d.custom_rows || d.customRows) : [];
+        if (customRows && customRows.length) {
+            customRows.forEach(text => {
+                addCustomRow(dayId);
+                const lastRow = document.getElementById(`${dayId}-exercise-${exerciseCounter[dayId]}`);
+                const ta = lastRow ? lastRow.querySelector('textarea') : null;
+                if (ta) { ta.value = (text || '').trim(); }
+            });
+        }
+    } catch (e) {
+        console.warn('Render day specials warn:', e);
+    }
+    const circuits = (d.circuits || []).sort((a,b) => (a.circuit_number||0) - (b.circuit_number||0));
+    circuits.forEach(c => {
+        SUPPRESS_PERSIST = true;
+        addCircuit(dayId);
+        SUPPRESS_PERSIST = false;
             const circuitRow = document.getElementById(`${dayId}-exercise-${exerciseCounter[dayId]}`);
             if (circuitRow) { circuitRow.dataset.circuitId = String(c.id); }
             const exercises = (c.program_exercises || c.programExercises || []).sort((a,b) => (a.order||0) - (b.order||0));
@@ -1113,7 +1134,10 @@
     function removeExercise(exerciseId) {
         if (confirm('Remove this row?')) {
             const row = document.getElementById(exerciseId);
+            const dayEl = row?.closest('.day-container');
+            const backendDayId = dayEl?.dataset?.dayId;
             const backendId = row?.dataset?.exerciseId;
+            // Handle removal for persisted exercise rows
             if (backendId) {
                 ajax(`${BASE_PROGRAM_BUILDER_URL}/exercises/${backendId}`, { method: 'DELETE' })
                 .then(() => {
@@ -1122,7 +1146,41 @@
                 }).catch(err => {
                     showAjaxError(err, 'Failed to remove exercise');
                 });
+            } else if (row.querySelector('.cool-down')) {
+                // Removing day-level cool down; clear in backend
+                row.remove();
+                if (backendDayId) {
+                    ajax(`${BASE_PROGRAM_BUILDER_URL}/days/${backendDayId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ cool_down: null })
+                    }).then(() => {
+                        showNotification('success', 'Cool down removed');
+                    }).catch(err => {
+                        showAjaxError(err, 'Failed to remove cool down');
+                    });
+                }
+            } else if (row.classList.contains('custom-row')) {
+                // Removing a custom row; persist remaining custom rows
+                row.remove();
+                if (backendDayId) {
+                    try {
+                        const values = Array.from(dayEl.querySelectorAll('tr.custom-row textarea'))
+                            .map(t => (t.value || '').trim())
+                            .filter(v => v.length > 0);
+                        ajax(`${BASE_PROGRAM_BUILDER_URL}/days/${backendDayId}`, {
+                            method: 'PUT',
+                            body: JSON.stringify({ custom_rows: values })
+                        }).then(() => {
+                            showNotification('success', 'Custom row removed');
+                        }).catch(err => {
+                            showAjaxError(err, 'Failed to update custom rows');
+                        });
+                    } catch (e) {
+                        showAjaxError(e, 'Failed to update custom rows');
+                    }
+                }
             } else {
+                // Unpersisted, non day-level row
                 row.remove();
             }
         }
@@ -1173,6 +1231,11 @@
             let walker = circuitRow.nextElementSibling;
             let orderIdx = 0;
             while (walker && !walker.classList.contains('circuit-row')) {
+                // Skip day-level rows from order calculation
+                if (walker.querySelector('.cool-down') || walker.classList.contains('custom-row')) {
+                    walker = walker.nextElementSibling;
+                    continue;
+                }
                 const id = walker?.dataset?.exerciseId;
                 if (id) {
                     payload.push({ id: Number(id), order: orderIdx });
@@ -1198,6 +1261,12 @@
     }
 
     function addCoolDown(dayId) {
+        // Only allow one cool down per day (matches single DB field)
+        const dayEl = document.getElementById(dayId);
+        if (dayEl && dayEl.querySelector('td.cool-down')) {
+            showNotification('info', 'Cool down already added for this day');
+            return;
+        }
         exerciseCounter[dayId]++;
         const coolDownHtml = `
         <tr id="${dayId}-exercise-${exerciseCounter[dayId]}">
@@ -1214,13 +1283,16 @@
         </tr>
     `;
 
-        document.getElementById(`${dayId}-exercises`).insertAdjacentHTML('beforeend', coolDownHtml);
+        const tbody = document.getElementById(`${dayId}-exercises`);
+        tbody.insertAdjacentHTML('beforeend', coolDownHtml);
+        const row = document.getElementById(`${dayId}-exercise-${exerciseCounter[dayId]}`);
+        try { bindDaySpecialRowAutosave(row, dayId); } catch (e) { console.warn('Bind cool down autosave warn:', e); }
     }
 
     function addCustomRow(dayId) {
         exerciseCounter[dayId]++;
         const customHtml = `
-        <tr id="${dayId}-exercise-${exerciseCounter[dayId]}" style="background: #fff3cd;">
+        <tr id="${dayId}-exercise-${exerciseCounter[dayId]}" class="custom-row" style="background: #fff3cd;">
             <td class="action-cell">
                 <button class="btn btn-outline-danger btn-icon btn-sm" onclick="removeExercise('${dayId}-exercise-${exerciseCounter[dayId]}')"
                         data-bs-toggle="tooltip" title="Remove">
@@ -1233,7 +1305,10 @@
         </tr>
     `;
 
-        document.getElementById(`${dayId}-exercises`).insertAdjacentHTML('beforeend', customHtml);
+        const tbody = document.getElementById(`${dayId}-exercises`);
+        tbody.insertAdjacentHTML('beforeend', customHtml);
+        const row = document.getElementById(`${dayId}-exercise-${exerciseCounter[dayId]}`);
+        try { bindDaySpecialRowAutosave(row, dayId); } catch (e) { console.warn('Bind custom row autosave warn:', e); }
     }
 
     function openColumnSettings(dayId) {
@@ -1435,7 +1510,7 @@
             const tbody = table.querySelector('tbody');
             const dayId = table.id.replace(/-table$/, '');
             tbody.querySelectorAll('tr').forEach(row => {
-                if (!row.classList.contains('circuit-row') && row.querySelector('td:not(.cool-down):not(.action-cell)')) {
+                if (!row.classList.contains('circuit-row') && !row.classList.contains('custom-row') && row.querySelector('td:not(.cool-down):not(.action-cell)')) {
                     const actionCell = row.querySelector('.action-cell');
                     const cells = Array.from(row.querySelectorAll('td:not(.action-cell)'));
                     row.innerHTML = '';
@@ -1576,7 +1651,7 @@
         rows.forEach(tr => {
             if (tr.classList.contains('circuit-row')) {
                 currentCircuitId = tr.dataset.circuitId || null;
-            } else if (!tr.querySelector('.cool-down')) {
+            } else if (!tr.querySelector('.cool-down') && !tr.classList.contains('custom-row')) {
                 if (tr === row) {
                     circuitId = currentCircuitId;
                 }
@@ -1697,6 +1772,49 @@
         });
     }
 
+    // Day-level cool down & custom rows autosave
+    function collectCustomRowsForDay(dayId) {
+        const dayEl = document.getElementById(dayId);
+        if (!dayEl) { return []; }
+        return Array.from(dayEl.querySelectorAll('tr.custom-row textarea'))
+            .map(t => (t.value || '').trim())
+            .filter(v => v.length > 0);
+    }
+
+    function bindDaySpecialRowAutosave(row, dayId) {
+        const dayEl = document.getElementById(dayId);
+        if (!dayEl) { return; }
+        const backendDayId = dayEl?.dataset?.dayId;
+        if (!backendDayId) { return; }
+        const input = row.classList.contains('custom-row')
+            ? row.querySelector('textarea')
+            : row.querySelector('td.cool-down input, td.cool-down textarea');
+        if (!input) { return; }
+        let timer = null;
+        const handler = () => {
+            if (timer) { clearTimeout(timer); }
+            timer = setTimeout(async () => {
+                try {
+                    const coolDownEl = dayEl.querySelector('td.cool-down input, td.cool-down textarea');
+                    const coolDownVal = coolDownEl ? (coolDownEl.value || '').trim() : '';
+                    const customRowsVals = collectCustomRowsForDay(dayId);
+                    await ajax(`${BASE_PROGRAM_BUILDER_URL}/days/${backendDayId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({
+                            cool_down: coolDownVal || null,
+                            custom_rows: customRowsVals
+                        })
+                    });
+                    showNotification('success', 'Day details saved');
+                } catch (e) {
+                    showAjaxError(e, 'Failed to save day details');
+                }
+            }, 600);
+        };
+        input.addEventListener('input', handler);
+        input.addEventListener('blur', handler);
+    }
+
     // Initialize: Render existing backend data
     document.addEventListener('DOMContentLoaded', async function() {
         // Load column configuration from server (per program)
@@ -1758,6 +1876,31 @@
                             bindExerciseRowAutosave(row, dayId);
                         });
                     });
+
+                    // Render custom rows (if any)
+                    try {
+                        const customRows = Array.isArray(d.custom_rows) ? d.custom_rows : [];
+                        customRows.forEach(text => {
+                            addCustomRow(dayId);
+                            const rowId = `${dayId}-exercise-${exerciseCounter[dayId]}`;
+                            const row = document.getElementById(rowId);
+                            const ta = row.querySelector('textarea');
+                            if (ta) { ta.value = text || ''; }
+                            bindDaySpecialRowAutosave(row, dayId);
+                        });
+                    } catch (e) { console.warn('Render custom rows warning:', e); }
+
+                    // Render cool down (if present)
+                    try {
+                        if (d.cool_down) {
+                            addCoolDown(dayId);
+                            const rowId = `${dayId}-exercise-${exerciseCounter[dayId]}`;
+                            const row = document.getElementById(rowId);
+                            const cd = row.querySelector('td.cool-down input, td.cool-down textarea');
+                            if (cd) { cd.value = d.cool_down || ''; }
+                            bindDaySpecialRowAutosave(row, dayId);
+                        }
+                    } catch (e) { console.warn('Render cool down warning:', e); }
                 });
             });
         }
@@ -1816,6 +1959,11 @@
                             type: 'cooldown',
                             content: row.querySelector('input, textarea')?.value || ''
                         });
+                    } else if (row.classList.contains('custom-row')) {
+                        dayData.exercises.push({
+                            type: 'custom',
+                            content: row.querySelector('textarea')?.value || ''
+                        });
                     } else {
                         const inputs = Array.from(row.querySelectorAll('input, textarea'));
                         const exerciseData = {
@@ -1868,6 +2016,8 @@
                     if (exercise.type === 'exercise') {
                         csv += columnConfig.map(col => `"${exercise.data[col.id] || ''}"`).join(',');
                     } else if (exercise.type === 'cooldown') {
+                        csv += `"${exercise.content}"`;
+                    } else if (exercise.type === 'custom') {
                         csv += `"${exercise.content}"`;
                     } else {
                         csv += `"${exercise.name}"`;
@@ -1940,6 +2090,23 @@
                 const dayId = dayEl.id;
                 const backendDayId = dayEl?.dataset?.dayId;
                 if (!backendDayId) { continue; }
+                // Persist day-level fields: cool_down and custom_rows
+                try {
+                    const coolDownEl = dayEl.querySelector('td.cool-down input, td.cool-down textarea');
+                    const coolDownVal = coolDownEl ? (coolDownEl.value || '').trim() : '';
+                    const customRowsVals = Array.from(dayEl.querySelectorAll('tr.custom-row textarea'))
+                        .map(t => (t.value || '').trim())
+                        .filter(v => v.length > 0);
+                    await ajax(`${BASE_PROGRAM_BUILDER_URL}/days/${backendDayId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({
+                            cool_down: coolDownVal || null,
+                            custom_rows: customRowsVals
+                        })
+                    });
+                } catch (e) {
+                    console.warn('Day-level save warning:', e);
+                }
                 const tbody = dayEl.querySelector('tbody');
                 const rows = Array.from(tbody.querySelectorAll('tr'));
                 let currentCircuitId = null;
@@ -1949,6 +2116,7 @@
                         continue;
                     }
                     if (row.querySelector('.cool-down')) { continue; }
+                    if (row.classList.contains('custom-row')) { continue; }
                     const payload = buildExercisePayloadFromRow(row, dayId);
                     // Skip empty rows only if both name and workout_id are missing
                     if (!row.dataset.exerciseId && !payload.workout_id && !(payload.name && payload.name.trim())) { continue; }

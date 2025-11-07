@@ -624,7 +624,8 @@ class ProgramBuilderController extends Controller
                     'day_number' => $originalDay->day_number,
                     'title' => $originalDay->title,
                     'description' => $originalDay->description,
-                    'cool_down' => $originalDay->cool_down
+                    'cool_down' => $originalDay->cool_down,
+                    'custom_rows' => $originalDay->custom_rows
                 ]);
 
                 // Duplicate all circuits in each day
@@ -705,7 +706,8 @@ class ProgramBuilderController extends Controller
                 'day_number' => 'required|integer|min:1',
                 'title' => 'nullable|string|max:255',
                 'description' => 'nullable|string',
-                'cool_down' => 'nullable|string'
+                'cool_down' => 'nullable|string',
+                'custom_rows' => 'nullable|array'
             ]);
 
             if ($validator->fails()) {
@@ -740,6 +742,7 @@ class ProgramBuilderController extends Controller
                 'title' => $request->title ?: $originalDay->title,
                 'description' => $request->description ?: $originalDay->description,
                 'cool_down' => $request->cool_down ?: $originalDay->cool_down,
+                'custom_rows' => $request->has('custom_rows') ? $request->custom_rows : $originalDay->custom_rows,
             ]);
 
             // Duplicate circuits
@@ -824,22 +827,40 @@ class ProgramBuilderController extends Controller
      */
     public function updateDay(Request $request, Day $day): JsonResponse
     {
+        // Allow partial updates during autosave. Only validate fields that are present.
         $request->validate([
-            'day_number' => 'required|integer|min:1',
+            'day_number' => 'sometimes|integer|min:1',
             'title' => 'nullable|string|max:255',
             'description' => 'nullable|string',
-            'cool_down' => 'nullable|string'
+            'cool_down' => 'nullable|string',
+            'custom_rows' => 'nullable|array'
         ]);
 
         try {
             DB::beginTransaction();
 
-            $day->update([
-                'day_number' => $request->day_number,
-                'title' => $request->title,
-                'description' => $request->description,
-                'cool_down' => $request->cool_down
-            ]);
+            // Build update payload only with keys explicitly present in the request.
+            // This prevents unintended clearing of fields (e.g., cool_down) during autosave.
+            $payload = [];
+            if ($request->exists('day_number')) {
+                $payload['day_number'] = $request->day_number;
+            }
+            if ($request->exists('title')) {
+                $payload['title'] = $request->title;
+            }
+            if ($request->exists('description')) {
+                $payload['description'] = $request->description;
+            }
+            if ($request->exists('cool_down')) {
+                $payload['cool_down'] = $request->cool_down; // may be null to clear
+            }
+            if ($request->exists('custom_rows')) {
+                $payload['custom_rows'] = $request->custom_rows; // array of strings or null
+            }
+
+            if (!empty($payload)) {
+                $day->update($payload);
+            }
 
             DB::commit();
 

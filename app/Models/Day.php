@@ -34,6 +34,7 @@ class Day extends Model
         'title',
         'description',
         'cool_down',
+        'custom_rows',
     ];
 
     /**
@@ -43,6 +44,7 @@ class Day extends Model
      */
     protected $casts = [
         'day_number' => 'integer',
+        'custom_rows' => 'array',
     ];
 
     /**
