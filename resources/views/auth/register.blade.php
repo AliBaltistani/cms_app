@@ -86,12 +86,12 @@ $bodyClass = 'bg-white';
                                     <span class="op-4 fs-13">OR</span>
                                 </div>
                                 <div class="d-grid mb-3">
-                                    <button class="btn btn-white btn-w-lg border d-flex align-items-center justify-content-center flex-fill mb-3">
+                                    <a href="{{ route('auth.google.redirect') }}" class="btn btn-white btn-w-lg border d-flex align-items-center justify-content-center flex-fill mb-3">
                                         <span class="avatar avatar-xs">
                                             <img src="{{asset('build/assets/images/media/apps/google.png')}}" alt="">
                                         </span>
                                         <span class="lh-1 ms-2 fs-13 text-default fw-medium">Signup with Google</span>
-                                    </button>
+                                    </a>
                                     <button class="btn btn-white btn-w-lg border d-flex align-items-center justify-content-center flex-fill">
                                         <span class="avatar avatar-xs flex-shrink-0">
                                             <img src="{{asset('build/assets/images/media/apps/facebook.png')}}" alt="">

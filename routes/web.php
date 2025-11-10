@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\Admin\GoalsController;
 use App\Http\Controllers\Admin\WorkoutController;
@@ -37,6 +38,14 @@ Route::middleware('guest')->group(function () {
     // Registration Routes
     Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
     Route::post('/register', [RegisterController::class, 'register']);
+    
+    // Google OAuth (Web) - initiate login/register via Google
+    Route::prefix('auth/google')->name('auth.google.')->group(function () {
+        Route::get('/redirect', [GoogleAuthController::class, 'redirectToGoogle'])->name('redirect');
+        Route::get('/callback', [GoogleAuthController::class, 'handleGoogleCallback'])->name('callback');
+        Route::get('/complete', [GoogleAuthController::class, 'showCompleteProfileForm'])->name('complete.form');
+        Route::post('/complete', [GoogleAuthController::class, 'completeRegistration'])->name('complete.submit');
+    });
     
     // Password Reset Routes
     Route::get('/forgot-password', [ForgotPasswordController::class, 'showForgotPasswordForm'])->name('password.request');

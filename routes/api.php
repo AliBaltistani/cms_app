@@ -46,6 +46,11 @@ Route::prefix('auth')->name('api.auth.')->group(function () {
     // User Registration & Login
     Route::post('/register', [ApiAuthController::class, 'register'])->name('register');
     Route::post('/login', [ApiAuthController::class, 'login'])->name('login');
+ 
+    // Full Google OAuth flow for mobile/API clients requesting Calendar scope
+    Route::get('/google/oauth', [ApiAuthController::class, 'googleOAuthUrl'])->name('google.oauth');
+    Route::get('/google/callback', [ApiAuthController::class, 'googleOAuthCallback'])->name('google.callback');
+    Route::post('/google/complete', [ApiAuthController::class, 'completeGoogleOAuthRegistration'])->name('google.complete');
 
     // Unified Password Reset Flow (supports both email and phone)
     Route::post('/forgot-password', [ApiAuthController::class, 'forgotPassword'])->name('forgot-password');

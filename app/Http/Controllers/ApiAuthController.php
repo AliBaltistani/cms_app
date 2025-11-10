@@ -15,6 +15,10 @@ use Illuminate\Http\JsonResponse;
 use Carbon\Carbon;
 use App\Mail\PasswordResetOTP;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
+use Google_Client;
+use Google_Service_Oauth2;
+use Google_Service_Calendar;
 
 /**
  * API Authentication Controller
@@ -31,6 +35,305 @@ use Illuminate\Support\Facades\Log;
  */
 class ApiAuthController extends ApiBaseController
 {
+  
+
+    /**
+     * Generate Google OAuth URL for mobile/API clients with Calendar scope.
+     *
+     * Provides a state token to protect the flow and a URL the client can open
+     * in a browser to grant `email`, `profile`, and Calendar access. The callback
+     * will be handled by `googleOAuthCallback` and returns JSON.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function googleOAuthUrl(Request $request): JsonResponse
+    {
+        try {
+            $deviceName = $request->input('device_name', 'API Client');
+            $flow = $request->input('flow', 'login'); // 'login' or 'register'
+
+            // Prepare Google Client
+            $clientId = config('services.google_auth_api.client_id', env('GOOGLE_CLIENT_ID'));
+            $clientSecret = config('services.google_auth_api.client_secret', env('GOOGLE_CLIENT_SECRET'));
+            $redirectUri = config('services.google_auth_api.redirect_uri', env('GOOGLE_AUTH_API_REDIRECT_URI'));
+
+            if (empty($clientId) || empty($clientSecret) || empty($redirectUri)) {
+                return $this->sendError('Configuration Error', [
+                    'error' => 'Google API OAuth is not configured. Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and GOOGLE_AUTH_API_REDIRECT_URI.'
+                ], 500);
+            }
+
+            $googleClient = new Google_Client();
+            $googleClient->setClientId($clientId);
+            $googleClient->setClientSecret($clientSecret);
+            $googleClient->setRedirectUri($redirectUri);
+            $googleClient->addScope(Google_Service_Oauth2::USERINFO_EMAIL);
+            $googleClient->addScope(Google_Service_Oauth2::USERINFO_PROFILE);
+            $googleClient->addScope(Google_Service_Calendar::CALENDAR);
+            $googleClient->setAccessType('offline');
+            $googleClient->setPrompt('consent');
+
+            // Stateless flow: create and persist state in cache
+            $state = base64_encode(json_encode([
+                'type' => 'api_auth',
+                'flow' => $flow,
+                'device' => $deviceName,
+                'timestamp' => time(),
+            ]));
+
+            Cache::put('google_api_state:' . $state, [
+                'flow' => $flow,
+                'device_name' => $deviceName,
+            ], now()->addMinutes(10));
+
+            $googleClient->setState($state);
+            $authUrl = $googleClient->createAuthUrl();
+
+            Log::info('API Google OAuth URL generated', [
+                'state' => $state,
+                'flow' => $flow,
+                'device' => $deviceName,
+                'auth_url_length' => strlen($authUrl)
+            ]);
+
+            return $this->sendResponse([
+                'auth_url' => $authUrl,
+                'state' => $state,
+            ], 'Google OAuth URL generated');
+        } catch (\Exception $e) {
+            Log::error('Failed to generate API Google OAuth URL', [
+                'error' => $e->getMessage(),
+            ]);
+            return $this->sendError('OAuth URL Error', ['error' => 'Unable to generate Google OAuth URL'], 500);
+        }
+    }
+
+    /**
+     * Handle Google OAuth callback for mobile/API clients with Calendar scope.
+     *
+     * - If user exists by email: update google_token and return Sanctum token
+     * - If new user: return pending status and store Google details for completion
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function googleOAuthCallback(Request $request): JsonResponse
+    {
+        try {
+            $code = $request->query('code');
+            $state = $request->query('state');
+
+            if (!$code) {
+                return $this->sendError('Authorization Error', ['error' => 'Authorization code not provided'], 400);
+            }
+
+            if (!$state) {
+                return $this->sendError('State Error', ['error' => 'State parameter missing'], 400);
+            }
+
+            $cached = Cache::get('google_api_state:' . $state);
+            if (!$cached) {
+                return $this->sendError('State Error', ['error' => 'Invalid or expired OAuth state'], 400);
+            }
+
+            $clientId = config('services.google_auth_api.client_id', env('GOOGLE_CLIENT_ID'));
+            $clientSecret = config('services.google_auth_api.client_secret', env('GOOGLE_CLIENT_SECRET'));
+            $redirectUri = config('services.google_auth_api.redirect_uri', env('GOOGLE_AUTH_API_REDIRECT_URI'));
+
+            $googleClient = new Google_Client();
+            $googleClient->setClientId($clientId);
+            $googleClient->setClientSecret($clientSecret);
+            $googleClient->setRedirectUri($redirectUri);
+            $googleClient->addScope(Google_Service_Oauth2::USERINFO_EMAIL);
+            $googleClient->addScope(Google_Service_Oauth2::USERINFO_PROFILE);
+            $googleClient->addScope(Google_Service_Calendar::CALENDAR);
+
+            // Exchange code for token
+            $token = $googleClient->fetchAccessTokenWithAuthCode($code);
+            if (isset($token['error'])) {
+                return $this->sendError('Token Error', [
+                    'error' => $token['error_description'] ?? $token['error']
+                ], 400);
+            }
+
+            // Fetch Google user info
+            $oauth2 = new Google_Service_Oauth2($googleClient);
+            $googleUser = $oauth2->userinfo->get();
+
+            $email = strtolower(trim($googleUser->email ?? ''));
+            $name = trim($googleUser->name ?? '');
+            $avatar = $googleUser->picture ?? null;
+            $googleId = $googleUser->id ?? null;
+
+            if (!$email) {
+                return $this->sendError('Profile Error', ['error' => 'Google account email is required'], 400);
+            }
+
+            $user = User::where('email', $email)->first();
+            if ($user) {
+                // Update google_token with calendar-capable fields
+                // Preserve existing refresh_token if Google doesn't return a new one
+                $existing = is_array($user->google_token) ? $user->google_token : [];
+                $user->google_token = [
+                    'access_token' => $token['access_token'] ?? ($existing['access_token'] ?? null),
+                    'refresh_token' => $token['refresh_token'] ?? ($existing['refresh_token'] ?? null),
+                    'expires_in' => $token['expires_in'] ?? ($existing['expires_in'] ?? null),
+                    'id' => $googleId ?: ($existing['id'] ?? null),
+                    'email' => $email ?: ($existing['email'] ?? null),
+                    'avatar' => $avatar ?: ($existing['avatar'] ?? null),
+                ];
+                if (is_null($user->email_verified_at)) {
+                    $user->email_verified_at = now();
+                }
+                $user->save();
+
+                // Create Sanctum token
+                $deviceName = $cached['device_name'] ?? 'API Client';
+                $apiToken = $user->createToken($deviceName)->plainTextToken;
+
+                Cache::forget('google_api_state:' . $state);
+
+                Log::info('User logged in via API Google OAuth', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                ]);
+
+                return $this->sendResponse([
+                    'token' => $apiToken,
+                    'token_type' => 'Bearer',
+                    'user' => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'role' => $user->role,
+                        'profile_image' => $user->profile_image ? asset('storage/' . $user->profile_image) : null,
+                        'isVerified' => !is_null($user->email_verified_at)
+                    ]
+                ], 'Logged in with Google successfully');
+            }
+
+            // New user: store details temporarily and require completion
+            Cache::put('google_api_pending:' . $state, [
+                'name' => $name ?: $email,
+                'email' => $email,
+                'avatar' => $avatar,
+                'google' => [
+                    'access_token' => $token['access_token'] ?? null,
+                    'refresh_token' => $token['refresh_token'] ?? null,
+                    'expires_in' => $token['expires_in'] ?? null,
+                    'id' => $googleId,
+                ],
+            ], now()->addMinutes(15));
+
+            return $this->sendResponse([
+                'status' => 'pending',
+                'state' => $state,
+                'google_user' => [
+                    'email' => $email,
+                    'name' => $name ?: $email,
+                    'avatar' => $avatar,
+                ]
+            ], 'Please provide phone and role to complete registration');
+
+        } catch (\Exception $e) {
+            Log::error('API Google OAuth callback failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->sendError('OAuth Callback Failed', ['error' => 'Google authentication failed'], 400);
+        }
+    }
+
+    /**
+     * Complete registration for new users after API Google OAuth.
+     *
+     * Requires `state`, `phone`, and `role` (trainer|client). Creates user,
+     * stores calendar-capable Google tokens, and returns a Sanctum token.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function completeGoogleOAuthRegistration(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'state' => 'required|string',
+                'phone' => 'required|string|max:20|unique:users,phone',
+                'role' => 'required|string|in:trainer,client',
+                'device_name' => 'nullable|string|max:255'
+            ]);
+
+            if ($validator->fails()) {
+                return $this->sendError('Validation Error', $validator->errors(), 422);
+            }
+
+            $state = $request->input('state');
+            $pending = Cache::get('google_api_pending:' . $state);
+            if (!$pending) {
+                return $this->sendError('State Error', ['error' => 'Pending Google registration not found or expired'], 400);
+            }
+
+            // Ensure email is not already registered (race-condition check)
+            $existing = User::where('email', $pending['email'])->first();
+            if ($existing) {
+                return $this->sendError('Conflict', ['email' => 'User already exists. Please login.'], 409);
+            }
+
+            $user = User::create([
+                'name' => $pending['name'],
+                'email' => $pending['email'],
+                'phone' => $request->input('phone'),
+                'password' => Hash::make(Str::random(12)), // random password for Google sign-up
+                'role' => $request->input('role')
+            ]);
+
+            // Store Google tokens with calendar scope
+            $user->google_token = [
+                'access_token' => $pending['google']['access_token'] ?? null,
+                'refresh_token' => $pending['google']['refresh_token'] ?? null,
+                'expires_in' => $pending['google']['expires_in'] ?? null,
+                'id' => $pending['google']['id'] ?? null,
+                'avatar' => $pending['avatar'] ?? null,
+                'email' => $pending['email'] ?? null,
+            ];
+            $user->email_verified_at = now();
+            $user->save();
+
+            // Clean up
+            Cache::forget('google_api_pending:' . $state);
+            Cache::forget('google_api_state:' . $state);
+
+            $deviceName = $request->input('device_name', 'API Client');
+            $apiToken = $user->createToken($deviceName)->plainTextToken;
+
+            Log::info('User registered via API Google OAuth', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'role' => $user->role
+            ]);
+
+            return $this->sendResponse([
+                'token' => $apiToken,
+                'token_type' => 'Bearer',
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                    'profile_image' => $user->profile_image ? asset('storage/' . $user->profile_image) : null,
+                    'isVerified' => !is_null($user->email_verified_at)
+                ]
+            ], 'Account created with Google successfully');
+
+        } catch (\Exception $e) {
+            Log::error('API Google registration failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->sendError('Registration Failed', ['error' => 'Unable to complete registration'], 500);
+        }
+    }
     /**
      * User login via API
      * 
