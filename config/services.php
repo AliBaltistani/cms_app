@@ -59,4 +59,17 @@ return [
         'redirect_uri' => env('GOOGLE_AUTH_API_REDIRECT_URI'),
     ],
 
+    // Stripe configuration for payments and Stripe Connect
+    'stripe' => [
+        'secret' => env('STRIPE_SECRET'),
+        'key' => env('STRIPE_KEY'),
+    ],
+
+    // PayPal Checkout configuration
+    'paypal' => [
+        'client_id' => env('PAYPAL_CLIENT_ID'),
+        'client_secret' => env('PAYPAL_CLIENT_SECRET'),
+        'sandbox' => env('PAYPAL_SANDBOX', true),
+    ],
+
 ];

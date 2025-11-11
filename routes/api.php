@@ -267,6 +267,25 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/', [\App\Http\Controllers\Api\TrainerController::class, 'getClients'])->name('index');
             Route::get('/{clientId}/details', [\App\Http\Controllers\Api\TrainerController::class, 'getClientDetails'])->name('details');
         });
+
+        /**
+         * Trainer Billing
+         * Create invoices from assigned workouts and list invoices
+         */
+        Route::prefix('billing')->name('billing.')->group(function () {
+            Route::get('/clients/{clientId}/workouts', [\App\Http\Controllers\Api\TrainerBillingController::class, 'listClientWorkouts'])->name('clients.workouts');
+            Route::post('/invoices', [\App\Http\Controllers\Api\TrainerBillingController::class, 'createInvoice'])->name('invoices.store');
+            Route::get('/invoices', [\App\Http\Controllers\Api\TrainerBillingController::class, 'listInvoices'])->name('invoices.index');
+            // Stripe Connect onboarding and payout history
+            Route::post('/stripe/connect', [\App\Http\Controllers\Api\TrainerBillingController::class, 'connectStripeAccount'])->name('stripe.connect');
+            Route::get('/payouts', [\App\Http\Controllers\Api\TrainerBillingController::class, 'listPayouts'])->name('payouts.index');
+        });
+
+        // Alias endpoints to match specification (without /billing prefix)
+        Route::post('/invoice/create', [\App\Http\Controllers\Api\TrainerBillingController::class, 'createInvoice'])->name('invoice.create');
+        Route::get('/invoices', [\App\Http\Controllers\Api\TrainerBillingController::class, 'listInvoices'])->name('invoices.list');
+        Route::post('/bank/connect', [\App\Http\Controllers\Api\TrainerBillingController::class, 'connectStripeAccount'])->name('bank.connect');
+        Route::get('/payouts', [\App\Http\Controllers\Api\TrainerBillingController::class, 'listPayouts'])->name('payouts.list');
     });
 
     /**
@@ -385,6 +404,24 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/date', [\App\Http\Controllers\Api\ClientScheduleController::class, 'getScheduleByDate'])->name('by-date');
             Route::get('/range', [\App\Http\Controllers\Api\ClientScheduleController::class, 'getScheduleRange'])->name('range');
         });
+
+        /**
+         * Client Billing
+         * Add payment method and pay invoice
+         */
+        Route::prefix('billing')->name('billing.')->group(function () {
+            Route::post('/payment-methods', [\App\Http\Controllers\Api\ClientBillingController::class, 'addPaymentMethod'])->name('payment-methods.store');
+            Route::post('/invoices/{invoiceId}/pay', [\App\Http\Controllers\Api\ClientBillingController::class, 'payInvoice'])->name('invoices.pay');
+            Route::get('/invoices', [\App\Http\Controllers\Api\ClientBillingController::class, 'listInvoices'])->name('invoices.index');
+            Route::post('/invoices/{invoiceId}/retry', [\App\Http\Controllers\Api\ClientBillingController::class, 'retryInvoice'])->name('invoices.retry');
+        });
+
+        // Alias endpoints to match specification (without /billing prefix)
+        Route::get('/payment-methods', [\App\Http\Controllers\Api\ClientBillingController::class, 'listPaymentMethods'])->name('payment-methods.index');
+        Route::post('/pay', [\App\Http\Controllers\Api\ClientBillingController::class, 'payInvoice'])->name('pay');
+        Route::post('/payment/retry', [\App\Http\Controllers\Api\ClientBillingController::class, 'retryInvoice'])->name('payment.retry');
+        Route::post('/payment/cancel', [\App\Http\Controllers\Api\ClientBillingController::class, 'cancelInvoice'])->name('payment.cancel');
+        Route::get('/payments', [\App\Http\Controllers\Api\ClientBillingController::class, 'listPayments'])->name('payments.index');
     });
 });
 

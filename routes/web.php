@@ -441,6 +441,16 @@ Route::middleware('auth')->group(function () {
          * Admin overview of all trainers' scheduling settings
          */
         Route::get('/trainers-scheduling', [\App\Http\Controllers\Admin\BookingController::class, 'trainersScheduling'])->name('admin.trainers-scheduling.index');
+
+        /**
+         * BILLING MANAGEMENT
+         * Admin billing dashboard, invoices and payouts
+         */
+        Route::prefix('billing')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\BillingController::class, 'index'])->name('admin.billing.index');
+            Route::get('/invoices', [\App\Http\Controllers\Admin\BillingController::class, 'invoices'])->name('admin.billing.invoices');
+            Route::get('/payouts', [\App\Http\Controllers\Admin\BillingController::class, 'payouts'])->name('admin.billing.payouts');
+        });
     });
 
     /**
