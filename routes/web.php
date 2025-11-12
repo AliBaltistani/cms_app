@@ -443,6 +443,31 @@ Route::middleware('auth')->group(function () {
         Route::get('/trainers-scheduling', [\App\Http\Controllers\Admin\BookingController::class, 'trainersScheduling'])->name('admin.trainers-scheduling.index');
     });
 
+    // Billing & Payment Management
+    Route::middleware('admin')->prefix('admin')->group(function () {
+        Route::prefix('payment-gateways')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\PaymentGatewayController::class, 'index'])->name('admin.payment-gateways.index');
+            Route::post('/', [\App\Http\Controllers\Admin\PaymentGatewayController::class, 'store'])->name('admin.payment-gateways.store');
+            Route::put('/{id}', [\App\Http\Controllers\Admin\PaymentGatewayController::class, 'update'])->name('admin.payment-gateways.update');
+            Route::post('/{id}/enable', [\App\Http\Controllers\Admin\PaymentGatewayController::class, 'enable'])->name('admin.payment-gateways.enable');
+            Route::post('/{id}/set-default', [\App\Http\Controllers\Admin\PaymentGatewayController::class, 'setDefault'])->name('admin.payment-gateways.set-default');
+        });
+
+        Route::get('/trainers/{id}/bank-accounts', [\App\Http\Controllers\Admin\TrainerBankController::class, 'index'])->name('admin.trainers.bank-accounts');
+
+        Route::prefix('invoices')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\BillingController::class, 'invoices'])->name('admin.invoices.index');
+        });
+
+        Route::prefix('payouts')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\BillingController::class, 'payouts'])->name('admin.payouts.index');
+            Route::get('/export', [\App\Http\Controllers\Admin\BillingController::class, 'exportPayouts'])->name('admin.payouts.export');
+            Route::post('/{id}/retry', [\App\Http\Controllers\Admin\BillingController::class, 'retryPayout'])->name('admin.payouts.retry');
+        });
+
+        Route::get('/billing-dashboard', [\App\Http\Controllers\Admin\BillingController::class, 'dashboard'])->name('admin.billing.dashboard');
+    });
+
     /**
      * CLIENT ROUTES - Client Role Required
      * Client dashboard and personal management
@@ -543,6 +568,4 @@ Route::middleware('auth')->group(function () {
         Route::post('/{id}/testimonials', [TrainerWebController::class, 'storeTestimonial'])->name('trainers.testimonials.store');
     });
 });
-
-
 

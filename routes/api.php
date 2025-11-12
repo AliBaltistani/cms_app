@@ -266,7 +266,23 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/', [\App\Http\Controllers\Api\TrainerController::class, 'addClient'])->name('store');
             Route::get('/', [\App\Http\Controllers\Api\TrainerController::class, 'getClients'])->name('index');
             Route::get('/{clientId}/details', [\App\Http\Controllers\Api\TrainerController::class, 'getClientDetails'])->name('details');
+            Route::get('/{clientId}/invoice-items', [\App\Http\Controllers\Api\TrainerInvoiceController::class, 'getClientInvoiceItems'])->name('invoice-items');
         });
+
+        // Billing: Stripe Connect + Invoices + Payouts
+        Route::prefix('bank')->name('bank.')->group(function () {
+            Route::post('/connect', [\App\Http\Controllers\Api\TrainerBankController::class, 'connect'])->name('connect');
+            Route::get('/callback', [\App\Http\Controllers\Api\TrainerBankController::class, 'callback'])->name('callback');
+            Route::get('/', [\App\Http\Controllers\Api\TrainerBankController::class, 'index'])->name('index');
+            Route::post('/disconnect', [\App\Http\Controllers\Api\TrainerBankController::class, 'disconnect'])->name('disconnect');
+        });
+
+        Route::prefix('invoice')->name('invoice.')->group(function () {
+            Route::post('/create', [\App\Http\Controllers\Api\TrainerInvoiceController::class, 'create'])->name('create');
+            Route::get('/list', [\App\Http\Controllers\Api\TrainerInvoiceController::class, 'index'])->name('index');
+        });
+
+        Route::get('/payouts', [\App\Http\Controllers\Api\TrainerPayoutController::class, 'index'])->name('payouts.index');
     });
 
     /**
@@ -385,6 +401,15 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/date', [\App\Http\Controllers\Api\ClientScheduleController::class, 'getScheduleByDate'])->name('by-date');
             Route::get('/range', [\App\Http\Controllers\Api\ClientScheduleController::class, 'getScheduleRange'])->name('range');
         });
+
+        // Billing: Gateways, Invoices, Payments
+        Route::get('/payment-gateways', [\App\Http\Controllers\Api\ClientPaymentController::class, 'gateways'])->name('payment.gateways');
+        Route::get('/invoices', [\App\Http\Controllers\Api\ClientInvoiceController::class, 'index'])->name('invoices.index');
+        Route::post('/invoice/{id}/pay', [\App\Http\Controllers\Api\ClientPaymentController::class, 'pay'])->name('invoice.pay');
+        Route::post('/payment/retry', [\App\Http\Controllers\Api\ClientPaymentController::class, 'retry'])->name('payment.retry');
+        Route::post('/payment/cancel', [\App\Http\Controllers\Api\ClientPaymentController::class, 'cancel'])->name('payment.cancel');
+        Route::get('/payment/{transaction_id}', [\App\Http\Controllers\Api\ClientPaymentController::class, 'show'])->name('payment.show');
+        Route::post('/payment/paypal/capture', [\App\Http\Controllers\Api\ClientPaymentController::class, 'paypalCapture'])->name('payment.paypal.capture');
     });
 });
 
@@ -545,6 +570,18 @@ Route::middleware(['auth:sanctum'])->prefix('google-calendar-booking')->name('go
     Route::get('/clients', [\App\Http\Controllers\Api\GoogleCalendarBookingController::class, 'getClients'])->name('clients');
     Route::get('/timezones', [\App\Http\Controllers\Api\GoogleCalendarBookingController::class, 'getTimezones'])->name('timezones');
     Route::get('/session-types', [\App\Http\Controllers\Api\GoogleCalendarBookingController::class, 'getSessionTypes'])->name('session-types');
+});
+
+// Webhooks (Public)
+Route::post('/webhook/stripe', [\App\Http\Controllers\Api\WebhookController::class, 'stripe'])->name('webhook.stripe');
+Route::post('/webhook/paypal', [\App\Http\Controllers\Api\WebhookController::class, 'paypal'])->name('webhook.paypal');
+
+// Public payment return routes
+Route::prefix('payment')->name('api.payment.')->group(function () {
+    Route::get('/stripe/return', [\App\Http\Controllers\Api\ClientPaymentController::class, 'stripeReturn'])->name('stripe.return');
+    Route::get('/stripe/cancel', [\App\Http\Controllers\Api\ClientPaymentController::class, 'stripeCancel'])->name('stripe.cancel');
+    Route::get('/paypal/return', [\App\Http\Controllers\Api\ClientPaymentController::class, 'paypalReturn'])->name('paypal.return');
+    Route::get('/paypal/cancel', [\App\Http\Controllers\Api\ClientPaymentController::class, 'paypalCancel'])->name('paypal.cancel');
 });
 
 /**
