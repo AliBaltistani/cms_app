@@ -37,6 +37,17 @@ class Invoice extends Model
         'transaction_id',
         'commission_amount',
         'net_amount',
+        'due_date',
+        'note',
+    ];
+
+    /**
+     * Attribute casting for date fields.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'due_date' => 'date',
     ];
 
     /**

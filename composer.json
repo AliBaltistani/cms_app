@@ -12,6 +12,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
         "spatie/laravel-google-calendar": "^3.8",
+        "stripe/stripe-php": "^18.2",
         "twilio/sdk": "^8.8"
     },
     "require-dev": {

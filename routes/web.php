@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Client\ClientDashboardController;
 use App\Http\Controllers\Trainer\TrainerDashboardController;
 use App\Http\Controllers\Trainer\TrainerWebController;
+use App\Http\Controllers\Api\TrainerBillingController;
 
 /**
  * Public Routes
@@ -251,6 +252,17 @@ Route::middleware('auth')->group(function () {
                 'update' => 'workout-exercises.update',
                 'destroy' => 'workout-exercises.destroy',
             ]);
+
+        /**
+         * Stripe Connect onboarding callbacks for trainers (web routes)
+         * These URLs are used by Stripe Account Links as refresh/return targets.
+         */
+        Route::prefix('trainer/stripe/connect')->group(function () {
+            Route::get('/return', [TrainerBillingController::class, 'stripeConnectReturn'])
+                ->name('trainer.stripe.connect.return');
+            Route::get('/refresh', [TrainerBillingController::class, 'stripeConnectRefresh'])
+                ->name('trainer.stripe.connect.refresh');
+        });
         
         // Workout Exercise Additional Routes
         Route::patch('workouts/{workout}/exercises/reorder', [\App\Http\Controllers\Admin\WorkoutExerciseController::class, 'reorder'])->name('workout-exercises.reorder');

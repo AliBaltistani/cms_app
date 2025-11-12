@@ -60,6 +60,14 @@ Route::prefix('auth')->name('api.auth.')->group(function () {
 });
 
 /**
+ * Stripe Connect Callbacks (Public)
+ * These endpoints are used by Stripe account_links for onboarding.
+ * They must be publicly accessible because Stripe redirects do not include API tokens.
+ */
+Route::get('/stripe/connect/return', [\App\Http\Controllers\Api\TrainerBillingController::class, 'stripeConnectReturn'])->name('api.stripe.connect.return');
+Route::get('/stripe/connect/refresh', [\App\Http\Controllers\Api\TrainerBillingController::class, 'stripeConnectRefresh'])->name('api.stripe.connect.refresh');
+
+/**
  * =============================================================================
  * PROTECTED API ROUTES (Authentication Required)
  * =============================================================================
@@ -272,14 +280,14 @@ Route::middleware('auth:sanctum')->group(function () {
          * Trainer Billing
          * Create invoices from assigned workouts and list invoices
          */
-        Route::prefix('billing')->name('billing.')->group(function () {
-            Route::get('/clients/{clientId}/workouts', [\App\Http\Controllers\Api\TrainerBillingController::class, 'listClientWorkouts'])->name('clients.workouts');
-            Route::post('/invoices', [\App\Http\Controllers\Api\TrainerBillingController::class, 'createInvoice'])->name('invoices.store');
-            Route::get('/invoices', [\App\Http\Controllers\Api\TrainerBillingController::class, 'listInvoices'])->name('invoices.index');
-            // Stripe Connect onboarding and payout history
-            Route::post('/stripe/connect', [\App\Http\Controllers\Api\TrainerBillingController::class, 'connectStripeAccount'])->name('stripe.connect');
-            Route::get('/payouts', [\App\Http\Controllers\Api\TrainerBillingController::class, 'listPayouts'])->name('payouts.index');
-        });
+        // Route::prefix('billing')->name('billing.')->group(function () {
+        //     Route::get('/clients/{clientId}/workouts', [\App\Http\Controllers\Api\TrainerBillingController::class, 'listClientWorkouts'])->name('clients.workouts');
+        //     Route::post('/invoices', [\App\Http\Controllers\Api\TrainerBillingController::class, 'createInvoice'])->name('invoices.store');
+        //     Route::get('/invoices', [\App\Http\Controllers\Api\TrainerBillingController::class, 'listInvoices'])->name('invoices.index');
+        //     // Stripe Connect onboarding and payout history
+        //     Route::post('/stripe/connect', [\App\Http\Controllers\Api\TrainerBillingController::class, 'connectStripeAccount'])->name('stripe.connect');
+        //     Route::get('/payouts', [\App\Http\Controllers\Api\TrainerBillingController::class, 'listPayouts'])->name('payouts.index');
+        // });
 
         // Alias endpoints to match specification (without /billing prefix)
         Route::post('/invoice/create', [\App\Http\Controllers\Api\TrainerBillingController::class, 'createInvoice'])->name('invoice.create');
