@@ -28,11 +28,11 @@ class PayPalPaymentService
      * @param string $orderId PayPal Order ID from client checkout
      * @return array{success:bool,transaction_id:?string,error:?string}
      */
-    public function capture(string $orderId): array
+    public function capture(string $orderId, ?string $clientIdOverride = null, ?string $clientSecretOverride = null, ?bool $sandboxOverride = null): array
     {
-        $clientId = config('services.paypal.client_id');
-        $clientSecret = config('services.paypal.client_secret');
-        $sandbox = (bool) config('services.paypal.sandbox', true);
+        $clientId = $clientIdOverride ?: config('services.paypal.client_id');
+        $clientSecret = $clientSecretOverride ?: config('services.paypal.client_secret');
+        $sandbox = ($sandboxOverride !== null) ? $sandboxOverride : (bool) config('services.paypal.sandbox', true);
 
         if (empty($clientId) || empty($clientSecret))
         {

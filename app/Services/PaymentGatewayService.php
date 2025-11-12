@@ -40,15 +40,18 @@ class PaymentGatewayService
 
         $result = ['success' => false, 'transaction_id' => null, 'error' => 'Unsupported gateway'];
 
+        $central = new CentralGatewayService();
         if ($gateway === 'stripe')
         {
+            $creds = $central->getStripeCredentials();
             $service = new StripePaymentService();
-            $result = $service->pay($amountCents, $payload['payment_method_id'] ?? '', $metadata);
+            $result = $service->pay($amountCents, $payload['payment_method_id'] ?? '', $metadata, $creds['secret'] ?? null);
         }
         elseif ($gateway === 'paypal')
         {
+            $creds = $central->getPayPalCredentials();
             $service = new PayPalPaymentService();
-            $result = $service->capture($payload['order_id'] ?? '');
+            $result = $service->capture($payload['order_id'] ?? '', $creds['client_id'] ?? null, $creds['client_secret'] ?? null, $creds['sandbox'] ?? null);
         }
 
         // Update invoice, record transaction, and create payout on success/failure
@@ -58,8 +61,7 @@ class PaymentGatewayService
             $invoice->payment_method = $gateway;
             $invoice->transaction_id = $result['transaction_id'];
 
-            // Commission and net amounts
-            $commissionRate = (float) config('billing.commission_rate', 0.10);
+            $commissionRate = app(CentralGatewayService::class)->getDefaultCommissionRate();
             $invoice->commission_amount = round($invoice->total_amount * $commissionRate, 2);
             $invoice->net_amount = round($invoice->total_amount - $invoice->commission_amount, 2);
             $invoice->save();
@@ -68,7 +70,10 @@ class PaymentGatewayService
             Transaction::create([
                 'invoice_id' => $invoice->id,
                 'client_id' => $invoice->client_id,
+                'trainer_id' => $invoice->trainer_id,
+                'gateway_id' => null,
                 'payment_method' => $gateway,
+                'amount' => $invoice->total_amount,
                 'status' => 'succeeded',
                 'transaction_id' => $result['transaction_id'],
                 'response_data' => [
@@ -95,7 +100,9 @@ class PaymentGatewayService
             Transaction::create([
                 'invoice_id' => $invoice->id,
                 'client_id' => $invoice->client_id,
+                'trainer_id' => $invoice->trainer_id,
                 'payment_method' => $gateway,
+                'amount' => $invoice->total_amount,
                 'status' => 'failed',
                 'transaction_id' => $result['transaction_id'],
                 'response_data' => [

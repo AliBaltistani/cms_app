@@ -25,9 +25,9 @@ class StripePaymentService
      * @param string $paymentMethodId
      * @return bool
      */
-    public function verifyPaymentMethod(string $paymentMethodId): bool
+    public function verifyPaymentMethod(string $paymentMethodId, ?string $secretOverride = null): bool
     {
-        $secret = config('services.stripe.secret');
+        $secret = $secretOverride ?: config('services.stripe.secret');
         if (empty($secret))
         {
             return false;
@@ -53,9 +53,9 @@ class StripePaymentService
      * @param array  $metadata Additional metadata for intent
      * @return array{success:bool,transaction_id:?string,error:?string}
      */
-    public function pay(int $amountCents, string $paymentMethodId, array $metadata = []): array
+    public function pay(int $amountCents, string $paymentMethodId, array $metadata = [], ?string $secretOverride = null): array
     {
-        $secret = config('services.stripe.secret');
+        $secret = $secretOverride ?: config('services.stripe.secret');
 
         if (empty($secret))
         {

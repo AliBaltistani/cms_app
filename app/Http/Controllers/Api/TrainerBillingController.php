@@ -101,7 +101,7 @@ class TrainerBillingController extends Controller
         {
             $request->validate([
                 'client_id' => 'required|integer|exists:users,id',
-                'amount' => 'required|numeric|min:0.01',
+                'amount' => 'nullable|numeric|min:0.01',
                 'due_date' => 'required|date|date_format:Y-m-d|after_or_equal:today',
                 'note' => 'required|string|max:1000',
                 'workout_ids' => 'nullable|array',
@@ -123,7 +123,7 @@ class TrainerBillingController extends Controller
         $clientId = (int) $request->input('client_id');
         $workoutIds = $request->input('workout_ids', []);
         $bookingIds = $request->input('booking_ids', []);
-        $amount = (float) $request->input('amount');
+        $amount = $request->has('amount') ? (float) $request->input('amount') : null;
         $dueDate = $request->input('due_date');
         $note = $request->input('note');
 
@@ -194,13 +194,14 @@ class TrainerBillingController extends Controller
             $invoice = Invoice::create([
                 'trainer_id' => $trainerId,
                 'client_id' => $clientId,
-                'total_amount' => round($amount, 2),
+                'total_amount' => 0,
                 'status' => 'unpaid',
                 'due_date' => $dueDate,
                 'note' => $note,
             ]);
 
             // Add workout-based line items (if provided)
+            $computedTotal = 0;
             foreach ($workouts as $workout)
             {
                 InvoiceItem::create([
@@ -209,6 +210,7 @@ class TrainerBillingController extends Controller
                     'title' => $workout->name,
                     'amount' => round((float) $workout->price, 2),
                 ]);
+                $computedTotal += round((float) $workout->price, 2);
             }
 
             // Add session booking line items (descriptive; amount left at 0 unless pricing exists)
@@ -226,6 +228,13 @@ class TrainerBillingController extends Controller
                     'amount' => 0,
                 ]);
             }
+
+            if ($amount !== null && $amount > 0) {
+                $invoice->total_amount = round($amount, 2);
+            } else {
+                $invoice->total_amount = round($computedTotal, 2);
+            }
+            $invoice->save();
 
             DB::commit();
 
@@ -252,6 +261,59 @@ class TrainerBillingController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create invoice.',
+            ], 500);
+        }
+    }
+
+    public function bankDetails()
+    {
+        $trainerId = Auth::id();
+        $account = \App\Models\TrainerStripeAccount::where('trainer_id', $trainerId)->first();
+        if (!$account) {
+            return response()->json([
+                'success' => true,
+                'data' => null,
+            ]);
+        }
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'account_id' => $account->account_id,
+                'verification_status' => $account->verification_status,
+                'bank_verification_status' => $account->bank_verification_status,
+                'bank_name' => $account->bank_name,
+                'account_last4' => $account->bank_account_last4,
+                'routing_last4' => $account->routing_number_last4,
+                'details_submitted_at' => $account->details_submitted_at,
+            ],
+        ]);
+    }
+
+    public function disconnectBank()
+    {
+        $trainerId = Auth::id();
+        $account = \App\Models\TrainerStripeAccount::where('trainer_id', $trainerId)->first();
+        if (!$account) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No bank account connected.',
+            ], 404);
+        }
+        try {
+            $account->external_account_id = null;
+            $account->bank_name = null;
+            $account->bank_account_last4 = null;
+            $account->routing_number_last4 = null;
+            $account->bank_verification_status = 'pending';
+            $account->save();
+            return response()->json([
+                'success' => true,
+                'message' => 'Bank account disconnected.',
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to disconnect bank account.',
             ], 500);
         }
     }

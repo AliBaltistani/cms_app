@@ -289,10 +289,11 @@ Route::middleware('auth:sanctum')->group(function () {
         //     Route::get('/payouts', [\App\Http\Controllers\Api\TrainerBillingController::class, 'listPayouts'])->name('payouts.index');
         // });
 
-        // Alias endpoints to match specification (without /billing prefix)
         Route::post('/invoice/create', [\App\Http\Controllers\Api\TrainerBillingController::class, 'createInvoice'])->name('invoice.create');
         Route::get('/invoices', [\App\Http\Controllers\Api\TrainerBillingController::class, 'listInvoices'])->name('invoices.list');
         Route::post('/bank/connect', [\App\Http\Controllers\Api\TrainerBillingController::class, 'connectStripeAccount'])->name('bank.connect');
+        Route::get('/bank/details', [\App\Http\Controllers\Api\TrainerBillingController::class, 'bankDetails'])->name('bank.details');
+        Route::delete('/bank/disconnect', [\App\Http\Controllers\Api\TrainerBillingController::class, 'disconnectBank'])->name('bank.disconnect');
         Route::get('/payouts', [\App\Http\Controllers\Api\TrainerBillingController::class, 'listPayouts'])->name('payouts.list');
     });
 
@@ -430,6 +431,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/payment/retry', [\App\Http\Controllers\Api\ClientBillingController::class, 'retryInvoice'])->name('payment.retry');
         Route::post('/payment/cancel', [\App\Http\Controllers\Api\ClientBillingController::class, 'cancelInvoice'])->name('payment.cancel');
         Route::get('/payments', [\App\Http\Controllers\Api\ClientBillingController::class, 'listPayments'])->name('payments.index');
+        Route::get('/payment/details/{invoiceId}', [\App\Http\Controllers\Api\ClientBillingController::class, 'paymentDetails'])->name('payment.details');
     });
 });
 
@@ -623,3 +625,6 @@ Route::fallback(function () {
         ]
     ], 404);
 });
+// Webhooks
+Route::post('/webhooks/stripe', [\App\Http\Controllers\Api\WebhookController::class, 'stripe'])->name('api.webhooks.stripe');
+Route::post('/webhooks/paypal', [\App\Http\Controllers\Api\WebhookController::class, 'paypal'])->name('api.webhooks.paypal');

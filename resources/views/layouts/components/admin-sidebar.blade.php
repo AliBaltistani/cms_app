@@ -256,26 +256,38 @@
 					<li class="slide side-menu__label1">
 						<a href="javascript:void(0)">Billing</a>
 					</li>
-					<li class="slide {{ request()->is('admin/billing') ? 'active' : '' }}">
-						<a href="{{ route('admin.billing.index') }}" class="side-menu__item">
+                    <li class="slide {{ request()->is('admin/billing') ? 'active' : '' }}">
+                        <a href="{{ route('admin.billing.index') }}" class="side-menu__item">
 							<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M133.66,34.34a8,8,0,0,0-11.32,0L40,116.69V216h64V152h48v64h64V116.69Z" opacity="0.2"/><line x1="16" y1="216" x2="240" y2="216" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><polyline points="152 216 152 152 104 152 104 216" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="40" y1="116.69" x2="40" y2="216" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="216" y1="216" x2="216" y2="116.69" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M24,132.69l98.34-98.35a8,8,0,0,1,11.32,0L232,132.69" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
 							Dashboard
-						</a>
-					</li>
-					<li class="slide {{ request()->is('admin/billing/invoices') ? 'active' : '' }}">
-						<a href="{{ route('admin.billing.invoices') }}" class="side-menu__item">
+                        </a>
+                    </li>
+                    <li class="slide {{ request()->is('admin/billing/invoices') ? 'active' : '' }}">
+                        <a href="{{ route('admin.billing.invoices') }}" class="side-menu__item">
 							<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M208,32H88a16,16,0,0,0-16,16V208a16,16,0,0,0,16,16h96a16,16,0,0,0,16-16Z" opacity="0.2"/><rect x="72" y="32" width="144" height="192" rx="16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="104" y1="80" x2="184" y2="80" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="104" y1="112" x2="184" y2="112" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="104" y1="144" x2="184" y2="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
 							Invoices
-						</a>
-					</li>
-					<li class="slide {{ request()->is('admin/billing/payouts') ? 'active' : '' }}">
-						<a href="{{ route('admin.billing.payouts') }}" class="side-menu__item">
+                        </a>
+                    </li>
+                    <li class="slide {{ request()->is('admin/billing/payouts') ? 'active' : '' }}">
+                        <a href="{{ route('admin.billing.payouts') }}" class="side-menu__item">
 							<svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M224,56H32A16,16,0,0,0,16,72V184a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V72A16,16,0,0,0,224,56Z" opacity="0.2"/><rect x="16" y="56" width="224" height="144" rx="16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M104,144h48a24,24,0,0,1,0,48H104a24,24,0,0,1,0-48Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
 							Payouts
-						</a>
-					</li>
-				</ul>
-			</li>
+                        </a>
+                    </li>
+                    <li class="slide {{ request()->is('admin/billing/gateways*') ? 'active' : '' }}">
+                        <a href="{{ route('admin.billing.gateways.index') }}" class="side-menu__item">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M224,56H32A16,16,0,0,0,16,72V184a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V72A16,16,0,0,0,224,56Z" opacity="0.2"/><rect x="16" y="56" width="224" height="144" rx="16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+                            Gateways
+                        </a>
+                    </li>
+                    <li class="slide {{ request()->is('admin/billing/bank-accounts') ? 'active' : '' }}">
+                        <a href="{{ route('admin.billing.bank-accounts') }}" class="side-menu__item">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32Z" opacity="0.2"/><rect x="32" y="48" width="192" height="160" rx="16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+                            Bank Accounts
+                        </a>
+                    </li>
+                </ul>
+            </li>
 			<!-- End::slide Billing -->
 				
 

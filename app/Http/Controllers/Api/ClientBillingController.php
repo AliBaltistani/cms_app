@@ -123,35 +123,45 @@ class ClientBillingController extends Controller
      * @param  PaymentGatewayService $gateway
      * @return \Illuminate\Http\JsonResponse
      */
-    public function payInvoice(Request $request, PaymentGatewayService $gateway)
+    public function payInvoice(PaymentGatewayService $gateway, Request $request, ?int $invoiceId = null)
     {
-        $request->validate([
-            'invoice_id' => 'required|integer|exists:invoices,id',
-            'method' => 'required|in:stripe,paypal',
-            'token' => 'required|string',
-        ]);
-
-        $clientId = Auth::id();
-        $invoice = Invoice::find($request->input('invoice_id'));
-
-        if (!$invoice || (int) $invoice->client_id !== (int) $clientId)
-        {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invoice not found for this client.',
-            ], 404);
-        }
-
-        if ($invoice->status === 'paid')
-        {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invoice already paid.',
-            ], 409);
-        }
-
         try
         {
+            $rules = [
+                'method' => 'required|in:stripe,paypal',
+                'token' => 'required|string',
+            ];
+
+            if ($invoiceId === null)
+            {
+                $rules['invoice_id'] = 'required|integer|exists:invoices,id';
+            }
+
+            $request->validate($rules, [
+                'invoice_id.required' => 'The invoice id is required.',
+            ]);
+
+            $clientId = Auth::id();
+            $targetInvoiceId = $invoiceId ?? $request->input('invoice_id');
+
+            $invoice = Invoice::find($targetInvoiceId);
+
+            if (!$invoice || (int) $invoice->client_id !== (int) $clientId)
+            {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invoice not found for this client.',
+                ], 404);
+            }
+
+            if ($invoice->status === 'paid')
+            {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invoice already paid.',
+                ], 409);
+            }
+
             $method = $request->input('method');
             $token = $request->input('token');
             $payload = $method === 'stripe' ? ['payment_method_id' => $token] : ['order_id' => $token];
@@ -164,7 +174,6 @@ class ClientBillingController extends Controller
 
             if (($result['success'] ?? false))
             {
-                // Refresh invoice to ensure latest data from service
                 $invoice->refresh();
                 $invoice->load(['trainer', 'items']);
 
@@ -192,11 +201,23 @@ class ClientBillingController extends Controller
                 'message' => 'Payment failed.',
             ], 422);
         }
+        catch (ValidationException $e)
+        {
+            Log::warning('Invoice payment validation failed', [
+                'invoice_id' => $invoiceId ?? $request->input('invoice_id'),
+                'errors' => $e->errors(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid payment request.',
+                'errors' => $e->errors(),
+            ], 422);
+        }
         catch (\Throwable $e)
         {
             Log::error('Invoice payment failed', [
-                'invoice_id' => $invoice->id,
-                'client_id' => $clientId,
+                'invoice_id' => $invoiceId ?? $request->input('invoice_id'),
                 'error' => $e->getMessage(),
             ]);
 
@@ -236,43 +257,53 @@ class ClientBillingController extends Controller
      * @param  PaymentGatewayService   $gateway
      * @return \Illuminate\Http\JsonResponse
      */
-    public function retryInvoice(Request $request, PaymentGatewayService $gateway)
+    public function retryInvoice(PaymentGatewayService $gateway, Request $request, ?int $invoiceId = null)
     {
-        $request->validate([
-            'invoice_id' => 'required|integer|exists:invoices,id',
-            'method' => 'required|in:stripe,paypal',
-            'token' => 'required|string',
-        ]);
-
-        $clientId = Auth::id();
-        $invoice = Invoice::find($request->input('invoice_id'));
-
-        if (!$invoice || (int) $invoice->client_id !== (int) $clientId)
-        {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invoice not found for this client.',
-            ], 404);
-        }
-
-        if ($invoice->status === 'paid')
-        {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invoice already paid.',
-            ], 409);
-        }
-
-        if ($invoice->status !== 'failed')
-        {
-            return response()->json([
-                'success' => false,
-                'message' => 'Only failed invoices can be retried.',
-            ], 422);
-        }
-
         try
         {
+            $rules = [
+                'method' => 'required|in:stripe,paypal',
+                'token' => 'required|string',
+            ];
+
+            if ($invoiceId === null)
+            {
+                $rules['invoice_id'] = 'required|integer|exists:invoices,id';
+            }
+
+            $request->validate($rules, [
+                'invoice_id.required' => 'The invoice id is required.',
+            ]);
+
+            $clientId = Auth::id();
+            $targetInvoiceId = $invoiceId ?? $request->input('invoice_id');
+
+            $invoice = Invoice::find($targetInvoiceId);
+
+            if (!$invoice || (int) $invoice->client_id !== (int) $clientId)
+            {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invoice not found for this client.',
+                ], 404);
+            }
+
+            if ($invoice->status === 'paid')
+            {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invoice already paid.',
+                ], 409);
+            }
+
+            if ($invoice->status !== 'failed')
+            {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only failed invoices can be retried.',
+                ], 422);
+            }
+
             $method = $request->input('method');
             $token = $request->input('token');
             $payload = $method === 'stripe' ? ['payment_method_id' => $token] : ['order_id' => $token];
@@ -285,7 +316,6 @@ class ClientBillingController extends Controller
 
             if (($result['success'] ?? false))
             {
-                // Refresh and return confirmation payload similar to payInvoice
                 $invoice->refresh();
                 $invoice->load(['trainer', 'items']);
 
@@ -313,11 +343,23 @@ class ClientBillingController extends Controller
                 'message' => 'Payment failed.',
             ], 422);
         }
+        catch (ValidationException $e)
+        {
+            Log::warning('Invoice retry validation failed', [
+                'invoice_id' => $invoiceId ?? $request->input('invoice_id'),
+                'errors' => $e->errors(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid retry request.',
+                'errors' => $e->errors(),
+            ], 422);
+        }
         catch (\Throwable $e)
         {
             Log::error('Invoice retry payment failed', [
-                'invoice_id' => $invoice->id,
-                'client_id' => $clientId,
+                'invoice_id' => $invoiceId ?? $request->input('invoice_id'),
                 'error' => $e->getMessage(),
             ]);
 
@@ -336,22 +378,19 @@ class ClientBillingController extends Controller
      */
     public function listPaymentMethods()
     {
-        $methods = [
-            [
-                'name' => 'stripe',
-                'enabled' => !empty(config('services.stripe.secret')) && !empty(config('services.stripe.key')),
-            ],
-            [
-                'name' => 'paypal',
-                'enabled' => !empty(config('services.paypal.client_id')) && !empty(config('services.paypal.client_secret')),
-            ],
-        ];
+        $central = new \App\Services\CentralGatewayService();
+        $gateways = collect($central->getEnabledGateways())->map(function ($g) {
+            return [
+                'name' => $g['type'],
+                'enabled' => true,
+            ];
+        })->values();
 
         return response()->json([
             'success' => true,
             'data' => [
                 'currency' => config('billing.currency', 'usd'),
-                'methods' => $methods,
+                'methods' => $gateways,
             ],
         ]);
     }
@@ -393,6 +432,36 @@ class ClientBillingController extends Controller
         return response()->json([
             'success' => true,
             'data' => $invoices,
+        ]);
+    }
+
+    public function paymentDetails(int $invoiceId)
+    {
+        $clientId = Auth::id();
+        $invoice = Invoice::query()
+            ->where('id', $invoiceId)
+            ->where('client_id', $clientId)
+            ->with(['trainer', 'items'])
+            ->first();
+        if (!$invoice) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invoice not found.',
+            ], 404);
+        }
+        $payload = [
+            'invoice_id' => $invoice->id,
+            'amount_paid' => (float) $invoice->total_amount,
+            'currency' => config('billing.currency', 'usd'),
+            'paid_at' => optional($invoice->updated_at)->toDateTimeString(),
+            'trainer_name' => $invoice->trainer?->name,
+            'services' => $invoice->items->map(function ($item) { return $item->title; })->values(),
+            'transaction_id' => $invoice->transaction_id,
+            'payment_method' => $invoice->payment_method,
+        ];
+        return response()->json([
+            'success' => true,
+            'data' => $payload,
         ]);
     }
 

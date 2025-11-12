@@ -462,6 +462,13 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\BillingController::class, 'index'])->name('admin.billing.index');
             Route::get('/invoices', [\App\Http\Controllers\Admin\BillingController::class, 'invoices'])->name('admin.billing.invoices');
             Route::get('/payouts', [\App\Http\Controllers\Admin\BillingController::class, 'payouts'])->name('admin.billing.payouts');
+            Route::get('/gateways', [\App\Http\Controllers\Admin\PaymentGatewayController::class, 'index'])->name('admin.billing.gateways.index');
+            Route::get('/gateways/create', [\App\Http\Controllers\Admin\PaymentGatewayController::class, 'create'])->name('admin.billing.gateways.create');
+            Route::post('/gateways', [\App\Http\Controllers\Admin\PaymentGatewayController::class, 'store'])->name('admin.billing.gateways.store');
+            Route::get('/gateways/{gateway}/edit', [\App\Http\Controllers\Admin\PaymentGatewayController::class, 'edit'])->name('admin.billing.gateways.edit');
+            Route::put('/gateways/{gateway}', [\App\Http\Controllers\Admin\PaymentGatewayController::class, 'update'])->name('admin.billing.gateways.update');
+            Route::patch('/gateways/{gateway}/toggle', [\App\Http\Controllers\Admin\PaymentGatewayController::class, 'toggle'])->name('admin.billing.gateways.toggle');
+            Route::get('/bank-accounts', [\App\Http\Controllers\Admin\TrainerBankController::class, 'index'])->name('admin.billing.bank-accounts');
         });
     });
 
@@ -565,6 +572,5 @@ Route::middleware('auth')->group(function () {
         Route::post('/{id}/testimonials', [TrainerWebController::class, 'storeTestimonial'])->name('trainers.testimonials.store');
     });
 });
-
 
 
