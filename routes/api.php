@@ -272,7 +272,6 @@ Route::middleware('auth:sanctum')->group(function () {
         // Billing: Stripe Connect + Invoices + Payouts
         Route::prefix('bank')->name('bank.')->group(function () {
             Route::post('/connect', [\App\Http\Controllers\Api\TrainerBankController::class, 'connect'])->name('connect');
-            Route::get('/callback', [\App\Http\Controllers\Api\TrainerBankController::class, 'callback'])->name('callback');
             Route::get('/', [\App\Http\Controllers\Api\TrainerBankController::class, 'index'])->name('index');
             Route::post('/disconnect', [\App\Http\Controllers\Api\TrainerBankController::class, 'disconnect'])->name('disconnect');
         });
@@ -411,8 +410,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/payment/{transaction_id}', [\App\Http\Controllers\Api\ClientPaymentController::class, 'show'])->name('payment.show');
         Route::post('/payment/paypal/capture', [\App\Http\Controllers\Api\ClientPaymentController::class, 'paypalCapture'])->name('payment.paypal.capture');
     });
+
+    
 });
 
+// Public callback for trainer bank onboarding
+    Route::get('/trainer/bank/callback', [\App\Http\Controllers\Api\TrainerBankController::class, 'callback'])->name('api.trainer.bank.callback');
 
 /**
      * PUBLIC TRAINER ROUTES (No Role Restriction)
