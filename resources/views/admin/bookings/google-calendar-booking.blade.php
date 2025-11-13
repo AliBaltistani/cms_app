@@ -35,25 +35,29 @@
         }
         
         .status-connected {
-            background-color: #d4edda;
+            /* background-color: #d4edda; */
             border-color: #c3e6cb;
             color: #155724;
         }
         
         .status-disconnected {
-            background-color: #f8d7da;
+            /* background-color: #f8d7da; */
             border-color: #f5c6cb;
             color: #721c24;
         }
         
         .availability-slot {
-            background: #f8f9fa;
+            /* background: #f8f9fa; */
             border: 2px solid #e9ecef;
             border-radius: 8px;
             padding: 12px;
             margin: 8px 0;
             cursor: pointer;
             transition: all 0.3s ease;
+            margin: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .availability-slot:hover {
@@ -84,15 +88,16 @@
         }
         
         .google-meet-info {
-            background: #e8f5e8;
+            /* background: #e8f5e8; */
             border: 1px solid #c3e6cb;
             border-radius: 8px;
             padding: 15px;
             margin-top: 15px;
+             color: var(--default-text-color) !important;
         }
         
         .form-section {
-            background: #f8f9fa;
+            /* background: #f8f9fa; */
             border-radius: 8px;
             padding: 20px;
             margin-bottom: 20px;
@@ -102,7 +107,7 @@
             font-size: 1.1rem;
             font-weight: 600;
             margin-bottom: 1rem;
-            color: #495057;
+            color: var(--default-text-color) !important;
             margin-bottom: 15px;
             display: flex;
             align-items: center;
@@ -114,7 +119,7 @@
         }
         
         .edit-mode-indicator {
-            background: #fff3cd;
+            /* background: #fff3cd; */
             border: 1px solid #ffeaa7;
             border-radius: 8px;
             padding: 12px 15px;
@@ -125,6 +130,12 @@
         
         .edit-mode-indicator i {
             color: #f39c12;
+        }
+
+        .select2-selection {
+            color: var(--default-text-color) !important;
+            background-color: var(--form-control-bg) !important;
+            border: var(--bs-border-width) solid var(--bs-border-color) !important;
         }
     </style>
 @endsection
@@ -165,7 +176,7 @@
 
     <!-- Start::row-1 -->
     <div class="row justify-content-center">
-        <div class="col-xl-10">
+        <div class="col-xl-12 col-lg-12 col-md-12">
             <div class="card google-calendar-card">
                 <div class="google-calendar-header">
                     <div class="d-flex align-items-center">
@@ -196,10 +207,7 @@
                         </div>
                     @endif
 
-                    <!-- Trainer Google Calendar Connection Status -->
-                    <div id="trainerConnectionStatus" class="connection-status" style="display: none;">
-                        <div id="connectionStatusText"></div>
-                    </div>
+                
 
                     <!-- Availability Error Alert -->
                     @if ($errors->has('booking_date') || $errors->has('start_time'))
@@ -232,12 +240,14 @@
                             <div class="section-title">
                                 <i class="ri-user-line me-2"></i>Participant Selection
                             </div>
+                              
                             
                             <div class="row">
                                 <div class="col-xl-6 col-lg-6 col-md-6 col-sm-12">
                                     <div class="mb-3">
                                         <label for="trainer_id" class="form-label">Select Trainer <span class="text-danger">*</span></label>
-                                        <select class="form-control select2" name="trainer_id" id="trainer_id" required>
+                                        {{-- <select class="form-control select2" name="trainer_id" id="trainer_id" required> --}}
+                                        <select class="form-control " name="trainer_id" id="trainer_id" required>
                                             <option value="">Choose a trainer...</option>
                                             @foreach($trainers as $trainer)
                                                 <option value="{{ $trainer->id }}" 
@@ -249,13 +259,21 @@
                                         @error('trainer_id')
                                             <div class="invalid-feedback d-block">{{ $message }}</div>
                                         @enderror
+
+                                        <div class="row">
+                                            <div class="col">
+                                                <div id="trainerConnectionStatus" class="connection-status p-2" style="display: none;">
+                                                    <div id="connectionStatusText"></div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 
                                 <div class="col-xl-6 col-lg-6 col-md-6 col-sm-12">
                                     <div class="mb-3">
                                         <label for="client_id" class="form-label">Select Client <span class="text-danger">*</span></label>
-                                        <select class="form-control select2" name="client_id" id="client_id" required>
+                                        <select class="form-control " name="client_id" id="client_id" required>
                                             <option value="">Choose a client...</option>
                                             @foreach($clients as $client)
                                                 <option value="{{ $client->id }}" 
@@ -424,7 +442,8 @@
                                                 <i class="ri-time-zone-line me-1"></i>
                                                 Meeting Timezone
                                             </label>
-                                            <select class="form-control select2 select2-hidden-accessible" name="timezone" id="timezone">
+                                            {{-- <select class="form-control select2 select2-hidden-accessible" name="timezone" id="timezone"> --}}
+                                            <select class="form-control " name="timezone" id="timezone">
                                                 @php
                                                     $defaultTimezone = $currentUser->timezone ?? 'UTC';
                                                     $selectedTimezone = isset($booking) ? ($booking->timezone ?? $defaultTimezone) : old('timezone', $defaultTimezone);
@@ -662,6 +681,16 @@
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
+                beforeSend: function() {
+                        var statusDiv = $('#trainerConnectionStatus');
+                        var statusText = $('#connectionStatusText');
+
+                        // Reset classes and show a loading indication
+                        statusDiv.removeClass('status-connected status-disconnected');
+                        statusText.html('<span class="text-info"><i class="ri-loader-2-line ri-spin me-1 text-info"></i> Checking Google Calendar connection...</span>');
+                        statusDiv.show();
+                
+                },
                 success: function(response) {
                     const statusDiv = $('#trainerConnectionStatus');
                     const statusText = $('#connectionStatusText');
@@ -670,7 +699,7 @@
                         statusDiv.removeClass('status-disconnected').addClass('status-connected');
                         statusText.html(`
                             <i class="ri-check-line me-1"></i>
-                            Google Calendar connected (${response.email})
+                            Google Calendar connected
                         `);
                     } else {
                         statusDiv.removeClass('status-connected').addClass('status-disconnected');
@@ -678,8 +707,8 @@
                         statusText.html(`
                             <i class="ri-close-line me-1"></i>
                             Google Calendar not connected - Events will not be created automatically
-                            <a href="${connectUrl}" class="btn btn-primary btn-lg">
-                                <i class="ri-google-line me-2"></i>Connect Google Calendar
+                            <a href="${connectUrl}" class="btn btn-primary btn-sm">
+                                <i class="ri-google-line me-2"></i>connect now
                             </a>
                         `);
                     }

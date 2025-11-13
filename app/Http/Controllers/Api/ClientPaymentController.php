@@ -56,7 +56,7 @@ class ClientPaymentController extends ApiBaseController
                 return response()->json(['success' => true, 'transaction' => $txn, 'stripe' => ['checkout_url' => $session['url']]]);
             } catch (\Throwable $e) {
                 Log::error('Stripe checkout session creation failed', ['invoice_id' => $invoice->id, 'error' => $e->getMessage()]);
-                return $this->sendError('Stripe Error', ['error' => 'Failed to initialize Stripe checkout'], 500);
+                return $this->sendError('Stripe Error', ['error' => 'Failed to initialize Stripe checkout'. $e->getMessage()], 500);
             }
         }
 

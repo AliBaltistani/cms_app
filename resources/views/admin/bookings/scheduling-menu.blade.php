@@ -3,14 +3,15 @@
 @section('styles')
     <style>
         .scheduling-menu-container {
-            background: white;
+            /* background: white; */
             border-radius: 12px;
             padding: 30px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         
         .menu-item {
-            background: #f8f9fa;
+            /* background: #f8f9fa; */
+                background: var(--bootstrap-card-border);
             border-radius: 12px;
             padding: 20px;
             margin-bottom: 16px;
@@ -38,7 +39,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            /* color: white; */
+            color: var(--default-text-color) !important;
             font-size: 20px;
             margin-bottom: 16px;
         }
@@ -47,11 +49,11 @@
             font-size: 18px;
             font-weight: 600;
             margin-bottom: 8px;
-            color: #333;
+            /* color: #333; */
         }
         
         .menu-item-description {
-            color: #666;
+            /* color: #666; */
             font-size: 14px;
             line-height: 1.5;
         }
@@ -61,11 +63,11 @@
         }
         
         .trainer-select select {
-            border: 2px solid #e0e0e0;
+            /* border: 2px solid #e0e0e0; */
             border-radius: 8px;
             padding: 12px 16px;
             font-size: 14px;
-            background: white;
+            /* background: white; */
             width: 100%;
             max-width: 350px;
         }

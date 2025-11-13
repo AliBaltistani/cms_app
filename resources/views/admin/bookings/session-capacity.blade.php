@@ -3,14 +3,14 @@
 @section('styles')
     <style>
         .session-capacity-container {
-            background: white;
+            /* background: white; */
             border-radius: 12px;
             padding: 30px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         
         .capacity-section {
-            background: #f8f9fa;
+            /* background: #f8f9fa; */
             border-radius: 12px;
             padding: 25px;
             margin-bottom: 25px;
@@ -25,7 +25,7 @@
         .section-title {
             font-size: 18px;
             font-weight: 600;
-            color: #333;
+            /* color: #333; */
             margin-bottom: 15px;
             display: flex;
             align-items: center;
@@ -40,7 +40,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            /* color: white; */
         }
         
         .capacity-input-group {
@@ -72,12 +72,12 @@
         
         .capacity-label {
             font-weight: 500;
-            color: #666;
+            /* color: #666; */
             min-width: 120px;
         }
         
         .capacity-description {
-            color: #666;
+            /* color: #666; */
             font-size: 14px;
             line-height: 1.5;
             margin-top: 10px;
@@ -85,7 +85,7 @@
         
         .save-button {
             background: var(--primary-color, #ff6b35);
-            color: white;
+            /* color: white; */
             border: none;
             padding: 15px 40px;
             border-radius: 8px;
@@ -102,7 +102,7 @@
         }
         
         .trainer-info {
-            background: #f8f9fa;
+            background: var(--default-background);
             border-radius: 8px;
             padding: 16px;
             margin-bottom: 30px;
@@ -119,16 +119,16 @@
         
         .trainer-info .name {
             font-weight: 600;
-            color: #333;
+            /* color: #333; */
         }
         
         .trainer-info .role {
-            color: #666;
+            /* color: #666; */
             font-size: 14px;
         }
         
         .current-settings {
-            background: #e8f5e8;
+            /* background: #e8f5e8; */
             border-radius: 8px;
             padding: 15px;
             margin-bottom: 20px;

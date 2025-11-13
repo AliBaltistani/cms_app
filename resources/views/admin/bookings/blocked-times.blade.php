@@ -3,14 +3,14 @@
 @section('styles')
     <style>
         .blocked-times-container {
-            background: white;
+            /* background: white; */
             border-radius: 12px;
             padding: 30px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         
         .calendar-container {
-            background: #f8f9fa;
+            /* background: #f8f9fa; */
             border-radius: 12px;
             padding: 20px;
             margin-bottom: 30px;
@@ -90,7 +90,7 @@
         }
         
         .blocked-time-item {
-            background: #f8f9fa;
+            background: var(--default-background);
             border-radius: 8px;
             padding: 16px;
             margin-bottom: 12px;
@@ -114,29 +114,29 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            /* color: white; */
         }
         
         .blocked-time-details .date {
             font-weight: 600;
-            color: #333;
+            /* color: #333; */
             margin-bottom: 4px;
         }
         
         .blocked-time-details .time {
-            color: #666;
+            /* color: #666; */
             font-size: 14px;
             margin-bottom: 2px;
         }
         
         .blocked-time-details .reason {
-            color: #666;
+            /* color: #666; */
             font-size: 14px;
         }
         
         .delete-btn {
             background: #dc3545;
-            color: white;
+            /* color: white; */
             border: none;
             padding: 8px 12px;
             border-radius: 6px;
@@ -150,7 +150,7 @@
         
         .add-blocked-time-btn {
             background: var(--primary-color, #ff6b35);
-            color: white;
+            /* color: white; */
             border: none;
             padding: 15px 30px;
             border-radius: 8px;
@@ -167,7 +167,7 @@
         }
         
         .trainer-info {
-            background: #f8f9fa;
+            background: var(--black-1);
             border-radius: 8px;
             padding: 16px;
             margin-bottom: 30px;
@@ -184,11 +184,11 @@
         
         .trainer-info .name {
             font-weight: 600;
-            color: #333;
+            /* color: #333; */
         }
         
         .trainer-info .role {
-            color: #666;
+            /* color: #666; */
             font-size: 14px;
         }
 
