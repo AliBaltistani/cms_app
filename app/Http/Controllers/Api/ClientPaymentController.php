@@ -23,12 +23,16 @@ class ClientPaymentController extends ApiBaseController
     {
         $invoice = Invoice::where('client_id', Auth::id())->find($id);
         if (!$invoice) {
-            return $this->sendError('Invoice Not Found', ['invoice' => 'Invoice not found or inaccessible'], 404);
+            return $this->sendError('Invoice Not Found', ['error' => 'Invoice not found or inaccessible'], 404);
+        }
+
+        if (strtolower((string) $invoice->status) === 'paid') {
+            return response()->json(['success' => true, 'data' => $invoice]);
         }
 
         $gateway = PaymentGateway::where('enabled', true)->where('is_default', true)->first();
         if (!$gateway) {
-            return $this->sendError('Gateway Not Configured', ['gateway' => 'No enabled default payment gateway'], 404);
+            return $this->sendError('Gateway Not Configured', ['error' => 'No enabled default payment gateway'], 404);
         }
 
         $txn = Transaction::create([
@@ -47,16 +51,31 @@ class ClientPaymentController extends ApiBaseController
                 if (!$accountId || !str_starts_with((string) $accountId, 'acct_')) {
                     $accountId = null;
                 }
+                $destinationId = $accountId;
+                if ($accountId) {
+                    try {
+                        $stripe = new \Stripe\StripeClient($gateway->secret_key);
+                        $acct = $stripe->accounts->retrieve((string) $accountId);
+                        $caps = (array) ($acct->capabilities ?? []);
+                        $canTransfer = ((string) ($caps['transfers'] ?? '')) === 'active' || ((string) ($caps['legacy_payments'] ?? '')) === 'active';
+                        if (!$canTransfer) {
+                            $destinationId = null;
+                        }
+                    } catch (\Throwable $e) {
+                        Log::warning('Stripe capability check failed', ['trainer_id' => $invoice->trainer_id, 'account_id' => $accountId, 'error' => $e->getMessage()]);
+                        $destinationId = null;
+                    }
+                }
                 $successUrl = $request->string('success_url') ?: rtrim((string) config('app.url'), '/') . '/api/payment/stripe/return?invoice=' . $invoice->id;
                 $cancelUrl = $request->string('cancel_url') ?: rtrim((string) config('app.url'), '/') . '/api/payment/stripe/cancel?invoice=' . $invoice->id;
                 $service = new \App\Services\Payments\StripePaymentService();
-                $session = $service->createCheckoutSession($invoice, $accountId, 10, (string) $successUrl, (string) $cancelUrl);
+                $session = $service->createCheckoutSession($invoice, $destinationId, 10, (string) $successUrl, (string) $cancelUrl);
                 $txn->transaction_id = $session['id'] ?? null;
                 $txn->save();
-                return response()->json(['success' => true, 'transaction' => $txn, 'stripe' => ['checkout_url' => $session['url']]]);
+                return response()->json(['success' => true, 'data' => $txn, 'stripe' => ['checkout_url' => $session['url']]]);
             } catch (\Throwable $e) {
                 Log::error('Stripe checkout session creation failed', ['invoice_id' => $invoice->id, 'error' => $e->getMessage()]);
-                return $this->sendError('Stripe Error', ['error' => 'Failed to initialize Stripe checkout'], 500);
+                return $this->sendError('Stripe Error',  ['error' => 'Failed to initialize Stripe checkout: ' . $e->getMessage()], 500);
             }
         }
 
@@ -68,14 +87,14 @@ class ClientPaymentController extends ApiBaseController
                 $order = $service->createOrder($invoice, (string) $returnUrl, (string) $cancelUrl);
                 $txn->transaction_id = $order['id'] ?? null;
                 $txn->save();
-                return response()->json(['success' => true, 'transaction' => $txn, 'paypal' => ['approve_url' => $order['approve_url']]]);
+                return response()->json(['success' => true, 'data' => $txn, 'paypal' => ['approve_url' => $order['approve_url']]]);
             } catch (\Throwable $e) {
-                Log::error('PayPal order creation failed', ['invoice_id' => $invoice->id, 'error' => $e->getMessage()]);
-                return $this->sendError('PayPal Error', ['error' => 'Failed to initialize PayPal order'], 500);
+                Log::error('PayPal order creation failed', [['invoice_id' => $invoice->id, 'error' => $e->getMessage()]]);
+                return $this->sendError('PayPal Error', ['success' => false, 'data' => ['error' => 'Failed to initialize PayPal order']], 500);
             }
         }
 
-        return $this->sendError('Unsupported Gateway', ['gateway' => 'Unsupported payment gateway'], 422);
+        return $this->sendError('Unsupported Gateway', ['error' => 'Unsupported payment gateway'], 422);
     }
 
     public function retry(Request $request)
