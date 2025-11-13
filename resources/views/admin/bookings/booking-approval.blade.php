@@ -3,14 +3,14 @@
 @section('styles')
     <style>
         .booking-approval-container {
-            background: white;
+            /* background: white; */
             border-radius: 12px;
             padding: 30px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         
         .approval-section {
-            background: #f8f9fa;
+            /* background: #f8f9fa; */
             border-radius: 12px;
             padding: 25px;
             margin-bottom: 25px;
@@ -41,12 +41,12 @@
         .setting-title {
             font-size: 16px;
             font-weight: 600;
-            color: #333;
+            /* color: #333; */
             margin-bottom: 5px;
         }
         
         .setting-description {
-            color: #666;
+            /* color: #666; */
             font-size: 14px;
             line-height: 1.5;
         }
@@ -83,7 +83,7 @@
         
         .save-button {
             background: var(--primary-color, #ff6b35);
-            color: white;
+            /* color: white; */
             border: none;
             padding: 15px 40px;
             border-radius: 8px;
@@ -100,7 +100,7 @@
         }
         
         .trainer-info {
-            background: #f8f9fa;
+             background: var(--black-1);
             border-radius: 8px;
             padding: 16px;
             margin-bottom: 30px;
@@ -117,16 +117,16 @@
         
         .trainer-info .name {
             font-weight: 600;
-            color: #333;
+            /* color: #333; */
         }
         
         .trainer-info .role {
-            color: #666;
+            /* color: #666; */
             font-size: 14px;
         }
         
         .current-settings {
-            background: #e8f5e8;
+              background: var(--black-1);
             border-radius: 8px;
             padding: 15px;
             margin-bottom: 20px;
