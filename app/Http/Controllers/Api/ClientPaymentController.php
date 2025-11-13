@@ -26,6 +26,10 @@ class ClientPaymentController extends ApiBaseController
             return $this->sendError('Invoice Not Found', ['invoice' => 'Invoice not found or inaccessible'], 404);
         }
 
+        if (strtolower((string) $invoice->status) === 'paid') {
+            return response()->json(['success' => true, 'status' => 'paid', 'invoice' => $invoice]);
+        }
+
         $gateway = PaymentGateway::where('enabled', true)->where('is_default', true)->first();
         if (!$gateway) {
             return $this->sendError('Gateway Not Configured', ['gateway' => 'No enabled default payment gateway'], 404);

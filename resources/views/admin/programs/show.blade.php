@@ -3,7 +3,7 @@
 @section('styles')
     <style>
         .program-structure {
-            background: #f8f9fc;
+            /* background: #f8f9fc; */
             border-radius: 0.35rem;
             padding: 1rem;
         }
@@ -28,10 +28,10 @@
         .exercise-item {
             margin-left: 3rem;
             padding: 0.5rem;
-            background: white;
+            /* background: white; */
             border-radius: 0.25rem;
             margin-bottom: 0.25rem;
-            border: 1px solid #e3e6f0;
+            /* border: 1px solid #e3e6f0; */
         }
         
         .sets-display {
@@ -42,10 +42,11 @@
         }
         
         .set-badge {
-            background: #e3e6f0;
+            /* background: #e3e6f0; */
             padding: 0.25rem 0.5rem;
             border-radius: 0.25rem;
             font-size: 0.75rem;
+            color: var(--black-6);
         }
         
         .collapse-toggle {

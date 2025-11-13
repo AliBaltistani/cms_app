@@ -602,11 +602,13 @@
                 .then(() => {
                     el.remove();
                     showNotification('success', 'Week removed');
+                    reindexWeeksAndDays();
                 }).catch(err => {
                     showAjaxError(err, 'Failed to remove week');
                 });
             } else {
                 el.remove();
+                reindexWeeksAndDays();
             }
         }
     }
@@ -771,11 +773,17 @@
                 .then(() => {
                     el.remove();
                     showNotification('success', 'Day removed');
+                    const m = dayId.match(/^week-(\d+)-/);
+                    const wIndex = m ? Number(m[1]) : null;
+                    if (wIndex) { reindexDaysInWeek(document.getElementById(`week-${wIndex}`)); }
                 }).catch(err => {
                     showAjaxError(err, 'Failed to remove day');
                 });
             } else {
                 el.remove();
+                const m = dayId.match(/^week-(\d+)-/);
+                const wIndex = m ? Number(m[1]) : null;
+                if (wIndex) { reindexDaysInWeek(document.getElementById(`week-${wIndex}`)); }
             }
         }
     }
@@ -1926,6 +1934,52 @@ function renderDayIntoExisting(weekIndex, d, dayId) {
             console.warn('Accordion init warning:', e);
         }
     });
+
+    function reindexWeeksAndDays() {
+        const weeks = Array.from(document.querySelectorAll('.week-container'));
+        let wNum = 1;
+        const promises = [];
+        weeks.forEach(weekEl => {
+            const header = weekEl.querySelector('.week-header h4');
+            if (header) { header.innerHTML = `<i class="bi bi-calendar3 me-2"></i>Week ${wNum}`; }
+            const bId = weekEl?.dataset?.weekId;
+            if (bId) {
+                promises.push(ajax(`${BASE_PROGRAM_BUILDER_URL}/weeks/${bId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ week_number: wNum })
+                }));
+            }
+            reindexDaysInWeek(weekEl);
+            wNum++;
+        });
+        Promise.allSettled(promises).then(() => {
+            showNotification('success', 'Weeks and days renumbered');
+        }).catch(() => {
+            // silent
+        });
+    }
+
+    function reindexDaysInWeek(weekEl) {
+        if (!weekEl) { return; }
+        const days = Array.from(weekEl.querySelectorAll('.day-container'));
+        let dNum = 1;
+        const promises = [];
+        days.forEach(dayEl => {
+            const badge = dayEl.querySelector('.badge');
+            if (badge) { badge.textContent = `Day ${dNum}`; }
+            const bId = dayEl?.dataset?.dayId;
+            if (bId) {
+                promises.push(ajax(`${BASE_PROGRAM_BUILDER_URL}/days/${bId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ day_number: dNum })
+                }));
+            }
+            dNum++;
+        });
+        Promise.allSettled(promises).then(() => {
+            // no-op
+        }).catch(() => {});
+    }
 
     // Save and Export Functions
     function saveWorkout() {

@@ -48,7 +48,7 @@
                             <div class="col-xl-6 col-lg-6 col-md-6 col-sm-12">
                                 <div class="mb-3">
                                     <label for="trainer_id" class="form-label">Trainer <span class="text-danger">*</span></label>
-                                    <select class="form-control select2" name="trainer_id" id="trainer_id" required>
+                                    <select class="form-control " name="trainer_id" id="trainer_id" required>
                                         <option value="">Select Trainer</option>
                                         @foreach($trainers as $trainer)
                                             <option value="{{ $trainer->id }}" {{ old('trainer_id') == $trainer->id ? 'selected' : '' }}>
@@ -66,7 +66,7 @@
                             <div class="col-xl-6 col-lg-6 col-md-6 col-sm-12">
                                 <div class="mb-3">
                                     <label for="client_id" class="form-label">Client <span class="text-danger">*</span></label>
-                                    <select class="form-control select2" name="client_id" id="client_id" required>
+                                    <select class="form-control " name="client_id" id="client_id" required>
                                         <option value="">Select Client</option>
                                         @foreach($clients as $client)
                                             <option value="{{ $client->id }}" {{ old('client_id') == $client->id ? 'selected' : '' }}>
