@@ -1062,16 +1062,33 @@ function renderDayIntoExisting(weekIndex, d, dayId) {
         if (!confirm('Are you sure you want to remove this circuit?')) { return; }
         const row = document.getElementById(rowId);
         const circuitBackendId = row?.dataset?.circuitId;
+        const match = rowId.match(/^(week-\d+-day-\d+)-exercise-\d+$/);
+        const dayId = match ? match[1] : null;
         if (circuitBackendId) {
             ajax(`${BASE_PROGRAM_BUILDER_URL}/circuits/${circuitBackendId}`, { method: 'DELETE' })
             .then(() => {
+                // Remove header and all exercises until next circuit header
+                let walker = row.nextElementSibling;
                 row.remove();
+                while (walker && !walker.classList.contains('circuit-row')) {
+                    const next = walker.nextElementSibling;
+                    walker.remove();
+                    walker = next;
+                }
                 showNotification('success', 'Circuit removed');
+                if (dayId) { reindexCircuits(dayId); }
             }).catch(err => {
                 showAjaxError(err, 'Failed to remove circuit');
             });
         } else {
+            let walker = row.nextElementSibling;
             row.remove();
+            while (walker && !walker.classList.contains('circuit-row')) {
+                const next = walker.nextElementSibling;
+                walker.remove();
+                walker = next;
+            }
+            if (dayId) { reindexCircuits(dayId); }
         }
     }
 
@@ -1081,6 +1098,57 @@ function renderDayIntoExisting(weekIndex, d, dayId) {
         const dayId = match ? match[1] : null;
         if (!dayId) { return; }
         addExercise(dayId, true, headerRowId);
+    }
+
+    function reindexCircuits(dayId) {
+        const tbody = document.getElementById(`${dayId}-exercises`);
+        if (!tbody) { return; }
+        const headers = Array.from(tbody.querySelectorAll('.circuit-row'));
+        let cNum = 1;
+        const promises = [];
+        headers.forEach(h => {
+            const label = h.querySelector('.circuit-label span');
+            if (label) { label.innerHTML = `<i class="bi bi-diagram-3 me-2" style="color: rgb(255, 106, 0);"></i>Circuit ${cNum}`; }
+            const cid = h?.dataset?.circuitId;
+            if (cid) {
+                promises.push(ajax(`${BASE_PROGRAM_BUILDER_URL}/circuits/${cid}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ circuit_number: cNum })
+                }));
+            }
+            persistExercisesReorderInCircuit(h);
+            cNum++;
+        });
+        Promise.allSettled(promises).then(() => {
+            showNotification('success', 'Circuits renumbered');
+        }).catch(() => {});
+    }
+
+    function persistExercisesReorderInCircuit(circuitRow) {
+        const circuitId = circuitRow?.dataset?.circuitId;
+        if (!circuitId) { return; }
+        const payload = [];
+        let walker = circuitRow.nextElementSibling;
+        let orderIdx = 0;
+        while (walker && !walker.classList.contains('circuit-row')) {
+            if (walker.querySelector('.cool-down') || walker.classList.contains('custom-row')) {
+                walker = walker.nextElementSibling;
+                continue;
+            }
+            const id = walker?.dataset?.exerciseId;
+            if (id) {
+                payload.push({ id, order: orderIdx });
+            }
+            orderIdx++;
+            walker = walker.nextElementSibling;
+        }
+        if (!payload.length) { return; }
+        ajax(`${BASE_PROGRAM_BUILDER_URL}/circuits/${circuitId}/exercises/reorder`, {
+            method: 'POST',
+            body: JSON.stringify({ exercises: payload })
+        }).then(() => {
+            // silent success
+        }).catch(() => {});
     }
 
     // =====================================================================
@@ -1440,7 +1508,6 @@ function renderDayIntoExisting(weekIndex, d, dayId) {
     }
 
     function addColumn() {
-        // Find next sequential set number following existing set columns (set1, set2, ...)
         const setNumbers = columnConfig
             .map(c => /^set(\d+)$/.exec(c.id))
             .filter(m => !!m)
@@ -1454,8 +1521,10 @@ function renderDayIntoExisting(weekIndex, d, dayId) {
             type: 'text',
             required: false
         };
+        const prevConfig = columnConfig.slice();
         columnConfig.push(newCol);
         renderColumnSettings();
+        refreshAllTables(prevConfig);
         saveColumnConfigRemote();
     }
 
@@ -1486,8 +1555,9 @@ function renderDayIntoExisting(weekIndex, d, dayId) {
         const index = columnConfig.findIndex(col => col.id === columnId);
         if (index !== -1 && !columnConfig[index].required) {
             if (confirm('Remove this column from all tables?')) {
+                const prevConfig = columnConfig.slice();
                 columnConfig.splice(index, 1);
-                refreshAllTables();
+                refreshAllTables(prevConfig);
                 saveColumnConfigRemote();
             }
         }
@@ -1500,14 +1570,14 @@ function renderDayIntoExisting(weekIndex, d, dayId) {
         const order = children.map(ch => parseInt(ch.dataset.index, 10)).filter(n => !isNaN(n));
         const current = columnConfig.slice();
         columnConfig = order.map(i => current[i]);
-        refreshAllTables();
+        refreshAllTables(current);
         initTooltips();
         saveColumnConfigRemote();
         showNotification('success', 'Column settings applied');
         bootstrap.Modal.getInstance(document.getElementById('columnSettingsModal')).hide();
     }
 
-    function refreshAllTables() {
+    function refreshAllTables(prevConfig = null) {
         document.querySelectorAll('[id$="-table"]').forEach(table => {
             const thead = table.querySelector('thead tr');
             const actionHeader = thead.querySelector('th:first-child');
@@ -1520,42 +1590,38 @@ function renderDayIntoExisting(weekIndex, d, dayId) {
             tbody.querySelectorAll('tr').forEach(row => {
                 if (!row.classList.contains('circuit-row') && !row.classList.contains('custom-row') && row.querySelector('td:not(.cool-down):not(.action-cell)')) {
                     const actionCell = row.querySelector('.action-cell');
-                    const cells = Array.from(row.querySelectorAll('td:not(.action-cell)'));
+                    const prevInputs = Array.from(row.querySelectorAll('td:not(.action-cell) input, td:not(.action-cell) textarea'));
+                    const prevValuesById = {};
+                    const basePrev = Array.isArray(prevConfig) ? prevConfig : columnConfig.slice();
+                    for (let i = 0; i < basePrev.length; i++) {
+                        const prevCol = basePrev[i];
+                        const val = prevInputs[i] ? prevInputs[i].value : '';
+                        prevValuesById[prevCol.id] = val;
+                    }
                     row.innerHTML = '';
                     if (actionCell) row.appendChild(actionCell);
 
-                    columnConfig.forEach((col, i) => {
-                        let cell = cells[i] || document.createElement('td');
-                        // Ensure there's a single editable control inside the cell
-                        let input = cell.querySelector('input, textarea');
-                        if (!input) {
-                            cell.innerHTML = '<input type="text" class="form-control form-control-sm border-0">';
-                            input = cell.querySelector('input');
-                        }
-
-                        // Configure placeholder, tooltip and alignment based on column id
+                    columnConfig.forEach(col => {
+                        const cell = document.createElement('td');
                         const isExercise = col.id === 'exercise';
                         const isSet = col.id && col.id.startsWith('set');
                         const isNotes = col.id === 'notes';
                         const placeholder = isExercise ? 'Enter exercise name' : (isSet ? 'e.g., 12 / 40kg' : (isNotes ? 'Optional notes' : ''));
                         const titleAttr = isExercise ? 'Type to match a workout or enter a custom name' : (isSet ? 'Enter reps / weight (e.g., 12 / 40kg)' : '');
-
-                        if (input) {
-                            input.setAttribute('placeholder', placeholder);
-                            input.classList.toggle('text-center', !!isSet);
-                            input.classList.add('form-control', 'form-control-sm', 'border-0');
-                            if (titleAttr) {
-                                input.setAttribute('data-bs-toggle', 'tooltip');
-                                input.setAttribute('title', titleAttr);
-                            } else {
-                                input.removeAttribute('title');
-                            }
+                        cell.innerHTML = '<input type="text" class="form-control form-control-sm border-0">';
+                        const input = cell.querySelector('input');
+                        input.value = prevValuesById[col.id] ?? '';
+                        input.setAttribute('placeholder', placeholder);
+                        input.classList.toggle('text-center', !!isSet);
+                        if (titleAttr) {
+                            input.setAttribute('data-bs-toggle', 'tooltip');
+                            input.setAttribute('title', titleAttr);
+                        } else {
+                            input.removeAttribute('title');
                         }
-
                         row.appendChild(cell);
                     });
 
-                    // Rebind autosave for any new inputs added to this row
                     try { bindExerciseRowAutosave(row, dayId); } catch (e) { console.warn('Rebind autosave warning:', e); }
                 }
             });
