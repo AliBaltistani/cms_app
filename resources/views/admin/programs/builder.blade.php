@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="container-fluid" >
-    <div class="card shadow-lg border-0 mb-4" style="background: #ffffff; border: 2px solid rgba(255, 106, 0, 0.2) !important;">
+    <div class="card shadow-lg border-0 mb-4" style="border: 2px solid rgba(255, 106, 0, 0.2) !important;">
         <div class="card-body p-4">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
@@ -58,7 +58,7 @@
 <style>
     .week-container {
         margin-bottom: 2rem;
-        background: white;
+        /* background: white; */
         border-radius: 16px;
         overflow: hidden;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
@@ -110,7 +110,7 @@
     .day-header {
         /* background: linear-gradient(135deg, rgb(255, 106, 0) 0%, rgba(255, 106, 0, 0.894) 100%); */
         /* color: white; */
-        background: gainsboro;
+        /* background: gainsboro; */
         color: black;
         padding: 1rem 1.5rem;
         display: flex;
@@ -121,7 +121,7 @@
     }
 
     .day-name-input {
-        background: rgba(255, 255, 255, 0.2);
+        /* background: rgba(255, 255, 255, 0.2); */
         /* border: 2px solid rgba(255, 255, 255, 0.3); */
          border: 1px solid rgba(255, 106, 0, 0.3);
         color: black;
@@ -132,7 +132,7 @@
     }
 
     .day-name-input:focus {
-        background: rgba(255, 255, 255, 0.3);
+        /* background: rgba(255, 255, 255, 0.3); */
         border-color: black;
         outline: none;
     }
@@ -150,7 +150,7 @@
     }
 
     .exercise-table thead th {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        /* background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); */
         padding: 0.4rem;
         font-weight: 700;
         border: 1px solid #dee2e6;
@@ -182,7 +182,7 @@
     }
 
     .exercise-table tbody tr:hover {
-        background: rgba(255, 106, 0, 0.05);
+        /* background: rgba(255, 106, 0, 0.05); */
     }
 
     .exercise-table td {
@@ -207,11 +207,11 @@
     .exercise-table textarea:focus {
         outline: none;
         border-color: rgb(255, 106, 0);
-        background: rgba(255, 106, 0, 0.05);
+        /* background: rgba(255, 106, 0, 0.05); */
     }
 
     .circuit-label {
-        background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+        /* background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%); */
         font-weight: 700;
         color: #000000;
         text-transform: uppercase;
@@ -221,7 +221,7 @@
     }
 
     .cool-down {
-        background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+        /* background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%); */
         font-style: italic;
         text-align: center;
         padding: 1rem;
@@ -231,13 +231,13 @@
     }
 
     .action-cell {
-        background: #fafafa;
+        /* background: #fafafa; */
         text-align: center;
         width: 80px;
     }
 
     .btn-gradient-primary {
-        background: linear-gradient(135deg, rgb(255, 106, 0) 0%, rgba(255, 106, 0, 0.894) 100%);
+        /* background: linear-gradient(135deg, rgb(255, 106, 0) 0%, rgba(255, 106, 0, 0.894) 100%); */
         border: none;
         color: white;
         transition: all 0.3s ease;
@@ -247,11 +247,11 @@
         transform: translateY(-2px);
         box-shadow: 0 6px 20px rgba(255, 106, 0, 0.4);
         color: white;
-        background: linear-gradient(135deg, rgba(255, 106, 0, 0.9) 0%, rgba(255, 106, 0, 0.8) 100%);
+        /* background: linear-gradient(135deg, rgba(255, 106, 0, 0.9) 0%, rgba(255, 106, 0, 0.8) 100%); */
     }
 
     .btn-gradient-danger {
-        background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+        /* background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); */
         border: 1px solid rgba(255, 106, 0, 0.3);
         color: white;
         transition: all 0.3s ease;
@@ -276,7 +276,7 @@
 
     .action-buttons {
         padding: 1.5rem;
-        background: #f8f9fa;
+        /* background: #f8f9fa; */
         border-top: 2px solid #e9ecef;
         display: flex;
         gap: 0.75rem;
@@ -297,8 +297,8 @@
     }
 
     .column-config-item {
-        background: #ffffff;
-        border: 2px solid #e9ecef;
+        /* background: #ffffff; */
+        /* border: 2px solid #e9ecef; */
         border-radius: 12px;
         padding: 1rem;
         margin-bottom: 0.75rem;
@@ -312,7 +312,7 @@
 
     .drag-handle {
         cursor: move;
-        color: #999;
+        /* color: #999; */
     }
 
     .drag-handle:hover {
@@ -535,7 +535,7 @@
                     <input type="text" class="form-control week-title-input"
                            id="week-${weekCounter}-title"
                            placeholder="Week title (autosaves)"
-                           style="width: 250px; border: 1.5px solid rgb(255, 106, 0); background: #fff;"
+                           style="width: 250px; border: 1.5px solid rgb(255, 106, 0);"
                            data-bs-toggle="tooltip" title="Week title autosaves to backend" />
                 </div>
                 <div class="d-flex gap-2 align-items-center">
@@ -704,7 +704,7 @@
                     <button class="btn btn-gradient-primary btn-sm shadow-sm" onclick="addCircuit('${dayId}')">
                         <i class="bi bi-diagram-3 me-2"></i>Add Circuit
                     </button>
-                    <button class="btn btn-sm" style="border: 2px solid rgb(255, 106, 0); color: rgb(255, 106, 0); background: white;" onclick="addExercise('${dayId}', false)">
+                    <button class="btn btn-sm" style="border: 2px solid rgb(255, 106, 0); color: rgb(255, 106, 0);" onclick="addExercise('${dayId}', false)">
                         <i class="bi bi-plus-circle me-2"></i>Add Exercise
                     </button>
                     <button class="btn btn-outline-secondary btn-sm" onclick="addCoolDown('${dayId}')">
@@ -1012,7 +1012,7 @@ function renderDayIntoExisting(weekIndex, d, dayId) {
             <td class="circuit-label" colspan="${columnConfig.length}">
                 <div class="d-flex justify-content-between align-items-center px-2">
                     <span><i class="bi bi-diagram-3 me-2" style="color: rgb(255, 106, 0);"></i>Circuit ${circuitNum}</span>
-                    <button class="btn btn-sm" style="border: 1px solid rgb(255, 106, 0); color: rgb(255, 106, 0); background: white;" onclick="addExerciseToCircuit('${dayId}-exercise-${exerciseCounter[dayId]}')">
+                    <button class="btn btn-sm" style="border: 1px solid rgb(255, 106, 0); color: rgb(255, 106, 0); " onclick="addExerciseToCircuit('${dayId}-exercise-${exerciseCounter[dayId]}')">
                         <i class="bi bi-plus me-1"></i>Add Exercise
                     </button>
                     <button class="btn btn-sm btn-link" onclick="toggleCircuit('${dayId}-exercise-${exerciseCounter[dayId]}')" title="Toggle Circuit">
@@ -1354,7 +1354,7 @@ function renderDayIntoExisting(weekIndex, d, dayId) {
             </td>
             <td colspan="${columnConfig.length}" class="cool-down">
                 <i class="bi bi-wind me-2"></i>
-                <input type="text" placeholder="Cool Down Activity" class="form-control form-control-sm border-0 text-center d-inline-block" style="width: 300px; background: transparent; font-style: italic; font-weight: 500;">
+                <input type="text" placeholder="Cool Down Activity" class="form-control form-control-sm border-0 text-center d-inline-block" style="width: 300px;  font-style: italic; font-weight: 500;">
             </td>
         </tr>
     `;
@@ -1368,7 +1368,7 @@ function renderDayIntoExisting(weekIndex, d, dayId) {
     function addCustomRow(dayId) {
         exerciseCounter[dayId]++;
         const customHtml = `
-        <tr id="${dayId}-exercise-${exerciseCounter[dayId]}" class="custom-row" style="background: #fff3cd;">
+        <tr id="${dayId}-exercise-${exerciseCounter[dayId]}" class="custom-row" style="">
             <td class="action-cell">
                 <button class="btn btn-outline-danger btn-icon btn-sm" onclick="removeExercise('${dayId}-exercise-${exerciseCounter[dayId]}')"
                         data-bs-toggle="tooltip" title="Remove">
@@ -1376,7 +1376,7 @@ function renderDayIntoExisting(weekIndex, d, dayId) {
                 </button>
             </td>
             <td colspan="${columnConfig.length}">
-                <textarea class="form-control border-0" placeholder="Add custom notes or instructions..." rows="2" style="background: transparent; resize: vertical;"></textarea>
+                <textarea class="form-control border-0" placeholder="Add custom notes or instructions..." rows="2" style=" resize: vertical;"></textarea>
             </td>
         </tr>
     `;
