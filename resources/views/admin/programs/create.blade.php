@@ -2,8 +2,8 @@
 
 @section('styles')
     <!-- Select2 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+    {{-- <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" /> --}}
+    {{-- <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" /> --}}
 @endsection
 
 @section('content')
@@ -58,7 +58,7 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="trainer_id" class="form-label">Trainer <span class="text-danger">*</span></label>
-                                    <select class="form-select @error('trainer_id') is-invalid @enderror" 
+                                    <select class="form-control @error('trainer_id') is-invalid @enderror" 
                                             id="trainer_id" name="trainer_id" required>
                                         <option value="">Select Trainer</option>
                                         @foreach($trainers as $trainer)
@@ -76,7 +76,7 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="client_id" class="form-label">Client (Optional)</label>
-                                    <select class="form-select @error('client_id') is-invalid @enderror" 
+                                    <select class="form-control @error('client_id') is-invalid @enderror" 
                                             id="client_id" name="client_id">
                                         <option value="">Select Client (Leave empty for template)</option>
                                         @foreach($clients as $client)
@@ -222,17 +222,17 @@
 
 @section('scripts')
     <!-- Select2 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    {{-- <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script> --}}
 
     <script>
         $(document).ready(function() {
             // Initialize Select2
-            $('#trainer_id, #client_id').select2({
-                theme: 'bootstrap-5',
-                placeholder: function() {
-                    return $(this).data('placeholder');
-                }
-            });
+            // $('#trainer_id, #client_id').select2({
+            //     theme: 'bootstrap-5',
+            //     placeholder: function() {
+            //         return $(this).data('placeholder');
+            //     }
+            // });
 
             // Form validation
             $('#programForm').on('submit', function(e) {

@@ -4,7 +4,7 @@
 @section('styles')
 <style>
     .trainer-filter {
-        background: white;
+        /* background: white; */
         border-radius: 8px;
         padding: 20px;
         margin-bottom: 20px;
@@ -12,7 +12,7 @@
     }
     
     .calendar-container {
-        background: white;
+        /* background: white; */
         border-radius: 8px;
         padding: 20px;
         box-shadow: 0 2px 10px rgba(0,0,0,0.1);

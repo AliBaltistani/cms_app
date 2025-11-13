@@ -3,7 +3,6 @@
 @section('styles')
     <style>
         .availability-container {
-            background: white;
             border-radius: 12px;
             padding: 30px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
@@ -24,7 +23,7 @@
         .day-name {
             font-size: 16px;
             font-weight: 600;
-            color: #333;
+            /* color: #333; */
             min-width: 100px;
         }
         
@@ -61,6 +60,7 @@
             width: 22px;
             height: 22px;
             background: white;
+            /* background: var(--bootstrap-card-background); */
             border-radius: 50%;
             transition: all 0.3s ease;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
@@ -72,13 +72,13 @@
         
         .time-label {
             font-size: 14px;
-            color: #666;
+            /* color: #666; */
             min-width: 120px;
         }
         
         .save-button {
             background: var(--primary-color, #ff6b35);
-            color: white;
+            /* color: white; */
             border: none;
             padding: 12px 30px;
             border-radius: 8px;
@@ -95,7 +95,7 @@
         }
         
         .trainer-info {
-            background: #f8f9fa;
+            background: var(--black-1);
             border-radius: 8px;
             padding: 16px;
             margin-bottom: 30px;
@@ -112,11 +112,11 @@
         
         .trainer-info .name {
             font-weight: 600;
-            color: #333;
+            /* color: #333; */
         }
         
         .trainer-info .role {
-            color: #666;
+            /* color: #666; */
             font-size: 14px;
         }
         

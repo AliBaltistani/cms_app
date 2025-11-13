@@ -21,7 +21,7 @@
             </div>
         </div>
         <div class="ms-auto pageheader-btn">
-            <a href="{{ route('admin.bookings.create') }}" class="btn btn-primary btn-wave waves-effect waves-light me-2">
+            <a href="{{ route('admin.bookings.google-calendar') }}" class="btn btn-primary btn-wave waves-effect waves-light me-2">
                 <i class="ri-add-line fw-semibold align-middle me-1"></i> Create Booking
             </a>
             <a href="{{ route('admin.bookings.index') }}" class="btn btn-secondary btn-wave waves-effect waves-light">
@@ -141,7 +141,7 @@
                     <div class="card-title">
                         Weekly Overview
                     </div>
-                    <div class="dropdown">
+                    {{-- <div class="dropdown">
                         <a href="javascript:void(0);" class="btn btn-light btn-sm" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="ri-more-2-fill"></i>
                         </a>
@@ -150,7 +150,7 @@
                             <li><a class="dropdown-item" href="javascript:void(0);">Last Week</a></li>
                             <li><a class="dropdown-item" href="javascript:void(0);">This Month</a></li>
                         </ul>
-                    </div>
+                    </div> --}}
                 </div>
                 <div class="card-body">
                     <div class="row">
@@ -182,7 +182,7 @@
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-6">
-                            <a href="{{ route('admin.bookings.create') }}" class="btn btn-primary w-100">
+                            <a href="{{ route('admin.bookings.google-calendar') }}" class="btn btn-primary w-100">
                                 <i class="ri-add-line me-2"></i>
                                 Create Booking
                             </a>
@@ -242,15 +242,27 @@
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 <div class="avatar avatar-xs me-2">
-                                                    <img src="{{ $booking->trainer->profile_image ? asset('storage/' . $booking->trainer->profile_image) : asset('assets/images/faces/9.jpg') }}" alt="trainer" class="avatar-img rounded-circle">
+                                                    @if($booking->trainer->profile_image)
+                                                        <img src="{{ asset('storage/' . $booking->trainer->profile_image) }}" alt="trainer" class="avatar-img rounded-circle">
+                                                    @else
+                                                        <span class="avatar-title rounded-circle bg-info text-white" style="    width: 100%;height: 100%;text-align: center;font-weight: 800;">
+                                                            {{ strtoupper(substr($booking->trainer->name ?? '?', 0, 1)) }}
+                                                        </span>
+                                                    @endif
                                                 </div>
                                                 <span class="fw-semibold">{{ $booking->trainer->name }}</span>
                                             </div>
                                         </td>
                                         <td>
                                             <div class="d-flex align-items-center">
-                                                <div class="avatar avatar-xs me-2">
-                                                    <img src="{{ $booking->client->profile_image ? asset('storage/' . $booking->client->profile_image) : asset('assets/images/faces/9.jpg') }}" alt="client" class="avatar-img rounded-circle">
+                                               <div class="avatar avatar-xs me-2">
+                                                    @if($booking->client->profile_image)
+                                                        <img src="{{ asset('storage/' . $booking->client->profile_image) }}" alt="client" class="avatar-img rounded-circle">
+                                                    @else
+                                                        <span class="avatar-title rounded-circle bg-warning text-white" style="    width: 100%;height: 100%;text-align: center;font-weight: 800;">
+                                                            {{ strtoupper(substr($booking->client->name ?? '?', 0, 1)) }}
+                                                        </span>
+                                                    @endif
                                                 </div>
                                                 <span class="fw-semibold">{{ $booking->client->name }}</span>
                                             </div>
@@ -310,16 +322,28 @@
                                     <tr>
                                         <td>
                                             <div class="d-flex align-items-center">
-                                                <div class="avatar avatar-xs me-2">
-                                                    <img src="{{ $booking->trainer->profile_image ? asset('storage/' . $booking->trainer->profile_image) : asset('assets/images/faces/9.jpg') }}" alt="trainer" class="avatar-img rounded-circle">
+                                               <div class="avatar avatar-xs me-2">
+                                                    @if($booking->trainer->profile_image)
+                                                        <img src="{{ asset('storage/' . $booking->trainer->profile_image) }}" alt="trainer" class="avatar-img rounded-circle">
+                                                    @else
+                                                        <span class="avatar-title rounded-circle bg-info text-white" style="    width: 100%;height: 100%;text-align: center;font-weight: 800;">
+                                                            {{ strtoupper(substr($booking->trainer->name ?? '?', 0, 1)) }}
+                                                        </span>
+                                                    @endif
                                                 </div>
                                                 <span class="fw-semibold">{{ $booking->trainer->name }}</span>
                                             </div>
                                         </td>
                                         <td>
                                             <div class="d-flex align-items-center">
-                                                <div class="avatar avatar-xs me-2">
-                                                    <img src="{{ $booking->client->profile_image ? asset('storage/' . $booking->client->profile_image) : asset('assets/images/faces/9.jpg') }}" alt="client" class="avatar-img rounded-circle">
+                                               <div class="avatar avatar-xs me-2">
+                                                    @if($booking->client->profile_image)
+                                                        <img src="{{ asset('storage/' . $booking->client->profile_image) }}" alt="client" class="avatar-img rounded-circle">
+                                                    @else
+                                                        <span class="avatar-title rounded-circle bg-warning text-white" style="    width: 100%;height: 100%;text-align: center;font-weight: 800;">
+                                                            {{ strtoupper(substr($booking->client->name ?? '?', 0, 1)) }}
+                                                        </span>
+                                                    @endif
                                                 </div>
                                                 <span class="fw-semibold">{{ $booking->client->name }}</span>
                                             </div>
