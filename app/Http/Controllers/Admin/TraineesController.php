@@ -578,4 +578,34 @@ class TraineesController extends Controller
             ], 500);
         }
     }
+
+    public function subscriptions(Request $request, $id)
+    {
+        try {
+            $trainee = User::where('role', 'client')->findOrFail($id);
+
+            $subscriptions = \App\Models\TrainerSubscription::where('client_id', $trainee->id)
+                ->with(['trainer:id,name,email,phone,profile_image,designation'])
+                ->orderBy('subscribed_at', 'desc')
+                ->paginate(20);
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'data' => $subscriptions
+                ]);
+            }
+
+            return view('admin.trainees.subscriptions', compact('trainee', 'subscriptions'));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to load trainee subscriptions: ' . $e->getMessage());
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to load subscriptions'
+                ], 500);
+            }
+            return redirect()->route('admin.trainees.index')->with('error', 'Failed to load subscriptions');
+        }
+    }
 }

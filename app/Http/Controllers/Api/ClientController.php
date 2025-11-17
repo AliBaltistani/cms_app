@@ -6,6 +6,7 @@ use App\Http\Controllers\ApiBaseController;
 use App\Models\User;
 use App\Models\UserCertification;
 use App\Models\Testimonial;
+use App\Models\TrainerSubscription;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -210,6 +211,9 @@ class ClientController extends ApiBaseController
                 'profile_image' => $trainer->profile_image ? asset('storage/' . $trainer->profile_image) : null,
                 'member_since' => $trainer->created_at->format('F Y'),
                 'created_at' => $trainer->created_at->toISOString(),
+                'has_subscribed' => Auth::check() && Auth::user()->isClientRole()
+                    ? Auth::user()->hasActiveSubscriptionTo($trainer->id)
+                    : false,
                 
                 // Statistics
                 'statistics' => [
@@ -268,6 +272,179 @@ class ClientController extends ApiBaseController
             
             return $this->sendError('Profile Retrieval Failed', ['error' => 'Unable to retrieve trainer profile'], 500);
         }
+    }
+
+    public function subscribe(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'trainer_id' => 'required|integer|exists:users,id'
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('Validation Error', $validator->errors(), 422);
+        }
+
+        $client = Auth::user();
+        if (!$client || !$client->isClientRole()) {
+            return $this->sendError('Unauthorized', ['error' => 'Client access required'], 401);
+        }
+
+        $trainer = User::where('id', $request->trainer_id)->where('role', 'trainer')->first();
+        if (!$trainer) {
+            return $this->sendError('Trainer Not Found', ['error' => 'Trainer not found'], 404);
+        }
+
+        $subscription = TrainerSubscription::where('client_id', $client->id)
+            ->where('trainer_id', $trainer->id)
+            ->first();
+
+        if ($subscription) {
+            $subscription->update([
+                'status' => 'active',
+                'subscribed_at' => now(),
+                'unsubscribed_at' => null,
+            ]);
+        } else {
+            TrainerSubscription::create([
+                'client_id' => $client->id,
+                'trainer_id' => $trainer->id,
+                'status' => 'active',
+                'subscribed_at' => now(),
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Subscribed successfully'
+        ]);
+    }
+
+    public function unsubscribe(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'trainer_id' => 'required|integer|exists:users,id'
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('Validation Error', $validator->errors(), 422);
+        }
+
+        $client = Auth::user();
+        if (!$client || !$client->isClientRole()) {
+            return $this->sendError('Unauthorized', ['error' => 'Client access required'], 401);
+        }
+
+        $subscription = TrainerSubscription::where('client_id', $client->id)
+            ->where('trainer_id', $request->trainer_id)
+            ->first();
+
+        if ($subscription) {
+            $subscription->update([
+                'status' => 'inactive',
+                'unsubscribed_at' => now(),
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Unsubscribed successfully'
+        ]);
+    }
+
+    public function subscriptions(): JsonResponse
+    {
+        $client = Auth::user();
+        if (!$client || !$client->isClientRole()) {
+            return $this->sendError('Unauthorized', ['error' => 'Client access required'], 401);
+        }
+
+        $subs = TrainerSubscription::where('client_id', $client->id)
+            ->with(['trainer:id,name'])
+            ->orderBy('subscribed_at', 'desc')
+            ->get()
+            ->map(function ($sub) {
+                return [
+                    'trainer_id' => $sub->trainer_id,
+                    'trainer_name' => optional($sub->trainer)->name,
+                    'status' => $sub->status,
+                    'subscribed_at' => optional($sub->subscribed_at)->toDateTimeString(),
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => $subs
+        ]);
+    }
+
+    public function manageSubscription(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'trainer_id' => 'required|integer|exists:users,id',
+            'action' => 'nullable|in:subscribe,unsubscribe',
+            'status' => 'nullable|in:active,inactive',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('Validation Error', $validator->errors(), 422);
+        }
+
+        $client = Auth::user();
+        if (!$client || !$client->isClientRole()) {
+            return $this->sendError('Unauthorized', ['error' => 'Client access required'], 401);
+        }
+
+        $desiredStatus = null;
+        if ($request->filled('action')) {
+            $desiredStatus = $request->action === 'subscribe' ? 'active' : 'inactive';
+        } elseif ($request->filled('status')) {
+            $desiredStatus = $request->status;
+        } else {
+            return $this->sendError('Validation Error', ['error' => 'Provide action or status'], 422);
+        }
+
+        $trainer = User::where('id', $request->trainer_id)->where('role', 'trainer')->first();
+        if (!$trainer) {
+            return $this->sendError('Trainer Not Found', ['error' => 'Trainer not found'], 404);
+        }
+
+        $subscription = TrainerSubscription::where('client_id', $client->id)
+            ->where('trainer_id', $trainer->id)
+            ->first();
+
+        if ($desiredStatus === 'active') {
+            if ($subscription) {
+                $subscription->update([
+                    'status' => 'active',
+                    'subscribed_at' => now(),
+                    'unsubscribed_at' => null,
+                ]);
+            } else {
+                TrainerSubscription::create([
+                    'client_id' => $client->id,
+                    'trainer_id' => $trainer->id,
+                    'status' => 'active',
+                    'subscribed_at' => now(),
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Subscribed successfully'
+            ]);
+        }
+
+        if ($subscription) {
+            $subscription->update([
+                'status' => 'inactive',
+                'unsubscribed_at' => now(),
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Unsubscribed successfully'
+        ]);
     }
     
     /**

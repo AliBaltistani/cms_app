@@ -7,6 +7,7 @@ use App\Http\Requests\StoreCertificationRequest;
 use App\Http\Requests\StoreTestimonialRequest;
 use App\Http\Requests\UpdateTrainerProfileRequest;
 use App\Models\User;
+use App\Models\TrainerSubscription;
 use App\Models\UserCertification;
 use App\Models\Testimonial;
 use App\Models\TestimonialLikesDislike;
@@ -289,6 +290,10 @@ class TrainerController extends Controller
             $trainer->availability_summary = $this->formatAvailabilitySummary($trainer->availabilities);
             $trainer->is_available_today = $this->isAvailableToday($trainer->availabilities);
             $trainer->next_available_slot = $this->getNextAvailableSlot($trainer->availabilities);
+            $client = auth('sanctum')->user();
+            $trainer->has_subscribed = $client && $client->isClientRole()
+                ? $client->hasActiveSubscriptionTo($trainer->id)
+                : false;
             
             return response()->json([
                 'success' => true,
@@ -302,6 +307,37 @@ class TrainerController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function getSubscribers(\Illuminate\Http\Request $request)
+    {
+        $trainer = auth()->user();
+        if (!$trainer || !$trainer->isTrainerRole()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+
+        $subs = TrainerSubscription::where('trainer_id', $trainer->id)
+            ->where('status', 'active')
+            ->with(['client:id,name,email,phone,profile_image,created_at'])
+            ->orderBy('subscribed_at', 'desc')
+            ->get()
+            ->map(function ($sub) {
+                return [
+                    'client_id' => $sub->client_id,
+                    'client_name' => optional($sub->client)->name,
+                    'client_email' => optional($sub->client)->email,
+                    'client_phone' => optional($sub->client)->phone,
+                    'subscribed_at' => optional($sub->subscribed_at)->toDateTimeString(),
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => $subs
+        ]);
     }
 
     /**

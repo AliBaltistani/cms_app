@@ -146,6 +146,8 @@ Route::middleware('auth')->group(function () {
             
             // Trainer Testimonials Management
             Route::get('/{id}/testimonials', [\App\Http\Controllers\Admin\TrainersController::class, 'testimonials'])->name('admin.trainers.testimonials');
+
+            Route::get('/{id}/subscribers', [\App\Http\Controllers\Admin\TrainersController::class, 'subscribers'])->name('admin.trainers.subscribers');
         });
 
         // Trainers Management Routes
@@ -160,6 +162,13 @@ Route::middleware('auth')->group(function () {
             Route::delete('/{id}', [\App\Http\Controllers\Admin\TraineesController::class, 'destroy'])->name('admin.trainees.destroy');
             Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Admin\TraineesController::class, 'toggleStatus'])->name('admin.trainees.toggle-status');
             Route::delete('/{id}/delete-image', [\App\Http\Controllers\Admin\TraineesController::class, 'deleteImage'])->name('admin.trainees.delete-image');
+
+            Route::get('/{id}/subscriptions', [\App\Http\Controllers\Admin\TraineesController::class, 'subscriptions'])->name('admin.trainees.subscriptions');
+        });
+
+        Route::prefix('subscriptions')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\SubscriptionsController::class, 'index'])->name('admin.subscriptions.index');
+            Route::patch('/{id}/toggle', [\App\Http\Controllers\Admin\SubscriptionsController::class, 'toggle'])->name('admin.subscriptions.toggle');
         });
         
         // Specializations Management Routes

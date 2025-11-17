@@ -238,6 +238,24 @@ class User extends Authenticatable
     {
         return $this->hasMany(WorkoutVideoProgress::class);
     }
+
+    public function subscriptionsAsClient(): HasMany
+    {
+        return $this->hasMany(TrainerSubscription::class, 'client_id');
+    }
+
+    public function subscriptionsAsTrainer(): HasMany
+    {
+        return $this->hasMany(TrainerSubscription::class, 'trainer_id');
+    }
+
+    public function hasActiveSubscriptionTo(int $trainerId): bool
+    {
+        return $this->subscriptionsAsClient()
+            ->where('trainer_id', $trainerId)
+            ->where('status', 'active')
+            ->exists();
+    }
     
     /**
      * Get all schedules for the user (trainer or client).

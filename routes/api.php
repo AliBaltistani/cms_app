@@ -142,6 +142,8 @@ Route::middleware('auth:sanctum')->group(function () {
          */
         Route::get('/testimonials', [TrainerController::class, 'getMyTestimonials'])->name('testimonials.index');
 
+        Route::get('/subscribers', [TrainerController::class, 'getSubscribers'])->name('subscribers');
+
 
 
         /**
@@ -325,6 +327,9 @@ Route::middleware('auth:sanctum')->group(function () {
             });
         });
 
+        Route::post('/subscription', [\App\Http\Controllers\Api\ClientController::class, 'manageSubscription'])->name('subscription.manage');
+        Route::get('/subscriptions', [\App\Http\Controllers\Api\ClientController::class, 'subscriptions'])->name('subscriptions');
+
         /**
          * Client Booking Management
          * Complete booking operations for clients with Google Calendar integration
@@ -409,6 +414,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/payment/cancel', [\App\Http\Controllers\Api\ClientPaymentController::class, 'cancel'])->name('payment.cancel');
         Route::get('/payment/{transaction_id}', [\App\Http\Controllers\Api\ClientPaymentController::class, 'show'])->name('payment.show');
         Route::post('/payment/paypal/capture', [\App\Http\Controllers\Api\ClientPaymentController::class, 'paypalCapture'])->name('payment.paypal.capture');
+
+        Route::prefix('trainers')->name('trainers.')->group(function () {
+            Route::get('/find', [\App\Http\Controllers\Api\ClientController::class, 'findTrainers'])->name('find');
+            Route::get('/{trainerId}/profile', [\App\Http\Controllers\Api\ClientController::class, 'getTrainerProfile'])->name('profile');
+            Route::get('/{trainerId}/certifications', [\App\Http\Controllers\Api\ClientController::class, 'getTrainerCertifications'])->name('certifications');
+            Route::get('/{trainerId}/testimonials', [\App\Http\Controllers\Api\ClientController::class, 'getTrainerTestimonials'])->name('testimonials');
+        });
+
+        Route::get('/find/trainer/{id}', [\App\Http\Controllers\Api\ClientController::class, 'getTrainerProfile'])->name('trainer.find.show');
+
+        Route::post('/subscribe', [\App\Http\Controllers\Api\ClientController::class, 'subscribe'])->name('subscribe');
+        Route::post('/unsubscribe', [\App\Http\Controllers\Api\ClientController::class, 'unsubscribe'])->name('unsubscribe');
+        Route::get('/subscriptions', [\App\Http\Controllers\Api\ClientController::class, 'subscriptions'])->name('subscriptions');
     });
 
     

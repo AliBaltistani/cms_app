@@ -154,6 +154,7 @@
                                 <th>Designation</th>
                                 <th>Experience</th>
                                 <th>Status</th>
+                                <th>Subscribers</th>
                                 <!-- <th>Certifications</th> -->
                                 <!-- <th>Rating</th> -->
                                 <th>Actions</th>
@@ -435,6 +436,7 @@ $(document).ready(function() {
                     return '<span class="badge bg-danger-transparent">Inactive</span>';
                 }
             },
+            { data: 'active_subscribers_count', name: 'active_subscribers_count', width: '8%' },
             // { data: 'certifications_count', name: 'certifications_count', width: '10%' },
             // { 
             //     data: 'average_rating', 
@@ -459,6 +461,9 @@ $(document).ready(function() {
                         <div class="btn-group" role="group">
                             <a href="/admin/trainers/${data}" class="btn btn-sm btn-info btn-wave" title="View">
                                 <i class="ri-eye-line"></i>
+                            </a>
+                            <a href="/admin/trainers/${data}/subscribers" class="btn btn-sm btn-secondary btn-wave" title="Subscribers">
+                                <i class="ri-group-line"></i>
                             </a>
                             <button type="button" class="btn btn-sm btn-success btn-wave" onclick="editTrainer(${data})" title="Edit">
                                 <i class="ri-edit-2-line"></i>

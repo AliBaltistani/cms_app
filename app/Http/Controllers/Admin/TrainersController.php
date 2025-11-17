@@ -52,7 +52,12 @@ class TrainersController extends Controller
             
             // Build query for trainers only
             $query = User::where('role', 'trainer')
-                        ->with(['receivedTestimonials', 'certifications']);
+                        ->with(['receivedTestimonials', 'certifications'])
+                        ->withCount([
+                            'subscriptionsAsTrainer as active_subscribers_count' => function($q){
+                                $q->where('status', 'active');
+                            }
+                        ]);
             
             // Apply status filter
             if ($status === 'active') {
@@ -120,7 +125,12 @@ class TrainersController extends Controller
             
             // Build query for trainers only
             $query = User::where('role', 'trainer')
-                        ->with(['receivedTestimonials', 'certifications']);
+                        ->with(['receivedTestimonials', 'certifications'])
+                        ->withCount([
+                            'subscriptionsAsTrainer as active_subscribers_count' => function($q){
+                                $q->where('status', 'active');
+                            }
+                        ]);
             
             // Apply status filter
             if ($status === 'active') {
@@ -178,6 +188,7 @@ class TrainersController extends Controller
                     'certifications_count' => $trainer->certifications->count(),
                     'testimonials_count' => $trainer->receivedTestimonials->count(),
                     'average_rating' => round($avgRating, 1),
+                    'active_subscribers_count' => $trainer->active_subscribers_count,
                     'total_likes' => $trainer->receivedTestimonials->sum('likes'),
                     'created_at' => $trainer->created_at->format('d-m-Y H:i'),
                     'updated_at' => $trainer->updated_at->format('d-m-Y H:i'),
@@ -371,6 +382,36 @@ class TrainersController extends Controller
             }
             
             return redirect()->route('admin.trainers.index')->with('error', 'Trainer not found');
+        }
+    }
+
+    public function subscribers(Request $request, $id)
+    {
+        try {
+            $trainer = User::where('role', 'trainer')->findOrFail($id);
+
+            $subscriptions = \App\Models\TrainerSubscription::where('trainer_id', $trainer->id)
+                ->with(['client:id,name,email,phone,profile_image,created_at'])
+                ->orderBy('subscribed_at', 'desc')
+                ->paginate(20);
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'data' => $subscriptions
+                ]);
+            }
+
+            return view('admin.trainers.subscribers', compact('trainer', 'subscriptions'));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to load trainer subscribers: ' . $e->getMessage());
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to load subscribers'
+                ], 500);
+            }
+            return redirect()->route('admin.trainers.index')->with('error', 'Failed to load subscribers');
         }
     }
 
