@@ -504,18 +504,18 @@ Route::prefix('system')->name('api.system.')->group(function () {
  * Supports both client-initiated and trainer-initiated bookings with Google Calendar integration
  */
 Route::middleware(['auth:sanctum'])->prefix('appointment')->name('api.appointment.')->group(function () {
+    // Availability and scheduling
+    Route::get('/available-slots', [SessionBookingController::class, 'getAvailableSlots'])->name('available-slots');
+
     // Basic CRUD operations
     Route::get('/', [SessionBookingController::class, 'index'])->name('index');
     Route::post('/', [SessionBookingController::class, 'store'])->name('store');
-    Route::get('/{id}', [SessionBookingController::class, 'show'])->name('show');
-    Route::put('/{id}', [SessionBookingController::class, 'update'])->name('update');
-    Route::delete('/{id}', [SessionBookingController::class, 'destroy'])->name('destroy');
-    
+    Route::get('/{id}', [SessionBookingController::class, 'show'])->whereNumber('id')->name('show');
+    Route::put('/{id}', [SessionBookingController::class, 'update'])->whereNumber('id')->name('update');
+    Route::delete('/{id}', [SessionBookingController::class, 'destroy'])->whereNumber('id')->name('destroy');
+
     // Status management (trainers only)
     // Route::patch('/{id}/status', [SessionBookingController::class, 'updateStatus'])->name('update-status');
-    
-    // Availability and scheduling
-    Route::get('/available-slots', [SessionBookingController::class, 'getAvailableSlots'])->name('available-slots');
 });
 
 /**
