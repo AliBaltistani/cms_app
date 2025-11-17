@@ -35,6 +35,30 @@ class TrainerBankController extends Controller
                 return response()->json(['success' => false, 'message' => 'Stripe is not configured'], 422);
             }
 
+            // If trainer already has a Stripe account, return its details instead of re-connecting
+            $existingStripe = TrainerBankAccount::where('trainer_id', Auth::id())
+                ->where('gateway', 'stripe')
+                ->first();
+            if ($existingStripe) {
+                try {
+                    $stripe = new StripeClient($pg->secret_key);
+                    $acct = $stripe->accounts->retrieve((string) $existingStripe->account_id);
+                    $existingStripe->verification_status = ($acct->charges_enabled && $acct->payouts_enabled) ? 'verified' : 'pending';
+                    $existingStripe->last_status_sync_at = now();
+                    $existingStripe->display_name = (string) (($acct->business_profile->name ?? '') ?: ($acct->email ?? 'Stripe'));
+                    $existingStripe->country = (string) ($acct->country ?? ($existingStripe->country ?? ''));
+                    $existingStripe->raw_meta = array_merge((array) $existingStripe->raw_meta, [
+                        'charges_enabled' => (bool) $acct->charges_enabled,
+                        'payouts_enabled' => (bool) $acct->payouts_enabled,
+                        'requirements_due' => $acct->requirements->currently_due ?? [],
+                    ]);
+                    $existingStripe->save();
+                } catch (\Exception $e) {
+                    // If Stripe retrieval fails, return the stored record
+                }
+                return response()->json(['success' => true, 'already_connected' => true, 'account' => $existingStripe]);
+            }
+
             $flow = (string) $request->string('flow');
             $flow = $flow !== '' ? $flow : 'express';
             $countryInput = strtoupper((string) $request->string('country'));
@@ -110,7 +134,7 @@ class TrainerBankController extends Controller
 
             $existing = TrainerBankAccount::where('trainer_id', Auth::id())->where('gateway', 'paypal')->where('account_id', $email)->first();
             if ($existing) {
-                return response()->json(['success' => true, 'account' => $existing]);
+                return response()->json(['success' => true, 'already_connected' => true, 'account' => $existing]);
             }
 
             $account = TrainerBankAccount::create([
