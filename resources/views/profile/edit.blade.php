@@ -51,7 +51,7 @@
                 <form method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data" id="profileForm">
                     @csrf
                     <div class="row gy-3">
-                        <div class="col-xl-12">
+                        <div class="col-xl-6">
                             <div class="d-flex align-items-start flex-wrap gap-3">
                                 <div>
                                     <span class="avatar avatar-xxl">
@@ -75,6 +75,30 @@
                                 </div>
                             </div>
                         </div>
+                        
+                            <div class="col-xl-6">
+                                <div class="d-flex align-items-start flex-wrap gap-3">
+                                    <div>
+                                        <span class="avatar avatar-xl">
+                                            @if($user->business_logo)
+                                                <img id="businessLogoPreview" src="{{ asset('storage/' . $user->business_logo) }}" alt="">
+                                            @else
+                                                <img id="businessLogoPreview" src="{{ asset('build/assets/images/logo.png') }}" alt="">
+                                            @endif
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span class="fw-medium d-block mb-2">Business Logo</span>
+                                        <div class="btn-list mb-1">
+                                            <input type="file" id="businessLogo" name="business_logo" accept="image/*" style="display: none;">
+                                            <button type="button" class="btn btn-sm btn-primary btn-wave" onclick="document.getElementById('businessLogo').click()"><i class="ri-upload-2-line me-1"></i>Change Logo</button>
+                                            @if($user->business_logo)
+                                                <button type="button" class="btn btn-sm btn-light btn-wave" onclick="deleteBusinessLogo()" id="deleteBusinessLogoBtn"><i class="ri-delete-bin-line me-1"></i>Remove</button>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         <div class="col-xl-6">
                             <label for="profile-user-name" class="form-label">User Name :</label>
                             <input type="text" class="form-control @error('name') is-invalid @enderror" id="profile-user-name" name="name" value="{{ old('name', $user->name) }}" placeholder="Enter Name">
@@ -126,7 +150,8 @@
                                     <i class="ri-user-star-line me-2"></i>Trainer Profile Information
                                 </h6>
                             </div>
-                            
+
+
                             <div class="col-xl-6">
                                 <label for="profile-designation" class="form-label">Designation :</label>
                                 <input type="text" class="form-control @error('designation') is-invalid @enderror" id="profile-designation" name="designation" value="{{ old('designation', $user->designation) }}" placeholder="e.g., Senior Fitness Trainer">
@@ -233,6 +258,12 @@
 </form>
 @endif
 
+@if($user->role === 'trainer' && $user->business_logo)
+<form id="deleteBusinessLogoForm" method="POST" action="{{ route('profile.delete-business-logo') }}" style="display: none;">
+    @csrf
+</form>
+@endif
+
 @endsection
 
 @section('scripts')
@@ -272,6 +303,42 @@ document.getElementById('profileImage').addEventListener('change', function(e) {
     }
 });
 
+const businessLogoInput = document.getElementById('businessLogo');
+if (businessLogoInput) {
+    businessLogoInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                alert('Please select a valid image file (JPEG, PNG, JPG, GIF, or WEBP)');
+                this.value = '';
+                return;
+            }
+            if (file.size > 2048 * 1024) {
+                alert('File size must be less than 2MB');
+                this.value = '';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById('businessLogoPreview');
+                if (img) {
+                    img.src = e.target.result;
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
+function deleteBusinessLogo() {
+    if (confirm('Are you sure you want to delete your business logo?')) {
+        const deleteForm = document.getElementById('deleteBusinessLogoForm');
+        if (deleteForm) {
+            deleteForm.submit();
+        }
+    }
+}
 /**
  * Delete profile image function
  */

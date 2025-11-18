@@ -45,6 +45,7 @@ class ApiUserController extends ApiBaseController
                 'phone' => $user->phone,
                 'role' => $user->role,
                 'profile_image' => $user->profile_image ? asset('storage/' . $user->profile_image) : null,
+                'business_logo' => $user->business_logo ? asset('storage/' . $user->business_logo) : null,
                 'email_verified_at' => $user->email_verified_at,
                 'created_at' => $user->created_at->toISOString(),
                 'updated_at' => $user->updated_at->toISOString(),
@@ -74,12 +75,18 @@ class ApiUserController extends ApiBaseController
             $user = Auth::user();
             
             // Validate input data
-            $validator = Validator::make($request->all(), [
+            $rules = [
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users,email,' . $user->id,
                 'phone' => 'nullable|string|max:20|unique:users,phone,' . $user->id,
-                'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
-            ]);
+                'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048'
+            ];
+
+            if ($user->role === 'trainer') {
+                $rules['business_logo'] = 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048';
+            }
+
+            $validator = Validator::make($request->all(), $rules);
             
             if ($validator->fails()) {
                 return $this->sendError('Validation Error', $validator->errors(), 422);
@@ -101,8 +108,17 @@ class ApiUserController extends ApiBaseController
                 }
                 
                 // Store new profile image
-                $imagePath = $request->file('profile_image')->store('profile_images', 'public');
+                $imagePath = $request->file('profile_image')->store('profile-images', 'public');
                 $user->profile_image = $imagePath;
+            }
+
+            // Handle business logo upload
+            if ($user->role === 'trainer' && $request->hasFile('business_logo')) {
+                if ($user->business_logo && Storage::disk('public')->exists($user->business_logo)) {
+                    Storage::disk('public')->delete($user->business_logo);
+                }
+                $logoPath = $request->file('business_logo')->store('business-logos', 'public');
+                $user->business_logo = $logoPath;
             }
             
             $user->save();
@@ -115,6 +131,7 @@ class ApiUserController extends ApiBaseController
                 'phone' => $user->phone,
                 'role' => $user->role,
                 'profile_image' => $user->profile_image ? asset('storage/' . $user->profile_image) : null,
+                'business_logo' => $user->business_logo ? asset('storage/' . $user->business_logo) : null,
                 'updated_at' => $user->updated_at->toISOString(),
             ];
             
@@ -210,7 +227,7 @@ class ApiUserController extends ApiBaseController
             }
             
             // Store new avatar
-            $avatarPath = $request->file('avatar')->store('profile_images', 'public');
+            $avatarPath = $request->file('avatar')->store('profile-images', 'public');
             $user->profile_image = $avatarPath;
             $user->save();
             

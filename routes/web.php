@@ -26,6 +26,14 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/storage/{path}', function ($path) {
+    $fullPath = storage_path('app/public/' . $path);
+    if (file_exists($fullPath)) {
+        return response()->file($fullPath);
+    }
+    abort(404);
+})->where('path', '.*');
+
 /**
  * Authentication Routes
  * Handle user login, registration, and logout
@@ -102,6 +110,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/change-password', [UserProfileController::class, 'showChangePasswordForm'])->name('profile.change-password');
         Route::post('/change-password', [UserProfileController::class, 'changePassword'])->name('profile.password.update');
         Route::post('/delete-image', [UserProfileController::class, 'deleteProfileImage'])->name('profile.delete-image');
+        Route::post('/delete-business-logo', [UserProfileController::class, 'deleteBusinessLogo'])->name('profile.delete-business-logo');
         Route::get('/settings', [UserProfileController::class, 'settings'])->name('profile.settings');
         Route::get('/activity-log', [UserProfileController::class, 'activityLog'])->name('profile.activity-log');
     });

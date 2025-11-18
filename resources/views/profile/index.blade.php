@@ -43,6 +43,14 @@
                                         <span class="d-block fw-medium text-muted mb-1">{{ ucfirst($user->role) }}</span>
                                         <p class="fs-12 mb-0 fw-medium text-muted"> <span class="me-3"><i class="ri-mail-line me-1 align-middle"></i>{{ $user->email }}</span> <span><i class="ri-phone-line me-1 align-middle"></i>{{ $user->phone }}</span> </p>
                                     </div>
+                                    @if($user->role === 'trainer' && $user->business_logo)
+                                    <div class="text-end">
+                                        <span class="avatar avatar-lg">
+                                            <img src="{{ asset('storage/' . $user->business_logo) }}" alt="Business Logo">
+                                        </span>
+                                        <div class="fs-12 text-muted">Business Logo</div>
+                                    </div>
+                                    @endif
                                 </div>
                             </div>
                             <div>
@@ -176,6 +184,17 @@
                                     
                                     {{-- Trainer-specific fields display --}}
                                     @if($user->role === 'trainer')
+                                        @if($user->business_logo)
+                                        <div class="col-xl-6">
+                                            <label class="form-label">Business Logo :</label>
+                                            <div class="d-flex align-items-center gap-3">
+                                                <span class="avatar avatar-md">
+                                                    <img src="{{ asset('storage/' . $user->business_logo) }}" alt="Business Logo">
+                                                </span>
+                                                <input type="text" class="form-control" value="{{ basename($user->business_logo) }}" readonly>
+                                            </div>
+                                        </div>
+                                        @endif
                                         @if($user->designation)
                                         <div class="col-xl-6">
                                             <label class="form-label">Designation :</label>

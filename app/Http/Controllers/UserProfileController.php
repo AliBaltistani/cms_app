@@ -92,14 +92,18 @@ class UserProfileController extends Controller
                 'designation' => 'nullable|string|max:255',
                 'experience' => 'nullable|in:less_than_1_year,1_year,2_years,3_years,4_years,5_years,6_years,7_years,8_years,9_years,10_years,more_than_10_years',
                 'about' => 'nullable|string|max:1000',
-                'training_philosophy' => 'nullable|string|max:1000'
+                'training_philosophy' => 'nullable|string|max:1000',
+                'business_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048'
             ]);
             
             $validationMessages = array_merge($validationMessages, [
                 'designation.max' => 'Designation cannot exceed 255 characters.',
                 'experience.in' => 'Please select a valid experience level.',
                 'about.max' => 'About section cannot exceed 1000 characters.',
-                'training_philosophy.max' => 'Training philosophy cannot exceed 1000 characters.'
+                'training_philosophy.max' => 'Training philosophy cannot exceed 1000 characters.',
+                'business_logo.image' => 'Business logo must be an image file.',
+                'business_logo.mimes' => 'Business logo must be jpeg, png, jpg, gif, or webp.',
+                'business_logo.max' => 'Business logo size cannot exceed 2MB.'
             ]);
         }
         
@@ -121,6 +125,15 @@ class UserProfileController extends Controller
                 // Store new profile image
                 $imagePath = $request->file('profile_image')->store('profile-images', 'public');
                 $user->profile_image = $imagePath;
+            }
+
+            // Handle business logo upload (trainers only)
+            if ($user->role === 'trainer' && $request->hasFile('business_logo')) {
+                if ($user->business_logo && Storage::disk('public')->exists($user->business_logo)) {
+                    Storage::disk('public')->delete($user->business_logo);
+                }
+                $logoPath = $request->file('business_logo')->store('business-logos', 'public');
+                $user->business_logo = $logoPath;
             }
 
             // Update basic user information
@@ -146,6 +159,28 @@ class UserProfileController extends Controller
             Log::error('Profile update failed: ' . $e->getMessage());
             
             return back()->withErrors(['error' => 'Profile update failed. Please try again.'])->withInput();
+        }
+    }
+
+    public function deleteBusinessLogo(Request $request)
+    {
+        $user = Auth::user();
+        
+        try {
+            if ($user->business_logo && Storage::disk('public')->exists($user->business_logo)) {
+                Storage::disk('public')->delete($user->business_logo);
+                $user->business_logo = null;
+                $user->save();
+                
+                return back()->with('success', 'Business logo deleted successfully!');
+            }
+            
+            return back()->withErrors(['error' => 'No business logo found to delete.']);
+
+        } catch (\Exception $e) {
+            Log::error('Business logo deletion failed: ' . $e->getMessage());
+            
+            return back()->withErrors(['error' => 'Failed to delete business logo. Please try again.']);
         }
     }
 
