@@ -36,13 +36,20 @@
                     <!-- Profile Image -->
                     <div class="mb-4">
                         @if($trainer->profile_image)
-                            <img src="{{ $trainer->profile_image }}" alt="Profile" class="img-fluid rounded-circle mb-3" style="max-width: 200px; height: 200px; object-fit: cover;">
+                            <img src="{{ asset('storage/' . $trainer->profile_image) }}" alt="Profile" class="img-fluid rounded-circle mb-3" style="max-width: 200px; height: 200px; object-fit: cover;">
                         @else
                             <div class="avatar avatar-xxl avatar-rounded bg-success-transparent mb-3 mx-auto" style="width: 200px; height: 200px; display: flex; align-items: center; justify-content: center;">
                                 <i class="ri-user-star-line" style="font-size: 4rem;"></i>
                             </div>
                         @endif
                     </div>
+
+                    @if($trainer->business_logo)
+                    <div class="mb-4">
+                        <img src="{{ asset('storage/' . $trainer->business_logo) }}" alt="Business Logo" class="img-fluid mb-2" style="max-width: 220px; height: auto; object-fit: contain;">
+                        <div class="text-muted">Business Logo</div>
+                    </div>
+                    @endif
 
                     <!-- Basic Info -->
                     <h4 class="fw-semibold mb-1">{{ $trainer->name }}</h4>

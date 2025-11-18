@@ -214,6 +214,12 @@ class AdminUserController extends ApiBaseController
                 $imagePath = $request->file('profile_image')->store('profile-images', 'public');
                 $user->update(['profile_image' => $imagePath]);
             }
+
+            // Handle business logo upload
+            if ($request->hasFile('business_logo')) {
+                $logoPath = $request->file('business_logo')->store('business-logos', 'public');
+                $user->update(['business_logo' => $logoPath]);
+            }
             
             // Load relationships for response
             $user->load(['receivedTestimonials', 'certifications', 'goals', 'workouts']);
@@ -227,6 +233,7 @@ class AdminUserController extends ApiBaseController
                 'role' => $user->role,
                 'status' => $user->email_verified_at ? 'active' : 'inactive',
                 'profile_image' => $user->profile_image ? asset('storage/' . $user->profile_image) : null,
+                'business_logo' => $user->business_logo ? asset('storage/' . $user->business_logo) : null,
                 'designation' => $user->designation,
                 'experience' => $user->experience,
                 'about' => $user->about,
@@ -438,6 +445,15 @@ class AdminUserController extends ApiBaseController
                 $imagePath = $request->file('profile_image')->store('profile-images', 'public');
                 $userData['profile_image'] = $imagePath;
             }
+
+            // Handle business logo upload
+            if ($request->hasFile('business_logo')) {
+                if ($user->business_logo && Storage::disk('public')->exists($user->business_logo)) {
+                    Storage::disk('public')->delete($user->business_logo);
+                }
+                $logoPath = $request->file('business_logo')->store('business-logos', 'public');
+                $userData['business_logo'] = $logoPath;
+            }
             
             $user->update($userData);
             
@@ -453,6 +469,7 @@ class AdminUserController extends ApiBaseController
                 'role' => $user->role,
                 'status' => $user->email_verified_at ? 'active' : 'inactive',
                 'profile_image' => $user->profile_image ? asset('storage/' . $user->profile_image) : null,
+                'business_logo' => $user->business_logo ? asset('storage/' . $user->business_logo) : null,
                 'designation' => $user->designation,
                 'experience' => $user->experience,
                 'about' => $user->about,

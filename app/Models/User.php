@@ -29,6 +29,7 @@ class User extends Authenticatable
         'phone',
         'role',
         'profile_image',
+        'business_logo',
         'designation',
         'experience',
         'about',

@@ -185,6 +185,7 @@ class TrainersController extends Controller
                     'experience' => $trainer->experience ? str_replace('_', ' ', ucwords($trainer->experience)) : 'N/A',
                     'status' => $trainer->email_verified_at ? 'Active' : 'Inactive',
                     'profile_image' => $trainer->profile_image ? asset('storage/' . $trainer->profile_image) : null,
+                    'business_logo' => $trainer->business_logo ? asset('storage/' . $trainer->business_logo) : null,
                     'certifications_count' => $trainer->certifications->count(),
                     'testimonials_count' => $trainer->receivedTestimonials->count(),
                     'average_rating' => round($avgRating, 1),
@@ -252,6 +253,7 @@ class TrainersController extends Controller
                 'about' => 'required|string|max:1000',
                 'training_philosophy' => 'nullable|string|max:1000',
                 'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'business_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
                 'specializations' => 'nullable|exists:specializations,id'
             ];
             
@@ -289,6 +291,12 @@ class TrainersController extends Controller
             if ($request->hasFile('profile_image')) {
                 $imagePath = $request->file('profile_image')->store('profile-images', 'public');
                 $trainer->update(['profile_image' => $imagePath]);
+            }
+
+            // Handle business logo upload
+            if ($request->hasFile('business_logo')) {
+                $logoPath = $request->file('business_logo')->store('business-logos', 'public');
+                $trainer->update(['business_logo' => $logoPath]);
             }
             
             // Handle specialization assignment
@@ -457,6 +465,7 @@ class TrainersController extends Controller
                 'about' => 'required|string|max:1000',
                 'training_philosophy' => 'nullable|string|max:1000',
                 'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'business_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
                 'specializations' => 'nullable|exists:specializations,id'
             ];
             
@@ -504,6 +513,15 @@ class TrainersController extends Controller
                 
                 $imagePath = $request->file('profile_image')->store('profile-images', 'public');
                 $trainerData['profile_image'] = $imagePath;
+            }
+
+            // Handle business logo upload
+            if ($request->hasFile('business_logo')) {
+                if ($trainer->business_logo && Storage::disk('public')->exists($trainer->business_logo)) {
+                    Storage::disk('public')->delete($trainer->business_logo);
+                }
+                $logoPath = $request->file('business_logo')->store('business-logos', 'public');
+                $trainerData['business_logo'] = $logoPath;
             }
             
             $trainer->update($trainerData);

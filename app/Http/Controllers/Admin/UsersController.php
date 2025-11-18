@@ -199,7 +199,8 @@ class UsersController extends Controller
                 'password' => 'required|string|min:8|confirmed',
                 'phone' => 'nullable|string|max:20|unique:users,phone',
                 'role' => 'required|in:client,trainer,admin',
-                'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+                'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'business_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
             ];
             
             // Add trainer-specific validation rules
@@ -252,6 +253,12 @@ class UsersController extends Controller
             if ($request->hasFile('profile_image')) {
                 $imagePath = $request->file('profile_image')->store('profile-images', 'public');
                 $user->update(['profile_image' => $imagePath]);
+            }
+
+            // Handle business logo upload (optional)
+            if ($request->hasFile('business_logo')) {
+                $logoPath = $request->file('business_logo')->store('business-logos', 'public');
+                $user->update(['business_logo' => $logoPath]);
             }
             
             // Log user creation
@@ -370,7 +377,8 @@ class UsersController extends Controller
                 'email' => 'required|email|unique:users,email,' . $user->id,
                 'phone' => 'nullable|string|max:20|unique:users,phone,' . $user->id,
                 'role' => 'required|in:client,trainer,admin',
-                'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+                'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'business_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
             ];
             
             // Add password validation if provided
@@ -442,6 +450,15 @@ class UsersController extends Controller
                 
                 $imagePath = $request->file('profile_image')->store('profile-images', 'public');
                 $userData['profile_image'] = $imagePath;
+            }
+
+            // Handle business logo upload
+            if ($request->hasFile('business_logo')) {
+                if ($user->business_logo && Storage::disk('public')->exists($user->business_logo)) {
+                    Storage::disk('public')->delete($user->business_logo);
+                }
+                $logoPath = $request->file('business_logo')->store('business-logos', 'public');
+                $userData['business_logo'] = $logoPath;
             }
             
             $user->update($userData);

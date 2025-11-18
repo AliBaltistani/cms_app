@@ -58,6 +58,24 @@ $(document).ready(function() {
         @endif
     }
 
+    // Initialize FilePond for business logo
+    const businessLogoInput = document.querySelector('#business_logo');
+    if (businessLogoInput) {
+        const pondLogo = FilePond.create(businessLogoInput, {
+            acceptedFileTypes: ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'],
+            maxFileSize: '2MB',
+            imagePreviewHeight: 120,
+            imageCropAspectRatio: '1:1',
+            imageResizeTargetWidth: 300,
+            imageResizeTargetHeight: 300,
+            stylePanelLayout: 'compact',
+            labelIdle: 'Drag & Drop business logo or <span class="filepond--label-action">Browse</span>',
+        });
+        @if($trainer->business_logo)
+        pondLogo.addFile('{{ asset("storage/" . $trainer->business_logo) }}');
+        @endif
+    }
+
     // Password confirmation validation
     $('#password_confirmation').on('keyup', function() {
         const password = $('#password').val();
@@ -147,6 +165,29 @@ function togglePassword(fieldId) {
                                 <label class="form-label">{{ $trainer->profile_image ? 'Update Profile Image' : 'Profile Image' }}</label>
                                 <input type="file" id="profile_image" name="profile_image" accept="image/*">
                                 <small class="text-muted d-block mt-2">Upload a profile image (JPEG, PNG, JPG, GIF). Max size: 2MB</small>
+                            </div>
+                        </div>
+
+                        @if($trainer->business_logo)
+                        <div class="col-xl-12 mb-4">
+                            <div class="text-center">
+                                <label class="form-label">Current Business Logo</label>
+                                <div class="d-flex justify-content-center align-items-center flex-column">
+                                    <img src="{{ asset('storage/' . $trainer->business_logo) }}" alt="Current Business Logo" class="mb-2" style="max-width: 220px; height: auto; object-fit: contain;">
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
+                        <!-- Business Logo Upload -->
+                        <div class="col-xl-12 mb-4">
+                            <div class="text-center">
+                                <label class="form-label">{{ $trainer->business_logo ? 'Update Business Logo' : 'Business Logo' }}</label>
+                                <input type="file" id="business_logo" name="business_logo" accept="image/*">
+                                <small class="text-muted d-block mt-2">Upload a business logo (JPEG, PNG, JPG, GIF). Max size: 2MB</small>
+                                @error('business_logo')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
                             </div>
                         </div>
                         
@@ -325,14 +366,14 @@ function togglePassword(fieldId) {
                         </div>
                         
                         <!-- Password Fields -->
-                        <div class="col-xl-12 mb-3">
+                        <div class="col-6 mb-3">
                             <div class="alert alert-info">
                                 <i class="ri-information-line me-2"></i>
                                 <strong>Password Update:</strong> Leave password fields empty if you don't want to change the password.
                             </div>
                         </div>
                         
-                        <div class="col-xl-6 mb-3">
+                        <div class="col-6 mb-3">
                             <label for="password" class="form-label">New Password</label>
                             <div class="input-group">
                                 <input type="password" class="form-control @error('password') is-invalid @enderror" id="password" name="password" placeholder="Enter new password">
