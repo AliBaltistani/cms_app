@@ -311,7 +311,7 @@
                                                                                         <div class="set-badge">
                                                                                             Set {{ $set->set_number }}: {{ $set->reps }} reps
                                                                                             @if($set->weight)
-                                                                                                @ {{ $set->weight }}kg
+                                                                                                @ {{ $set->formatted_weight }}
                                                                                             @endif
                                                                                         </div>
                                                                                     @endforeach

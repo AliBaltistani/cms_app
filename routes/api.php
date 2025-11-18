@@ -300,6 +300,8 @@ Route::middleware('auth:sanctum')->group(function () {
          */
         Route::get('/dashboard', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'getDashboard'])->name('dashboard');
 
+        Route::get('/profile', [\App\Http\Controllers\Api\ClientController::class, 'getClientProfile'])->name('profile');
+
         /**
          * Client Workout Access (Read-Only)
          * Access to active workouts assigned by trainers

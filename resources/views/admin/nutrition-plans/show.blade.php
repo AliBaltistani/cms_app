@@ -131,8 +131,8 @@
                         <p class="mb-3">{{ $plan->duration_text }}</p>
                     </div>
                     <div class="col-md-6">
-                        <h6 class="fw-semibold mb-2">Target Weight</h6>
-                        <p class="mb-3">{{ $plan->target_weight ? $plan->target_weight . ' kg' : 'Not specified' }}</p>
+                        <h6 class="fw-semibold mb-2">Target Weight (lbs)</h6>
+                        <p class="mb-3">{{ $plan->target_weight ? round($plan->target_weight * 2.20462, 2) . ' lbs' : 'Not specified' }}</p>
                         
                         <h6 class="fw-semibold mb-2">Trainer</h6>
                         <p class="mb-3">{{ $plan->trainer ? $plan->trainer->name : 'Admin Created' }}</p>

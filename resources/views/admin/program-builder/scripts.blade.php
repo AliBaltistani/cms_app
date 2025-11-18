@@ -381,7 +381,7 @@ function addSet(setNumber = null, reps = null, weight = null) {
                        placeholder="Reps" min="0" value="${reps || ''}">
             </div>
             <div class="col-md-3">
-                <label class="form-label">Weight (kg)</label>
+                <label class="form-label">Weight (lbs)</label>
                 <input type="number" class="form-control" name="sets[${setCounter}][weight]" 
                        placeholder="Weight" min="0" step="0.5" value="${weight || ''}">
             </div>
@@ -453,7 +453,7 @@ function addSetToManage(setNumber = null, reps = null, weight = null) {
                        placeholder="Reps" min="0" value="${reps || ''}">
             </div>
             <div class="col-md-3">
-                <label class="form-label">Weight (kg)</label>
+                <label class="form-label">Weight (lbs)</label>
                 <input type="number" class="form-control" name="sets[${setCounter}][weight]" 
                        placeholder="Weight" min="0" step="0.5" value="${weight || ''}">
             </div>

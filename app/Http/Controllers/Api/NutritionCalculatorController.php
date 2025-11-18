@@ -50,7 +50,7 @@ class NutritionCalculatorController extends Controller
         try {
             // Validation rules
             $validator = Validator::make($request->all(), [
-                'weight' => 'required|numeric|min:1|max:500',
+                'weight' => 'required|numeric|min:1|max:1100',
                 'height' => 'required|numeric|min:1|max:300',
                 'age' => 'required|integer|min:1|max:120',
                 'gender' => 'required|in:male,female',
@@ -118,7 +118,7 @@ class NutritionCalculatorController extends Controller
                 'client_id' => 'required|exists:users,id',
                 'plan_name' => 'required|string|max:255',
                 'description' => 'nullable|string|max:1000',
-                'weight' => 'required|numeric|min:1|max:500',
+                'weight' => 'required|numeric|min:1|max:1100',
                 'height' => 'required|numeric|min:1|max:300',
                 'age' => 'required|integer|min:1|max:120',
                 'gender' => 'required|in:male,female',
@@ -130,7 +130,7 @@ class NutritionCalculatorController extends Controller
                     'required',
                     Rule::in(array_keys($this->calculatorService->getGoalTypes()))
                 ],
-                'target_weight' => 'nullable|numeric|min:1|max:500',
+                'target_weight' => 'nullable|numeric|min:1|max:1100',
                 'duration_days' => 'nullable|integer|min:1|max:365'
             ]);
 
@@ -161,13 +161,14 @@ class NutritionCalculatorController extends Controller
             $calculations = $this->calculatorService->calculateNutrition($userData);
 
             // Create nutrition plan
+            $targetWeightKg = $request->target_weight !== null ? round(((float)$request->target_weight) / 2.20462, 2) : null;
             $plan = NutritionPlan::create([
                 'client_id' => $request->client_id,
                 'trainer_id' => $currentUser->role === 'trainer' ? $currentUser->id : null,
                 'plan_name' => $request->plan_name,
                 'description' => $request->description,
                 'goal_type' => $request->goal_type,
-                'target_weight' => $request->target_weight,
+                'target_weight' => $targetWeightKg,
                 'duration_days' => $request->duration_days ?? 30,
                 'status' => 'active',
                 'is_global' => false
@@ -435,7 +436,7 @@ class NutritionCalculatorController extends Controller
 
             // Validation rules
             $validator = Validator::make($request->all(), [
-                'weight' => 'required|numeric|min:1|max:500',
+                'weight' => 'required|numeric|min:1|max:1100',
                 'height' => 'required|numeric|min:1|max:300',
                 'age' => 'required|integer|min:1|max:120',
                 'gender' => 'required|in:male,female',

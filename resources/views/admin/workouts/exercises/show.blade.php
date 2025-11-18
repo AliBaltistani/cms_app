@@ -47,9 +47,9 @@
                             </div>
                             
                             <div class="col-md-4 mb-3">
-                                <label class="form-label">Weight</label>
+                                <label class="form-label">Weight (lbs)</label>
                                 <div class="fw-bold">
-                                    {{ $workoutExercise->weight ? $workoutExercise->weight . ' kg' : 'Not specified' }}
+                                    {{ $workoutExercise->formatted_weight ?? 'Not specified' }}
                                 </div>
                             </div>
                             
@@ -140,7 +140,7 @@
                                 <tr>
                                     <th>Set #</th>
                                     <th>Reps</th>
-                                    <th>Weight (kg)</th>
+                                    <th>Weight (lbs)</th>
                                     <th>Duration (s)</th>
                                     <th>Rest Time (s)</th>
                                     <th>Notes</th>
@@ -155,7 +155,7 @@
                                             <span class="badge bg-primary-transparent">{{ $set->set_number }}</span>
                                         </td>
                                         <td>{{ $set->reps ?? '-' }}</td>
-                                        <td>{{ $set->weight ?? '-' }}</td>
+                                        <td>{{ $set->formatted_weight ?? '-' }}</td>
                                         <td>{{ $set->duration ?? '-' }}</td>
                                         <td>{{ $set->rest_time ?? '-' }}</td>
                                         <td>{{ $set->notes ?? '-' }}</td>
@@ -224,7 +224,7 @@
                             <input type="number" class="form-control" name="reps" value="{{ $workoutExercise->reps }}" min="1">
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Weight (kg)</label>
+                            <label class="form-label">Weight (lbs)</label>
                             <input type="number" step="0.5" class="form-control" name="weight" value="{{ $workoutExercise->weight }}" min="0">
                         </div>
                         <div class="col-md-6 mb-3">
@@ -272,7 +272,7 @@
                             <input type="number" class="form-control" name="reps" id="edit_reps" min="1">
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Weight (kg)</label>
+                            <label class="form-label">Weight (lbs)</label>
                             <input type="number" step="0.5" class="form-control" name="weight" id="edit_weight" min="0">
                         </div>
                         <div class="col-md-6 mb-3">

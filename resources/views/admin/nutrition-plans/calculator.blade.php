@@ -132,8 +132,8 @@
                 <form id="calculatorForm">
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="weight" class="form-label">Weight (kg) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="weight" name="weight" step="0.1" min="1" max="500" required>
+                            <label for="weight" class="form-label">Weight (lbs) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="weight" name="weight" step="0.1" min="1" max="1100" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="height" class="form-label">Height (cm) <span class="text-danger">*</span></label>
@@ -373,9 +373,9 @@ function displayResults(data) {
                         <strong>Calorie Adjustment:</strong> ${calculations.calorie_deficit_surplus > 0 ? '+' : ''}${Math.round(calculations.calorie_deficit_surplus)} calories
                         <small class="d-block text-muted">Based on ${meta.goal_type_display} goal</small>
                     </div>
-                    ${calculations.weekly_weight_change_kg !== 0 ? `
+                    ${calculations.weekly_weight_change_lbs !== 0 ? `
                     <div class="calculation-step">
-                        <strong>Estimated Weekly Weight Change:</strong> ${calculations.weekly_weight_change_kg > 0 ? '+' : ''}${calculations.weekly_weight_change_kg} kg
+                        <strong>Estimated Weekly Weight Change:</strong> ${calculations.weekly_weight_change_lbs > 0 ? '+' : ''}${calculations.weekly_weight_change_lbs} lbs
                         <small class="d-block text-muted">Based on calorie deficit/surplus</small>
                     </div>
                     ` : ''}

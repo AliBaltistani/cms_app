@@ -7,12 +7,15 @@ use App\Models\User;
 use App\Models\UserCertification;
 use App\Models\Testimonial;
 use App\Models\TrainerSubscription;
+use App\Models\WorkoutAssignment;
+use App\Models\Schedule;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 /**
  * Client API Controller
@@ -445,6 +448,157 @@ class ClientController extends ApiBaseController
             'success' => true,
             'message' => 'Unsubscribed successfully'
         ]);
+    }
+
+    public function getClientProfile(Request $request): JsonResponse
+    {
+        try {
+            $client = Auth::user();
+            if (!$client || !$client->isClientRole()) {
+                return $this->sendError('Unauthorized', ['error' => 'Client access required'], 401);
+            }
+
+            $activeGoal = $client->goals()->where('status', 1)->orderByDesc('created_at')->first();
+
+            $basicDetails = [
+                'id' => $client->id,
+                'name' => $client->name,
+                'profile_image' => $client->profile_image ? asset('storage/' . $client->profile_image) : null,
+                'goal' => $activeGoal ? $activeGoal->name : null,
+            ];
+
+            $metrics = [
+                'weight' => $client->weight !== null ? round($client->weight * 2.20462, 2) : null,
+                'body_fat' => $client->body_fat ?? null,
+                'unit' => 'lbs'
+            ];
+
+            $clientId = $client->id;
+            $today = Carbon::today();
+
+            $assignmentBase = WorkoutAssignment::forClients()
+                ->where('assigned_to', $clientId)
+                ->with(['workout:id,name,duration']);
+
+            $sessionBase = Schedule::forClient($clientId)
+                ->with(['trainer:id,name']);
+
+            $upcomingAssignments = (clone $assignmentBase)
+                ->whereDate('due_date', '>=', $today->toDateString())
+                ->whereIn('status', ['assigned', 'in_progress'])
+                ->orderBy('due_date', 'asc')
+                ->limit(10)
+                ->get()
+                ->map(function ($assignment) {
+                    return [
+                        'type' => 'workout',
+                        'name' => optional($assignment->workout)->name,
+                        'date' => optional($assignment->due_date)?->format('Y-m-d'),
+                        'day' => optional($assignment->due_date)?->format('l'),
+                        'time' => null,
+                    ];
+                });
+
+            $upcomingSessions = (clone $sessionBase)
+                ->whereDate('date', '>=', $today->toDateString())
+                ->withStatus(Schedule::STATUS_CONFIRMED)
+                ->orderBy('date', 'asc')
+                ->orderBy('start_time', 'asc')
+                ->limit(10)
+                ->get()
+                ->map(function ($session) {
+                    return [
+                        'type' => 'session',
+                        'name' => 'Training Session',
+                        'date' => $session->date->format('Y-m-d'),
+                        'day' => $session->date->format('l'),
+                        'time' => $session->start_time->format('H:i') . ' - ' . $session->end_time->format('H:i'),
+                    ];
+                });
+
+            $recentAssignments = (clone $assignmentBase)
+                ->whereDate('due_date', '<=', $today->toDateString())
+                ->orderBy('due_date', 'desc')
+                ->limit(10)
+                ->get()
+                ->map(function ($assignment) {
+                    return [
+                        'type' => 'workout',
+                        'name' => optional($assignment->workout)->name,
+                        'date' => optional($assignment->due_date)?->format('Y-m-d'),
+                        'day' => optional($assignment->due_date)?->format('l'),
+                        'time' => null,
+                    ];
+                });
+
+            $recentSessions = (clone $sessionBase)
+                ->whereDate('date', '<=', $today->toDateString())
+                ->orderBy('date', 'desc')
+                ->orderBy('start_time', 'desc')
+                ->limit(10)
+                ->get()
+                ->map(function ($session) {
+                    return [
+                        'type' => 'session',
+                        'name' => 'Training Session',
+                        'date' => $session->date->format('Y-m-d'),
+                        'day' => $session->date->format('l'),
+                        'time' => $session->start_time->format('H:i') . ' - ' . $session->end_time->format('H:i'),
+                    ];
+                });
+
+            $upcoming = $upcomingAssignments->merge($upcomingSessions)->sortBy(['date', 'time'])->values();
+            $recent = $recentAssignments->merge($recentSessions)->sortByDesc('date')->values();
+
+            $workouts = $upcoming->take(10)->values();
+
+            $monthlyProgress = [];
+            for ($i = 11; $i >= 0; $i--) {
+                $start = Carbon::now()->startOfMonth()->subMonths($i);
+                $end = Carbon::now()->startOfMonth()->subMonths($i)->endOfMonth();
+
+                $assignedCount = WorkoutAssignment::forClients()
+                    ->where('assigned_to', $clientId)
+                    ->whereBetween('assigned_at', [$start, $end])
+                    ->count();
+
+                $completedCount = WorkoutAssignment::forClients()
+                    ->where('assigned_to', $clientId)
+                    ->whereNotNull('completed_at')
+                    ->whereBetween('completed_at', [$start, $end])
+                    ->count();
+
+                $value = $assignedCount > 0 ? round(($completedCount / $assignedCount) * 100, 2) : 0;
+                $monthlyProgress[] = [
+                    'month' => $start->format('M Y'),
+                    'value' => $value,
+                ];
+            }
+
+            $response = [
+                'basic_details' => $basicDetails,
+                'metrics' => $metrics,
+                'workouts' => $workouts,
+                'upcoming_workouts' => $upcoming,
+                'recent_workouts' => $recent,
+                'progress_monthly' => $monthlyProgress,
+            ];
+
+            Log::info('Client profile retrieved', [
+                'client_id' => $client->id,
+                'items_upcoming' => $upcoming->count(),
+                'items_recent' => $recent->count(),
+            ]);
+
+            return $this->sendResponse($response, 'Client profile retrieved successfully');
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve client profile: ' . $e->getMessage(), [
+                'client_id' => Auth::id(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return $this->sendError('Profile Retrieval Failed', ['error' => 'Unable to retrieve client profile'], 500);
+        }
     }
     
     /**

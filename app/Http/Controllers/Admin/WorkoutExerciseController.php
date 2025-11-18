@@ -67,7 +67,10 @@ class WorkoutExerciseController extends Controller
         try {
             DB::beginTransaction();
 
-            $workoutExercise = $workout->workoutExercises()->create($request->all());
+            $data = $request->all();
+            $weightKg = isset($data['weight']) && $data['weight'] !== null ? \App\Support\UnitConverter::lbsToKg((float)$data['weight']) : null;
+            $data['weight'] = $weightKg;
+            $workoutExercise = $workout->workoutExercises()->create($data);
 
             // Create default sets if sets count is provided
             if ($request->sets) {
@@ -75,7 +78,7 @@ class WorkoutExerciseController extends Controller
                     $workoutExercise->exerciseSets()->create([
                         'set_number' => $i,
                         'reps' => $request->reps,
-                        'weight' => $request->weight,
+                        'weight' => $weightKg,
                         'duration' => $request->duration,
                     ]);
                 }
@@ -166,7 +169,10 @@ class WorkoutExerciseController extends Controller
         try {
             DB::beginTransaction();
 
-            $exercise->update($request->all());
+            $data = $request->all();
+            $weightKg = isset($data['weight']) && $data['weight'] !== null ? \App\Support\UnitConverter::lbsToKg((float)$data['weight']) : null;
+            $data['weight'] = $weightKg;
+            $exercise->update($data);
 
             // Update sets if sets count changed
             if ($request->has('sets') && $request->sets != $exercise->exerciseSets->count()) {
@@ -178,7 +184,7 @@ class WorkoutExerciseController extends Controller
                     $exercise->exerciseSets()->create([
                         'set_number' => $i,
                         'reps' => $request->reps,
-                        'weight' => $request->weight,
+                        'weight' => $weightKg,
                         'duration' => $request->duration,
                     ]);
                 }
@@ -315,9 +321,12 @@ class WorkoutExerciseController extends Controller
                 ]);
             }
 
-            $set->update([
-                $request->field => $request->value
-            ]);
+            $field = $request->field;
+            $value = $request->value;
+            if ($field === 'weight' && $value !== null && $value !== '') {
+                $value = \App\Support\UnitConverter::lbsToKg((float)$value);
+            }
+            $set->update([$field => $value]);
 
             return response()->json([
                 'success' => true,

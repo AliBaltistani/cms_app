@@ -98,8 +98,8 @@
                             <div class="invalid-feedback"></div>
                         </div>
                         <div class="col-xl-6 mb-3">
-                            <label for="target_weight" class="form-label">Target Weight (kg)</label>
-                            <input type="number" class="form-control" id="target_weight" name="target_weight" placeholder="Enter target weight" min="1" max="300" step="0.1">
+                            <label for="target_weight" class="form-label">Target Weight (lbs)</label>
+                            <input type="number" class="form-control" id="target_weight" name="target_weight" placeholder="Enter target weight in lbs" min="1" max="1100" step="0.1">
                             <div class="invalid-feedback"></div>
                         </div>
                         <div class="col-xl-6 mb-3">

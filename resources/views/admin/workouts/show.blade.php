@@ -375,7 +375,7 @@
                                     @if($workoutExercise->weight)
                                         <div class="col-md-2">
                                             <small class="text-muted">Weight:</small>
-                                            <div class="fw-bold">{{ $workoutExercise->weight }} kg</div>
+                                            <div class="fw-bold">{{ $workoutExercise->formatted_weight }}</div>
                                         </div>
                                     @endif
                                     @if($workoutExercise->duration)
@@ -408,7 +408,7 @@
                                                     <tr>
                                                         <th>Set</th>
                                                         <th>Reps</th>
-                                                        <th>Weight (kg)</th>
+                                                        <th>Weight (lbs)</th>
                                                         <th>Duration (s)</th>
                                                         <th>Rest (s)</th>
                                                         <th>Notes</th>

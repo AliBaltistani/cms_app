@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Support\UnitConverter;
 
 /**
  * Exercise Set Model
@@ -61,14 +62,25 @@ class ExerciseSet extends Model
         $display = "Set {$this->set_number}";
         
         if ($this->reps && $this->weight) {
-            $display .= ": {$this->reps} reps @ {$this->weight}kg";
+            $lbs = UnitConverter::kgToLbs((float)$this->weight);
+            $display .= ": {$this->reps} reps @ {$lbs} lbs";
         } elseif ($this->reps) {
             $display .= ": {$this->reps} reps";
         } elseif ($this->weight) {
-            $display .= ": {$this->weight}kg";
+            $lbs = UnitConverter::kgToLbs((float)$this->weight);
+            $display .= ": {$lbs} lbs";
         }
         
         return $display;
+    }
+
+    public function getFormattedWeightAttribute()
+    {
+        if (!$this->weight) {
+            return null;
+        }
+        $lbs = UnitConverter::kgToLbs((float)$this->weight);
+        return $lbs . ' lbs';
     }
 
     /**

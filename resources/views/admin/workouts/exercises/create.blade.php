@@ -67,8 +67,8 @@
                         </div>
                         
                         <div class="col-md-3 mb-3">
-                            <label class="form-label">Weight (kg)</label>
-                            <input type="number" step="0.5" class="form-control @error('weight') is-invalid @enderror" name="weight" placeholder="Weight in kg" min="0" value="{{ old('weight') }}">
+                            <label class="form-label">Weight (lbs)</label>
+                            <input type="number" step="0.5" class="form-control @error('weight') is-invalid @enderror" name="weight" placeholder="Weight in lbs" min="0" value="{{ old('weight') }}">
                             @error('weight')
                                 <div class="invalid-feedback">
                                     {{ $message }}

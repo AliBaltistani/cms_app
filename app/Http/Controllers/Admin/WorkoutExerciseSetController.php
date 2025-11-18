@@ -130,11 +130,12 @@ class WorkoutExerciseSetController extends Controller
             }
 
             // Create new set
+            $weightKg = $request->weight !== null ? \App\Support\UnitConverter::lbsToKg((float)$request->weight) : null;
             $set = WorkoutExerciseSet::create([
                 'workout_exercise_id' => $exerciseId,
                 'set_number' => $request->set_number,
                 'reps' => $request->reps,
-                'weight' => $request->weight,
+                'weight' => $weightKg,
                 'duration' => $request->duration,
                 'rest_time' => $request->rest_time,
                 'notes' => $request->notes,
@@ -275,10 +276,11 @@ class WorkoutExerciseSetController extends Controller
             }
 
             // Update set data
+            $weightKg = $request->weight !== null ? \App\Support\UnitConverter::lbsToKg((float)$request->weight) : null;
             $set->update([
                 'set_number' => $request->set_number,
                 'reps' => $request->reps,
-                'weight' => $request->weight,
+                'weight' => $weightKg,
                 'duration' => $request->duration,
                 'rest_time' => $request->rest_time,
                 'notes' => $request->notes,

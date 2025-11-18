@@ -280,11 +280,12 @@ class ProgramBuilderController extends Controller
 
             // Add exercise sets
             foreach ($validated['sets'] as $setData) {
+                $weightKg = isset($setData['weight']) && $setData['weight'] !== null ? \App\Support\UnitConverter::lbsToKg((float)$setData['weight']) : null;
                 ExerciseSet::create([
                     'program_exercise_id' => $programExercise->id,
                     'set_number' => $setData['set_number'],
                     'reps' => $setData['reps'],
-                    'weight' => $setData['weight']
+                    'weight' => $weightKg
                 ]);
             }
 
@@ -379,11 +380,12 @@ class ProgramBuilderController extends Controller
                 // Debug: Log the program exercise ID before creating sets
                 Log::info('Creating ExerciseSet with program_exercise_id: ' . $programExercise->id);
                 
+                $weightKg = isset($setData['weight']) && $setData['weight'] !== null ? \App\Support\UnitConverter::lbsToKg((float)$setData['weight']) : null;
                 ExerciseSet::create([
                     'program_exercise_id' => $programExercise->id,
                     'set_number' => $setData['set_number'],
                     'reps' => $setData['reps'],
-                    'weight' => $setData['weight']
+                    'weight' => $weightKg
                 ]);
             }
 
@@ -1043,11 +1045,12 @@ class ProgramBuilderController extends Controller
 
             // Create new sets
             foreach ($request->sets as $setData) {
+                $weightKg = isset($setData['weight']) && $setData['weight'] !== null ? \App\Support\UnitConverter::lbsToKg((float)$setData['weight']) : null;
                 ExerciseSet::create([
                     'program_exercise_id' => $exercise->id,
                     'set_number' => $setData['set_number'],
                     'reps' => $setData['reps'] ?? null,
-                    'weight' => $setData['weight'] ?? null
+                    'weight' => $weightKg
                 ]);
             }
 

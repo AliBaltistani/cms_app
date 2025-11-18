@@ -58,7 +58,7 @@
 <style>
     .week-container {
         margin-bottom: 2rem;
-        /* background: white; */
+        background: white;
         border-radius: 16px;
         overflow: hidden;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
@@ -108,9 +108,9 @@
     }
 
     .day-header {
-        /* background: linear-gradient(135deg, rgb(255, 106, 0) 0%, rgba(255, 106, 0, 0.894) 100%); */
-        /* color: white; */
-        /* background: gainsboro; */
+        background: linear-gradient(135deg, rgb(255, 106, 0) 0%, rgba(255, 106, 0, 0.894) 100%);
+        color: white;
+        background: gainsboro;
         color: black;
         padding: 1rem 1.5rem;
         display: flex;
@@ -121,8 +121,8 @@
     }
 
     .day-name-input {
-        /* background: rgba(255, 255, 255, 0.2); */
-        /* border: 2px solid rgba(255, 255, 255, 0.3); */
+        background: rgba(255, 255, 255, 0.2);
+        border: 2px solid rgba(255, 255, 255, 0.3);
          border: 1px solid rgba(255, 106, 0, 0.3);
         color: black;
         border-radius: 8px;
@@ -132,14 +132,14 @@
     }
 
     .day-name-input:focus {
-        /* background: rgba(255, 255, 255, 0.3); */
+        background: rgba(255, 255, 255, 0.3);
         border-color: black;
         outline: none;
     }
 
-    /* .day-name-input::placeholder {
+    .day-name-input::placeholder {
         color: rgba(255, 255, 255, 0.7);
-    } */
+    }
 
     /* tempo-info and tempo-input removed */
 
@@ -150,7 +150,7 @@
     }
 
     .exercise-table thead th {
-        /* background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); */
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
         padding: 0.4rem;
         font-weight: 700;
         border: 1px solid #dee2e6;
@@ -182,7 +182,7 @@
     }
 
     .exercise-table tbody tr:hover {
-        /* background: rgba(255, 106, 0, 0.05); */
+        background: rgba(255, 106, 0, 0.05);
     }
 
     .exercise-table td {
@@ -207,11 +207,11 @@
     .exercise-table textarea:focus {
         outline: none;
         border-color: rgb(255, 106, 0);
-        /* background: rgba(255, 106, 0, 0.05); */
+        background: rgba(255, 106, 0, 0.05);
     }
 
     .circuit-label {
-        /* background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%); */
+        background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
         font-weight: 700;
         color: #000000;
         text-transform: uppercase;
@@ -221,7 +221,7 @@
     }
 
     .cool-down {
-        /* background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%); */
+        background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
         font-style: italic;
         text-align: center;
         padding: 1rem;
@@ -231,13 +231,13 @@
     }
 
     .action-cell {
-        /* background: #fafafa; */
+        background: #fafafa;
         text-align: center;
         width: 80px;
     }
 
     .btn-gradient-primary {
-        /* background: linear-gradient(135deg, rgb(255, 106, 0) 0%, rgba(255, 106, 0, 0.894) 100%); */
+        background: linear-gradient(135deg, rgb(255, 106, 0) 0%, rgba(255, 106, 0, 0.894) 100%);
         border: none;
         color: white;
         transition: all 0.3s ease;
@@ -247,11 +247,11 @@
         transform: translateY(-2px);
         box-shadow: 0 6px 20px rgba(255, 106, 0, 0.4);
         color: white;
-        /* background: linear-gradient(135deg, rgba(255, 106, 0, 0.9) 0%, rgba(255, 106, 0, 0.8) 100%); */
+        background: linear-gradient(135deg, rgba(255, 106, 0, 0.9) 0%, rgba(255, 106, 0, 0.8) 100%);
     }
 
     .btn-gradient-danger {
-        /* background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); */
+        background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
         border: 1px solid rgba(255, 106, 0, 0.3);
         color: white;
         transition: all 0.3s ease;
@@ -276,7 +276,7 @@
 
     .action-buttons {
         padding: 1.5rem;
-        /* background: #f8f9fa; */
+        background: #f8f9fa;
         border-top: 2px solid #e9ecef;
         display: flex;
         gap: 0.75rem;
@@ -297,8 +297,8 @@
     }
 
     .column-config-item {
-        /* background: #ffffff; */
-        /* border: 2px solid #e9ecef; */
+        background: #ffffff;
+        border: 2px solid #e9ecef;
         border-radius: 12px;
         padding: 1rem;
         margin-bottom: 0.75rem;
@@ -312,7 +312,7 @@
 
     .drag-handle {
         cursor: move;
-        /* color: #999; */
+        color: #999;
     }
 
     .drag-handle:hover {
@@ -1164,8 +1164,8 @@ function renderDayIntoExisting(weekIndex, d, dayId) {
             const isExercise = col.id === 'exercise';
             const isSet = col.id.startsWith('set');
             const isNotes = col.id === 'notes';
-            const placeholder = isExercise ? 'Enter exercise name' : (isSet ? 'e.g., 12 / 40kg' : (isNotes ? 'Optional notes' : ''));
-            const titleAttr = isExercise ? 'Type to match a workout or enter a custom name' : (isSet ? 'Enter reps / weight (e.g., 12 / 40kg)' : '');
+            const placeholder = isExercise ? 'Enter exercise name' : (isSet ? 'e.g., 12 / 40 lbs' : (isNotes ? 'Optional notes' : ''));
+            const titleAttr = isExercise ? 'Type to match a workout or enter a custom name' : (isSet ? 'Enter reps / weight (e.g., 12 / 40 lbs)' : '');
             return `<td><input type="text" placeholder="${placeholder}" class="form-control form-control-sm border-0 ${isSet ? 'text-center' : ''}" data-bs-toggle="tooltip" title="${titleAttr}"></td>`;
         }).join('');
 
@@ -1606,8 +1606,8 @@ function renderDayIntoExisting(weekIndex, d, dayId) {
                         const isExercise = col.id === 'exercise';
                         const isSet = col.id && col.id.startsWith('set');
                         const isNotes = col.id === 'notes';
-                        const placeholder = isExercise ? 'Enter exercise name' : (isSet ? 'e.g., 12 / 40kg' : (isNotes ? 'Optional notes' : ''));
-                        const titleAttr = isExercise ? 'Type to match a workout or enter a custom name' : (isSet ? 'Enter reps / weight (e.g., 12 / 40kg)' : '');
+                        const placeholder = isExercise ? 'Enter exercise name' : (isSet ? 'e.g., 12 / 40 lbs' : (isNotes ? 'Optional notes' : ''));
+                        const titleAttr = isExercise ? 'Type to match a workout or enter a custom name' : (isSet ? 'Enter reps / weight (e.g., 12 / 40 lbs)' : '');
                         cell.innerHTML = '<input type="text" class="form-control form-control-sm border-0">';
                         const input = cell.querySelector('input');
                         input.value = prevValuesById[col.id] ?? '';

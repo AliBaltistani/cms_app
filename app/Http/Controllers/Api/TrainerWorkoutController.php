@@ -998,7 +998,7 @@ class TrainerWorkoutController extends Controller
                 'order' => 'nullable|integer|min:0',
                 'sets' => 'nullable|integer|min:1|max:10',
                 'reps' => 'nullable|integer|min:1|max:100',
-                'weight' => 'nullable|numeric|min:0|max:1000',
+                'weight' => 'nullable|numeric|min:0|max:1100',
                 'duration' => 'nullable|integer|min:1|max:3600',
                 'rest_interval' => 'nullable|integer|min:0|max:600',
                 'tempo' => 'nullable|string|max:20',
@@ -1020,12 +1020,13 @@ class TrainerWorkoutController extends Controller
             }
 
             // Create workout exercise
+            $weightKg = $request->get('weight') !== null ? \App\Support\UnitConverter::lbsToKg((float)$request->get('weight')) : null;
             $workoutExercise = $workout->workoutExercises()->create([
                 'exercise_id' => $request->exercise_id,
                 'order' => $order,
                 'sets' => $request->get('sets', 3),
                 'reps' => $request->get('reps', 10),
-                'weight' => $request->get('weight'),
+                'weight' => $weightKg,
                 'duration' => $request->get('duration'),
                 'rest_interval' => $request->get('rest_interval', 60),
                 'tempo' => $request->get('tempo'),
@@ -1194,7 +1195,7 @@ class TrainerWorkoutController extends Controller
             $validator = Validator::make($request->all(), [
                 'sets' => 'required|integer|min:1|max:10',
                 'reps' => 'required|integer|min:1|max:100',
-                'weight' => 'required|numeric|min:0|max:1000',
+                'weight' => 'required|numeric|min:0|max:1100',
                 'duration' => 'required|integer|min:1|max:3600',
                 'rest_interval' => 'required|integer|min:0|max:600',
                 'tempo' => 'required|string|max:20',
@@ -1202,7 +1203,7 @@ class TrainerWorkoutController extends Controller
                 'exercise_sets' => 'required|array',
                 'exercise_sets.*.set_number' => 'required_with:exercise_sets|integer|min:1|max:10',
                 'exercise_sets.*.reps' => 'required|integer|min:1|max:100',
-                'exercise_sets.*.weight' => 'required|numeric|min:0|max:1000',
+                'exercise_sets.*.weight' => 'required|numeric|min:0|max:1100',
                 'exercise_sets.*.duration' => 'required|integer|min:1|max:3600',
                 'exercise_sets.*.rest_time' => 'required|integer|min:0|max:600',
                 'exercise_sets.*.notes' => 'required|string|max:200'
@@ -1217,10 +1218,11 @@ class TrainerWorkoutController extends Controller
             }
 
             // Update workout exercise basic configuration
+            $weightKg = $request->get('weight') !== null ? \App\Support\UnitConverter::lbsToKg((float)$request->get('weight')) : null;
             $updateData = array_filter([
                 'sets' => $request->get('sets'),
                 'reps' => $request->get('reps'),
-                'weight' => $request->get('weight'),
+                'weight' => $weightKg,
                 'duration' => $request->get('duration'),
                 'rest_interval' => $request->get('rest_interval'),
                 'tempo' => $request->get('tempo'),
@@ -1241,10 +1243,11 @@ class TrainerWorkoutController extends Controller
                 $workoutExercise->exerciseSets()->delete();
                 
                 foreach ($exerciseSets as $setData) {
+                    $setWeightKg = isset($setData['weight']) && $setData['weight'] !== null ? \App\Support\UnitConverter::lbsToKg((float)$setData['weight']) : null;
                     $workoutExercise->exerciseSets()->create([
                         'set_number' => $setData['set_number'],
                         'reps' => $setData['reps'] ?? null,
-                        'weight' => $setData['weight'] ?? null,
+                        'weight' => $setWeightKg,
                         'duration' => $setData['duration'] ?? null,
                         'rest_time' => $setData['rest_time'] ?? null,
                         'notes' => $setData['notes'] ?? null,

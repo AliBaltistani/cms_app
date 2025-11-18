@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Support\UnitConverter;
 
 class WorkoutExerciseSet extends Model
 {
@@ -54,8 +55,8 @@ class WorkoutExerciseSet extends Model
         if (!$this->weight) {
             return null;
         }
-        
-        return $this->weight . ' kg';
+        $lbs = UnitConverter::kgToLbs((float)$this->weight);
+        return $lbs . ' lbs';
     }
 
     /**

@@ -21,6 +21,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Redirect;
+use App\Support\UnitConverter;
 /**
  * NutritionPlansController
  * 
@@ -293,7 +294,7 @@ class NutritionPlansController extends Controller
                 'client_id' => 'nullable|exists:users,id',
                 'goal_type' => 'nullable|string|in:' . implode(',', $validGoalTypes),
                 'duration_days' => 'nullable|integer|min:1|max:365',
-                'target_weight' => 'nullable|numeric|min:30|max:300',
+                'target_weight' => 'nullable|numeric|min:30|max:1100',
                 'status' => 'required|in:active,inactive,draft',
                 'is_global' => 'boolean',
                 'is_featured' => 'boolean',
@@ -337,7 +338,7 @@ class NutritionPlansController extends Controller
                 'client_id' => $request->client_id,
                 'goal_type' => $request->goal_type,
                 'duration_days' => $request->duration_days,
-                'target_weight' => $request->target_weight,
+                'target_weight' => UnitConverter::lbsToKg($request->target_weight !== null ? (float) $request->target_weight : null),
                 'status' => $request->status,
                 'is_global' => $request->boolean('is_global'),
                 'is_featured' => $request->boolean('is_featured'),
@@ -521,7 +522,7 @@ class NutritionPlansController extends Controller
                 'client_id' => 'nullable|exists:users,id',
                 'goal_type' => 'nullable|string|in:' . implode(',', $validGoalTypes),
                 'duration_days' => 'nullable|integer|min:1|max:365',
-                'target_weight' => 'nullable|numeric|min:30|max:300',
+                'target_weight' => 'nullable|numeric|min:30|max:1100',
                 'status' => 'required|in:active,inactive,draft',
                 'is_global' => 'boolean',
                 'is_featured' => 'boolean',
@@ -571,7 +572,7 @@ class NutritionPlansController extends Controller
                 'client_id' => $request->client_id,
                 'goal_type' => $request->goal_type,
                 'duration_days' => $request->duration_days,
-                'target_weight' => $request->target_weight,
+                'target_weight' => UnitConverter::lbsToKg($request->target_weight !== null ? (float) $request->target_weight : null),
                 'status' => $request->status,
                 'is_global' => $request->boolean('is_global'),
                 'is_featured' => $request->boolean('is_featured'),
@@ -1060,7 +1061,7 @@ class NutritionPlansController extends Controller
         try {
             // Validation
             $validator = Validator::make($request->all(), [
-                'weight' => 'required|numeric|min:1|max:500',
+                'weight' => 'required|numeric|min:1|max:1100',
                 'height' => 'required|numeric|min:1|max:300',
                 'age' => 'required|integer|min:1|max:120',
                 'gender' => 'required|in:male,female',

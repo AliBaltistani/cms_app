@@ -83,7 +83,10 @@ class ClientProgress extends Model
         if ($this->status === 'completed' && ($this->logged_reps || $this->logged_weight)) {
             $details = [];
             if ($this->logged_reps) $details[] = "{$this->logged_reps} reps";
-            if ($this->logged_weight) $details[] = "{$this->logged_weight}kg";
+            if ($this->logged_weight) {
+                $lbs = UnitConverter::kgToLbs((float)$this->logged_weight);
+                $details[] = "{$lbs} lbs";
+            }
             $display .= " (" . implode(', ', $details) . ")";
         }
         
@@ -122,3 +125,4 @@ class ClientProgress extends Model
         return $query->where('status', 'skipped');
     }
 }
+use App\Support\UnitConverter;

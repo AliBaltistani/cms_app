@@ -67,8 +67,8 @@
                         </div>
                         
                         <div class="col-md-3 mb-3">
-                            <label class="form-label">Weight (kg)</label>
-                            <input type="number" step="0.5" class="form-control @error('weight') is-invalid @enderror" name="weight" placeholder="Weight in kg" min="0" value="{{ old('weight', $workoutExercise->weight) }}">
+                            <label class="form-label">Weight (lbs)</label>
+                            <input type="number" step="0.5" class="form-control @error('weight') is-invalid @enderror" name="weight" placeholder="Weight in lbs" min="0" value="{{ old('weight', round($workoutExercise->weight * 2.20462, 2)) }}">
                             @error('weight')
                                 <div class="invalid-feedback">
                                     {{ $message }}
@@ -163,7 +163,7 @@
                             <tr>
                                 <th>Set #</th>
                                 <th>Reps</th>
-                                <th>Weight (kg)</th>
+                                <th>Weight (lbs)</th>
                                 <th>Duration (s)</th>
                                 <th>Rest (s)</th>
                                 <th>Notes</th>
@@ -176,7 +176,7 @@
                                 <tr>
                                     <td>{{ $set->set_number }}</td>
                                     <td>{{ $set->reps ?? '-' }}</td>
-                                    <td>{{ $set->weight ?? '-' }}</td>
+                                    <td>{{ $set->formatted_weight ?? '-' }}</td>
                                     <td>{{ $set->duration ?? '-' }}</td>
                                     <td>{{ $set->rest_time ?? '-' }}</td>
                                     <td>{{ $set->notes ?? '-' }}</td>
@@ -231,7 +231,7 @@
                             <input type="number" class="form-control" name="reps" min="1">
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Weight (kg)</label>
+                            <label class="form-label">Weight (lbs)</label>
                             <input type="number" step="0.5" class="form-control" name="weight" min="0">
                         </div>
                         <div class="col-md-6 mb-3">

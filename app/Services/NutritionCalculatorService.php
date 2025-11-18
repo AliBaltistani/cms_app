@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use InvalidArgumentException;
+use App\Support\UnitConverter;
 
 /**
  * NutritionCalculatorService
@@ -65,16 +66,15 @@ class NutritionCalculatorService
      * @return float BMR in calories
      * @throws InvalidArgumentException
      */
-    public function calculateBMR(float $weight, float $height, int $age, string $gender): float
+    public function calculateBMR(float $weightKg, float $height, int $age, string $gender): float
     {
-        // Validate inputs
-        $this->validateInputs($weight, $height, $age, $gender);
+        $this->validateInputsLbs($weightKg * 2.20462, $height, $age, $gender);
 
         // Mifflin-St Jeor Equation
         if ($gender === 'male') {
-            $bmr = (10 * $weight) + (6.25 * $height) - (5 * $age) + 5;
+            $bmr = (10 * $weightKg) + (6.25 * $height) - (5 * $age) + 5;
         } else {
-            $bmr = (10 * $weight) + (6.25 * $height) - (5 * $age) - 161;
+            $bmr = (10 * $weightKg) + (6.25 * $height) - (5 * $age) - 161;
         }
 
         return round($bmr, 2);
@@ -164,15 +164,15 @@ class NutritionCalculatorService
     public function calculateNutrition(array $userData): array
     {
         // Extract and validate user data
-        $weight = (float) ($userData['weight'] ?? 0);
+        $weightLbs = (float) ($userData['weight'] ?? 0);
         $height = (float) ($userData['height'] ?? 0);
         $age = (int) ($userData['age'] ?? 0);
         $gender = strtolower($userData['gender'] ?? '');
         $activityLevel = $userData['activity_level'] ?? '';
         $goalType = $userData['goal_type'] ?? '';
 
-        // Calculate BMR
-        $bmr = $this->calculateBMR($weight, $height, $age, $gender);
+        $weightKg = UnitConverter::lbsToKg($weightLbs);
+        $bmr = $this->calculateBMR($weightKg, $height, $age, $gender);
         
         // Calculate TDEE
         $tdee = $this->calculateTDEE($bmr, $activityLevel);
@@ -183,12 +183,12 @@ class NutritionCalculatorService
         // Calculate macros
         $macros = $this->calculateMacros($targetCalories, $goalType);
         
-        // Calculate weekly weight change estimate
-        $weeklyWeightChange = $this->calculateWeeklyWeightChange($tdee, $targetCalories);
+        $weeklyWeightChangeKg = $this->calculateWeeklyWeightChangeKg($tdee, $targetCalories);
+        $weeklyWeightChangeLbs = UnitConverter::kgToLbs($weeklyWeightChangeKg);
         
         return [
             'user_data' => [
-                'weight' => $weight,
+                'weight' => $weightLbs,
                 'height' => $height,
                 'age' => $age,
                 'gender' => $gender,
@@ -200,7 +200,7 @@ class NutritionCalculatorService
                 'tdee' => $tdee,
                 'target_calories' => $targetCalories,
                 'calorie_deficit_surplus' => $targetCalories - $tdee,
-                'weekly_weight_change_kg' => $weeklyWeightChange
+                'weekly_weight_change_lbs' => $weeklyWeightChangeLbs
             ],
             'recommendations' => [
                 'target_calories' => $targetCalories,
@@ -229,7 +229,7 @@ class NutritionCalculatorService
      * @param float $targetCalories Target daily calories
      * @return float Weekly weight change in kg (positive = gain, negative = loss)
      */
-    private function calculateWeeklyWeightChange(float $tdee, float $targetCalories): float
+    private function calculateWeeklyWeightChangeKg(float $tdee, float $targetCalories): float
     {
         $dailyCalorieDifference = $targetCalories - $tdee;
         $weeklyCalorieDifference = $dailyCalorieDifference * 7;
@@ -239,6 +239,8 @@ class NutritionCalculatorService
         
         return round($weeklyWeightChange, 2);
     }
+
+    
 
     /**
      * Get available activity levels
@@ -337,10 +339,10 @@ class NutritionCalculatorService
      * @param string $gender
      * @throws InvalidArgumentException
      */
-    private function validateInputs(float $weight, float $height, int $age, string $gender): void
+    private function validateInputsLbs(float $weightLbs, float $height, int $age, string $gender): void
     {
-        if ($weight <= 0 || $weight > 500) {
-            throw new InvalidArgumentException('Weight must be between 1 and 500 kg');
+        if ($weightLbs <= 0 || $weightLbs > 1100) {
+            throw new InvalidArgumentException('Weight must be between 1 and 1100 lbs');
         }
 
         if ($height <= 0 || $height > 300) {

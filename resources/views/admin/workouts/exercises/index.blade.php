@@ -27,7 +27,7 @@
                                     <th>Exercise</th>
                                     <th>Sets</th>
                                     <th>Reps</th>
-                                    <th>Weight</th>
+                                    <th>Weight (lbs)</th>
                                     <th>Duration</th>
                                     <th>Rest</th>
                                     <th>Tempo</th>
@@ -50,7 +50,7 @@
                                         </td>
                                         <td>{{ $exercise->sets ?? '-' }}</td>
                                         <td>{{ $exercise->reps ?? '-' }}</td>
-                                        <td>{{ $exercise->weight ? $exercise->weight . ' kg' : '-' }}</td>
+                                        <td>{{ $exercise->formatted_weight ?? '-' }}</td>
                                         <td>{{ $exercise->duration ? $exercise->duration . 's' : '-' }}</td>
                                         <td>{{ $exercise->rest_interval ? $exercise->rest_interval . 's' : '-' }}</td>
                                         <td>{{ $exercise->tempo ?? '-' }}</td>
