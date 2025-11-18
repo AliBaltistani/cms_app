@@ -121,7 +121,7 @@ Route::middleware('auth:sanctum')->group(function () {
         //  * Trainer Profile Management
         //  * Handle trainer profile operations and personal information
         //  */
-        // Route::get('/profile', [TrainerController::class, 'getProfile'])->name('profile');
+        Route::get('/profile', [TrainerController::class, 'getTrainerProfile'])->name('profile');
         // Route::put('/profile', [TrainerController::class, 'updateProfile'])->name('update-profile');
 
         /**

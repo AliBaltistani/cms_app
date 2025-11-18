@@ -2033,5 +2033,118 @@ private function calculateNutritionSummary(User $client): array
             ], 500);
         }
     }
+    public function getTrainerProfile(Request $request): JsonResponse
+    {
+        try {
+            $trainer = Auth::user();
+            if (!$trainer || !$trainer->isTrainerRole()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized',
+                    'errors' => ['error' => 'Trainer access required']
+                ], 401);
+            }
+
+            $activeGoal = null;
+
+            $basicDetails = [
+                'id' => $trainer->id,
+                'name' => $trainer->name,
+                'profile_image' => $trainer->profile_image ? asset('storage/' . $trainer->profile_image) : null,
+                'goal' => $activeGoal
+            ];
+
+            $metrics = [
+                'weight' => $trainer->weight !== null ? round($trainer->weight * 2.20462, 2) : null,
+                'body_fat' => $trainer->body_fat ?? null,
+                'unit' => 'lbs'
+            ];
+
+            $today = Carbon::today();
+
+            $sessionBase = Schedule::forTrainer($trainer->id)
+                ->with(['client:id,name']);
+
+            $upcomingSessions = (clone $sessionBase)
+                ->whereDate('date', '>=', $today->toDateString())
+                ->withStatus(Schedule::STATUS_CONFIRMED)
+                ->orderBy('date', 'asc')
+                ->orderBy('start_time', 'asc')
+                ->limit(10)
+                ->get()
+                ->map(function ($session) {
+                    return [
+                        'type' => 'session',
+                        'name' => 'Training Session',
+                        'date' => $session->date->format('Y-m-d'),
+                        'day' => $session->date->format('l'),
+                        'time' => $session->start_time->format('H:i') . ' - ' . $session->end_time->format('H:i'),
+                    ];
+                });
+
+            $recentSessions = (clone $sessionBase)
+                ->whereDate('date', '<=', $today->toDateString())
+                ->orderBy('date', 'desc')
+                ->orderBy('start_time', 'desc')
+                ->limit(10)
+                ->get()
+                ->map(function ($session) {
+                    return [
+                        'type' => 'session',
+                        'name' => 'Training Session',
+                        'date' => $session->date->format('Y-m-d'),
+                        'day' => $session->date->format('l'),
+                        'time' => $session->start_time->format('H:i') . ' - ' . $session->end_time->format('H:i'),
+                    ];
+                });
+
+            $upcoming = $upcomingSessions->values();
+            $recent = $recentSessions->values();
+            $workouts = $upcoming->take(10)->values();
+
+            $monthlyProgress = [];
+            for ($i = 11; $i >= 0; $i--) {
+                $start = Carbon::now()->startOfMonth()->subMonths($i);
+                $end = Carbon::now()->startOfMonth()->subMonths($i)->endOfMonth();
+
+                $assignedCount = Schedule::forTrainer($trainer->id)
+                    ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+                    ->where('status', '!=', Schedule::STATUS_CANCELLED)
+                    ->count();
+
+                $completedCount = Schedule::forTrainer($trainer->id)
+                    ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+                    ->withStatus(Schedule::STATUS_CONFIRMED)
+                    ->count();
+
+                $value = $assignedCount > 0 ? round(($completedCount / $assignedCount) * 100, 2) : 0;
+                $monthlyProgress[] = [
+                    'month' => $start->format('M Y'),
+                    'value' => $value,
+                ];
+            }
+
+            $response = [
+                'basic_details' => $basicDetails,
+                'metrics' => $metrics,
+                'workouts' => $workouts,
+                'upcoming_workouts' => $upcoming,
+                'recent_workouts' => $recent,
+                'progress_monthly' => $monthlyProgress,
+            ];
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Trainer profile retrieved successfully',
+                'data' => $response
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Profile Retrieval Failed',
+                'errors' => ['error' => 'Unable to retrieve trainer profile']
+            ], 500);
+        }
+    }
 
 }

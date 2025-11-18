@@ -26,6 +26,14 @@ class TrainerMiddleware
     {
         // Check if user is authenticated
         if (!Auth::check()) {
+            // Return JSON response for API requests
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated',
+                    'error' => 'Please login to access this area.'
+                ], 401);
+            }
             return redirect()->route('login')->with('error', 'Please login to access this area.');
         }
         
@@ -33,6 +41,14 @@ class TrainerMiddleware
         
         // Check if user has trainer role
         if ($user->role !== 'trainer') {
+            // Return JSON response for API requests
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access Denied',
+                    'error' => 'Trainer access required. Your role: ' . $user->role
+                ], 403);
+            }
             // Redirect to main dashboard which will handle role-based routing
             return redirect()->route('dashboard')
                 ->with('error', 'Access denied. Trainer access required.');
