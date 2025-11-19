@@ -598,8 +598,6 @@ class ClientController extends ApiBaseController
                 'upcoming_workouts' => $upcoming,
                 'recent_workouts' => $recent,
                 'progress_monthly' => $monthlyProgress,
-                'upcomingAssignments' => $upcomingAssignments,
-                'recentAssignments' => $recentAssignments,
             ];
 
             Log::info('Client profile retrieved', [
