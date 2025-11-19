@@ -552,22 +552,18 @@ class ClientController extends ApiBaseController
                 });
 
 
-            // $upcomingMerged =  [];
-            $upcomingMerged = (!empty($upcomingAssignments) && !empty($upcomingSessions)) ? $upcomingAssignments->merge($upcomingSessions)->all() : [];
-             if (!empty($upcomingMerged)) {
-                usort($upcomingMerged, function ($a, $b) {
-                    return strcmp(($a['sort_at'] ?? ''), ($b['sort_at'] ?? ''));
-                });
-             }
+            
+            $upcomingMerged = array_merge($upcomingAssignments->all(), $upcomingSessions->all());
+            usort($upcomingMerged, function ($a, $b) {
+                return strcmp(($a['sort_at'] ?? ''), ($b['sort_at'] ?? ''));
+            });
             $upcoming = collect($upcomingMerged);
 
-            // $recentMerged = [];
-            $recentMerged = (!empty($recentAssignments) && !empty($recentSessions)) ? $recentAssignments->merge($recentSessions)->all() : [];
-            if (!empty($recentMerged)) {
-                usort($recentMerged, function ($a, $b) {
-                    return strcmp(($b['sort_at'] ?? ''), ($a['sort_at'] ?? ''));
-                });
-            }
+           
+            $recentMerged = array_merge($recentAssignments->all(), $recentSessions->all());
+            usort($recentMerged, function ($a, $b) {
+                return strcmp(($b['sort_at'] ?? ''), ($a['sort_at'] ?? ''));
+            });
             $recent = collect($recentMerged);
 
             $workouts = $upcoming->take(10)->values();
