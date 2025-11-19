@@ -496,6 +496,7 @@ class ClientController extends ApiBaseController
                         'date' => optional($assignment->due_date)?->format('Y-m-d'),
                         'day' => optional($assignment->due_date)?->format('l'),
                         'time' => null,
+                        'sort_at' => optional($assignment->due_date)?->format('Y-m-d 00:00'),
                     ];
                 });
 
@@ -513,6 +514,7 @@ class ClientController extends ApiBaseController
                         'date' => $session->date->format('Y-m-d'),
                         'day' => $session->date->format('l'),
                         'time' => $session->start_time->format('H:i') . ' - ' . $session->end_time->format('H:i'),
+                        'sort_at' => $session->date->format('Y-m-d') . ' ' . $session->start_time->format('H:i'),
                     ];
                 });
 
@@ -528,6 +530,7 @@ class ClientController extends ApiBaseController
                         'date' => optional($assignment->due_date)?->format('Y-m-d'),
                         'day' => optional($assignment->due_date)?->format('l'),
                         'time' => null,
+                        'sort_at' => optional($assignment->due_date)?->format('Y-m-d 00:00'),
                     ];
                 });
 
@@ -544,11 +547,12 @@ class ClientController extends ApiBaseController
                         'date' => $session->date->format('Y-m-d'),
                         'day' => $session->date->format('l'),
                         'time' => $session->start_time->format('H:i') . ' - ' . $session->end_time->format('H:i'),
+                        'sort_at' => $session->date->format('Y-m-d') . ' ' . $session->start_time->format('H:i'),
                     ];
                 });
 
-            $upcoming = $upcomingAssignments->merge($upcomingSessions)->sortBy(['date', 'time'])->values();
-            $recent = $recentAssignments->merge($recentSessions)->sortByDesc('date')->values();
+            $upcoming = $upcomingAssignments->merge($upcomingSessions)->sortBy('sort_at')->values();
+            $recent = $recentAssignments->merge($recentSessions)->sortByDesc('sort_at')->values();
 
             $workouts = $upcoming->take(10)->values();
 
