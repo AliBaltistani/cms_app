@@ -551,8 +551,14 @@ class ClientController extends ApiBaseController
                     ];
                 });
 
-            $upcoming = $upcomingAssignments->merge($upcomingSessions)->sortBy('sort_at')->values();
-            $recent = $recentAssignments->merge($recentSessions)->sortByDesc('sort_at')->values();
+            $upcoming = $upcomingAssignments
+                ->merge($upcomingSessions)
+                ->sortBy(function ($item) { return is_array($item) ? ($item['sort_at'] ?? '') : ''; })
+                ->values();
+            $recent = $recentAssignments
+                ->merge($recentSessions)
+                ->sortByDesc(function ($item) { return is_array($item) ? ($item['sort_at'] ?? '') : ''; })
+                ->values();
 
             $workouts = $upcoming->take(10)->values();
 
