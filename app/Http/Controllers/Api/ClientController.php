@@ -551,13 +551,13 @@ class ClientController extends ApiBaseController
                     ];
                 });
 
-            $upcomingMerged = $upcomingAssignments->merge($upcomingSessions)->all();
+            $upcomingMerged = !empty($upcomingAssignments) || !empty($upcomingSessions) ? $upcomingAssignments->merge($upcomingSessions)->all() : [];
             usort($upcomingMerged, function ($a, $b) {
                 return strcmp(($a['sort_at'] ?? ''), ($b['sort_at'] ?? ''));
             });
             $upcoming = collect($upcomingMerged);
 
-            $recentMerged = $recentAssignments->merge($recentSessions)->all();
+            $recentMerged = !empty($recentAssignments) || !empty($recentSessions) ? $recentAssignments->merge($recentSessions)->all() : [];
             usort($recentMerged, function ($a, $b) {
                 return strcmp(($b['sort_at'] ?? ''), ($a['sort_at'] ?? ''));
             });
