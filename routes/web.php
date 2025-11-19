@@ -293,6 +293,7 @@ Route::middleware('auth')->group(function () {
         Route::get('programs/stats', [\App\Http\Controllers\Admin\ProgramController::class, 'getStats'])->name('programs.stats');
         Route::post('programs/{program}/duplicate', [\App\Http\Controllers\Admin\ProgramController::class, 'duplicate'])->name('programs.duplicate');
         Route::patch('programs/{program}/toggle-status', [\App\Http\Controllers\Admin\ProgramController::class, 'toggleStatus'])->name('programs.toggle-status');
+        Route::get('programs/{program}/pdf-data', [\App\Http\Controllers\Admin\ProgramController::class, 'pdfData'])->name('programs.pdf-data');
         
         // Resource routes for programs
         Route::resource('programs', \App\Http\Controllers\Admin\ProgramController::class);

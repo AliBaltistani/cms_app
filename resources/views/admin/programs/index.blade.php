@@ -142,6 +142,8 @@
     
     <!-- Sweet Alert -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
 
     <script>
         $(document).ready(function() {
@@ -174,6 +176,27 @@
 
             // Load statistics
             loadStatistics();
+
+            $(document).on('click', '.program-pdf-show', function() {
+                var id = $(this).data('program-id');
+                fetchProgramPdfData(id).then(function(program) {
+                    var doc = buildProgramPdfDoc(program);
+                    pdfMake.createPdf(doc).open();
+                }).catch(function() {
+                    Swal.fire('Error', 'Failed to generate PDF', 'error');
+                });
+            });
+
+            $(document).on('click', '.program-pdf-download', function() {
+                var id = $(this).data('program-id');
+                fetchProgramPdfData(id).then(function(program) {
+                    var doc = buildProgramPdfDoc(program);
+                    var filename = (program.name || 'program') + '-' + program.id + '.pdf';
+                    pdfMake.createPdf(doc).download(filename);
+                }).catch(function() {
+                    Swal.fire('Error', 'Failed to generate PDF', 'error');
+                });
+            });
         });
 
         function loadStatistics() {
@@ -236,6 +259,105 @@
                     });
                 }
             });
+        }
+
+        function fetchProgramPdfData(id) {
+            return new Promise(function(resolve, reject) {
+                $.ajax({
+                    url: '/admin/programs/' + id + '/pdf-data',
+                    type: 'GET',
+                    success: function(resp) {
+                        if (resp && resp.success && resp.data && resp.data.program) {
+                            resolve(resp.data.program);
+                        } else {
+                            reject();
+                        }
+                    },
+                    error: function() { reject(); }
+                });
+            });
+        }
+
+        function buildProgramPdfDoc(program) {
+            var content = [];
+            content.push({ text: program.name || 'Program', style: 'title' });
+            content.push({
+                columns: [
+                    { width: 'auto', text: 'Trainer: ' + (program.trainer ? (program.trainer.name || 'N/A') : 'N/A') },
+                    { width: '*', text: '' },
+                    { width: 'auto', text: 'Client: ' + (program.client ? (program.client.name || 'Unassigned') : 'Unassigned') }
+                ]
+            });
+            content.push({
+                columns: [
+                    { width: 'auto', text: 'Duration: ' + ((program.duration || 0) + ' weeks') },
+                    { width: '*', text: '' },
+                    { width: 'auto', text: 'Status: ' + (program.is_active ? 'Active' : 'Inactive') }
+                ],
+                margin: [0, 2, 0, 10]
+            });
+            if (program.description) {
+                content.push({ text: program.description, margin: [0, 0, 0, 10] });
+            }
+            if (program.weeks && program.weeks.length) {
+                var weekItems = program.weeks.map(function(week) {
+                    var weekText = 'Week ' + week.week_number + (week.title ? ' – ' + week.title : '');
+                    var dayItems = (week.days || []).map(function(day) {
+                        var dayText = 'Day ' + day.day_number + (day.title ? ' – ' + day.title : '');
+                        var circuitItems = (day.circuits || []).map(function(circuit) {
+                            var circuitText = 'Circuit ' + circuit.circuit_number + (circuit.title ? ' – ' + circuit.title : '');
+                            var exerciseItems = (circuit.program_exercises || []).map(function(ex) {
+                                var title = ex.name || (ex.workout && (ex.workout.name || ex.workout.title)) || 'Exercise';
+                                var detailItems = [];
+                                if (ex.tempo) { detailItems.push('Tempo: ' + ex.tempo); }
+                                if (ex.rest_interval) { detailItems.push('Rest: ' + ex.rest_interval); }
+                                if (ex.exercise_sets && ex.exercise_sets.length) {
+                                    var setLines = ex.exercise_sets.map(function(s) {
+                                        var t = 'Set ' + s.set_number + ': ' + (s.reps != null ? s.reps : '-') + ' reps';
+                                        if (s.weight != null) { t += ' @ ' + s.weight; }
+                                        return t;
+                                    });
+                                    detailItems.push({ text: 'Sets', ul: setLines });
+                                }
+                                if (ex.notes) { detailItems.push('Notes: ' + ex.notes); }
+                                if (detailItems.length) {
+                                    return { text: title, ul: detailItems };
+                                } else {
+                                    return title;
+                                }
+                            });
+                            var circuitNode = { text: circuitText };
+                            if (circuit.description) { exerciseItems.unshift(circuit.description); }
+                            if (exerciseItems.length) { circuitNode.ul = exerciseItems; }
+                            return circuitNode;
+                        });
+                        var dayNode = { text: dayText };
+                        var dayUl = [];
+                        if (day.description) { dayUl.push(day.description); }
+                        dayUl = dayUl.concat(circuitItems);
+                        var customRows = Array.isArray(day.custom_rows) ? day.custom_rows : [];
+                        if (customRows.length) { dayUl.push({ text: 'Custom Rows', ul: customRows }); }
+                        if (day.cool_down) { dayUl.push({ text: 'Cool Down: ' + day.cool_down, style: 'coolDown' }); }
+                        if (dayUl.length) { dayNode.ul = dayUl; }
+                        return dayNode;
+                    });
+                    var weekNode = { text: weekText };
+                    var weekUl = [];
+                    if (week.description) { weekUl.push(week.description); }
+                    weekUl = weekUl.concat(dayItems);
+                    if (weekUl.length) { weekNode.ul = weekUl; }
+                    return weekNode;
+                });
+                content.push({ ul: weekItems });
+            }
+            return {
+                content: content,
+                styles: {
+                    title: { fontSize: 18, bold: true },
+                    coolDown: { italics: true, color: '#666666' }
+                },
+                defaultStyle: { fontSize: 10 }
+            };
         }
     </script>
 @endsection

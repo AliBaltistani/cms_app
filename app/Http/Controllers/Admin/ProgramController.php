@@ -134,6 +134,16 @@ class ProgramController extends Controller
                         class="btn btn-sm btn-outline-success me-1" title="Edit Program">
                         <i class="ri-edit-2-line"></i>
                     </a>';
+
+        $buttons .= '<button type="button" class="btn btn-sm btn-outline-secondary me-1 program-pdf-show" 
+                        data-program-id="' . $program->id . '" title="Show PDF">
+                        <i class="ri-file-pdf-line"></i>
+                    </button>';
+
+        $buttons .= '<button type="button" class="btn btn-sm btn-outline-dark me-1 program-pdf-download" 
+                        data-program-id="' . $program->id . '" title="Download PDF">
+                        <i class="ri-download-2-line"></i>
+                    </button>';
         
         $buttons .= '<button onclick="deleteProgram(' . $program->id . ')" 
                         class="btn btn-sm btn-outline-danger" title="Delete Program">
@@ -143,6 +153,31 @@ class ProgramController extends Controller
         $buttons .= '</div>';
         
         return $buttons;
+    }
+
+    public function pdfData(Program $program): JsonResponse
+    {
+        try {
+            $program->load([
+                'trainer:id,name,email',
+                'client:id,name,email',
+                'weeks.days.circuits.programExercises.workout',
+                'weeks.days.circuits.programExercises.exerciseSets'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'program' => $program
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error generating program PDF data: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate PDF data'
+            ], 500);
+        }
     }
 
     /**

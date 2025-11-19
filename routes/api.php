@@ -17,6 +17,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Models\Week;
 
 // Import API Controllers
 use App\Http\Controllers\ApiAuthController;
@@ -65,6 +66,7 @@ Route::prefix('auth')->name('api.auth.')->group(function () {
  * =============================================================================
  */
 
+Route::model('week', Week::class);
 Route::middleware('auth:sanctum')->group(function () {
 
     /**
@@ -284,6 +286,51 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         Route::get('/payouts', [\App\Http\Controllers\Api\TrainerPayoutController::class, 'index'])->name('payouts.index');
+
+        Route::prefix('programs')->name('programs.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\TrainerProgramController::class, 'index'])->name('index');
+            Route::post('/', [\App\Http\Controllers\Api\TrainerProgramController::class, 'store'])->name('store');
+            Route::get('/stats', [\App\Http\Controllers\Api\TrainerProgramController::class, 'stats'])->name('stats');
+
+            Route::prefix('{program}')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\TrainerProgramController::class, 'show'])->name('show');
+                Route::put('/', [\App\Http\Controllers\Api\TrainerProgramController::class, 'update'])->name('update');
+                Route::delete('/', [\App\Http\Controllers\Api\TrainerProgramController::class, 'destroy'])->name('destroy');
+                Route::post('/duplicate', [\App\Http\Controllers\Api\TrainerProgramController::class, 'duplicate'])->name('duplicate');
+                Route::post('/assign', [\App\Http\Controllers\Api\TrainerProgramController::class, 'assign'])->name('assign');
+                Route::get('/pdf-data', [\App\Http\Controllers\Api\TrainerProgramController::class, 'pdfData'])->name('pdf-data');
+
+                Route::prefix('builder')->name('builder.')->group(function () {
+                    Route::get('/columns', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'getColumnConfig'])->name('columns.get');
+                    Route::put('/columns', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'updateColumnConfig'])->name('columns.update');
+
+                    Route::post('/weeks', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'addWeek'])->name('weeks.add');
+                    Route::post('/weeks/reorder', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'reorderWeeks'])->name('weeks.reorder');
+                    Route::put('/weeks/week', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'updateWeek'])->name('weeks.update');
+                    Route::delete('/weeks/week', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'removeWeek'])->name('weeks.remove');
+                    Route::post('/weeks/week/duplicate', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'duplicateWeek'])->name('weeks.duplicate');
+
+                    Route::post('/weeks/week/days', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'addDay'])->name('days.add');
+                    Route::post('/weeks/week/days/reorder', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'reorderDays'])->name('days.reorder');
+                    Route::put('/weeks/week/days/day', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'updateDay'])->name('days.update');
+                    Route::delete('/weeks/week/days/day', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'removeDay'])->name('days.remove');
+                    Route::post('/weeks/week/days/day/duplicate', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'duplicateDay'])->name('days.duplicate');
+
+                    Route::post('/days/{day}/circuits', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'addCircuit'])->name('circuits.add');
+                    Route::post('/days/{day}/circuits/reorder', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'reorderCircuits'])->name('circuits.reorder');
+                    Route::put('/circuits/{circuit}', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'updateCircuit'])->name('circuits.update');
+                    Route::delete('/circuits/{circuit}', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'removeCircuit'])->name('circuits.remove');
+
+                    Route::post('/circuits/{circuit}/exercises', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'addExercise'])->name('exercises.add');
+                    Route::post('/circuits/{circuit}/exercises/reorder', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'reorderExercises'])->name('exercises.reorder');
+                    Route::put('/program-exercises/{programExercise}', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'updateExercise'])->name('exercises.update');
+                    Route::put('/program-exercises/{programExercise}/workout', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'updateExerciseWorkout'])->name('exercises.workout.update');
+                    Route::get('/program-exercises/{exercise}/sets', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'getExerciseSets'])->name('exercises.sets.get');
+                    Route::put('/program-exercises/{exercise}/sets', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'updateExerciseSets'])->name('exercises.sets.update');
+                    Route::delete('/program-exercises/{programExercise}', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'removeExercise'])->name('exercises.remove');
+                });
+            });
+        });
     });
 
     /**
@@ -327,6 +374,10 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::patch('/videos/{videoId}/progress', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'updateVideoProgress'])->name('videos.progress.update');
                 Route::get('/videos/progress', [\App\Http\Controllers\Api\ClientWorkoutController::class, 'getVideoProgress'])->name('videos.progress');
             });
+        });
+
+        Route::prefix('programs')->name('programs.')->group(function () {
+            Route::get('/{program}/pdf-data', [\App\Http\Controllers\Api\ClientProgramController::class, 'pdfData'])->name('pdf-data');
         });
 
         Route::post('/subscription', [\App\Http\Controllers\Api\ClientController::class, 'manageSubscription'])->name('subscription.manage');
