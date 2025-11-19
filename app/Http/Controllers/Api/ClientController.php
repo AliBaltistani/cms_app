@@ -543,7 +543,7 @@ class ClientController extends ApiBaseController
                 ->map(function ($session) {
                     return [
                         'type' => 'session',
-                        'name' => 'Training Session',
+                        'name' => $session->meeting_agenda ?? 'Training Session',
                         'date' => $session->date->format('Y-m-d'),
                         'day' => $session->date->format('l'),
                         'time' => $session->start_time->format('H:i') . ' - ' . $session->end_time->format('H:i'),
@@ -551,16 +551,18 @@ class ClientController extends ApiBaseController
                     ];
                 });
 
-            $upcomingMerged = !empty($upcomingAssignments) || !empty($upcomingSessions) ? $upcomingAssignments->merge($upcomingSessions)->all() : [];
-            usort($upcomingMerged, function ($a, $b) {
-                return strcmp(($a['sort_at'] ?? ''), ($b['sort_at'] ?? ''));
-            });
+            $upcomingMerged =  [];
+            // $upcomingMerged = !empty($upcomingAssignments) || !empty($upcomingSessions) ? $upcomingAssignments->merge($upcomingSessions)->all() : [];
+            // usort($upcomingMerged, function ($a, $b) {
+            //     return strcmp(($a['sort_at'] ?? ''), ($b['sort_at'] ?? ''));
+            // });
             $upcoming = collect($upcomingMerged);
 
-            $recentMerged = !empty($recentAssignments) || !empty($recentSessions) ? $recentAssignments->merge($recentSessions)->all() : [];
-            usort($recentMerged, function ($a, $b) {
-                return strcmp(($b['sort_at'] ?? ''), ($a['sort_at'] ?? ''));
-            });
+            $recentMerged = [];
+            // $recentMerged = !empty($recentAssignments) || !empty($recentSessions) ? $recentAssignments->merge($recentSessions)->all() : [];
+            // usort($recentMerged, function ($a, $b) {
+            //     return strcmp(($b['sort_at'] ?? ''), ($a['sort_at'] ?? ''));
+            // });
             $recent = collect($recentMerged);
 
             $workouts = $upcoming->take(10)->values();
