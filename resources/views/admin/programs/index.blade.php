@@ -180,8 +180,15 @@
             $(document).on('click', '.program-pdf-show', function() {
                 var id = $(this).data('program-id');
                 fetchProgramPdfData(id).then(function(program) {
-                    var doc = buildProgramPdfDoc(program);
-                    pdfMake.createPdf(doc).open();
+                    var logoUrl = businessLogoUrl(program);
+                    var logoPromise = logoUrl ? getBase64ImageFromURL(logoUrl) : Promise.resolve(null);
+                    logoPromise.then(function(logoData) {
+                        var doc = buildProgramPdfDoc(program, logoData);
+                        pdfMake.createPdf(doc).open();
+                    }).catch(function() {
+                        var doc = buildProgramPdfDoc(program, null);
+                        pdfMake.createPdf(doc).open();
+                    });
                 }).catch(function() {
                     Swal.fire('Error', 'Failed to generate PDF', 'error');
                 });
@@ -190,9 +197,17 @@
             $(document).on('click', '.program-pdf-download', function() {
                 var id = $(this).data('program-id');
                 fetchProgramPdfData(id).then(function(program) {
-                    var doc = buildProgramPdfDoc(program);
-                    var filename = (program.name || 'program') + '-' + program.id + '.pdf';
-                    pdfMake.createPdf(doc).download(filename);
+                    var logoUrl = businessLogoUrl(program);
+                    var logoPromise = logoUrl ? getBase64ImageFromURL(logoUrl) : Promise.resolve(null);
+                    logoPromise.then(function(logoData) {
+                        var doc = buildProgramPdfDoc(program, logoData);
+                        var filename = (program.name || 'program') + '-' + program.id + '.pdf';
+                        pdfMake.createPdf(doc).download(filename);
+                    }).catch(function() {
+                        var doc = buildProgramPdfDoc(program, null);
+                        var filename = (program.name || 'program') + '-' + program.id + '.pdf';
+                        pdfMake.createPdf(doc).download(filename);
+                    });
                 }).catch(function() {
                     Swal.fire('Error', 'Failed to generate PDF', 'error');
                 });
@@ -278,9 +293,40 @@
             });
         }
 
-        function buildProgramPdfDoc(program) {
+        function getBase64ImageFromURL(url) {
+            return new Promise(function(resolve, reject) {
+                try {
+                    var img = new Image();
+                    img.crossOrigin = 'Anonymous';
+                    img.onload = function() {
+                        var canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        var ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+                        resolve(canvas.toDataURL('image/png'));
+                    };
+                    img.onerror = function() { resolve(null); };
+                    img.src = url;
+                } catch (e) {
+                    resolve(null);
+                }
+            });
+        }
+
+        function businessLogoUrl(program) {
+            var p = program && program.trainer && program.trainer.business_logo;
+            if (!p) { return null; }
+            if (p.indexOf('/storage/') === 0) { return p; }
+            return '/storage/' + p;
+        }
+
+        function buildProgramPdfDoc(program, logoDataUrl) {
             var content = [];
-            content.push({ text: program.name || 'Program', style: 'title' });
+            if (logoDataUrl) {
+                content.push({ image: logoDataUrl, width: 80, alignment: 'center', margin: [0, 0, 0, 8] });
+            }
+            content.push({ text: (program.name || 'Program'), style: 'title', alignment: 'center' });
             content.push({
                 columns: [
                     { width: 'auto', text: 'Trainer: ' + (program.trainer ? (program.trainer.name || 'N/A') : 'N/A') },
@@ -299,62 +345,83 @@
             if (program.description) {
                 content.push({ text: program.description, margin: [0, 0, 0, 10] });
             }
-            if (program.weeks && program.weeks.length) {
-                var weekItems = program.weeks.map(function(week) {
+            if (Array.isArray(program.weeks) && program.weeks.length) {
+                program.weeks.forEach(function(week) {
                     var weekText = 'Week ' + week.week_number + (week.title ? ' – ' + week.title : '');
-                    var dayItems = (week.days || []).map(function(day) {
+                    var weekStack = [{ text: weekText, style: 'weekTitle', margin: [0, 8, 0, 4] }];
+                    if (week.description) {
+                        weekStack.push({ text: week.description, margin: [0, 0, 0, 6] });
+                    }
+                    (Array.isArray(week.days) ? week.days : []).forEach(function(day) {
                         var dayText = 'Day ' + day.day_number + (day.title ? ' – ' + day.title : '');
-                        var circuitItems = (day.circuits || []).map(function(circuit) {
+                        var dayStack = [{ text: dayText, style: 'dayTitle', margin: [0, 6, 0, 4] }];
+                        if (day.description) {
+                            dayStack.push({ text: day.description, margin: [0, 0, 0, 4] });
+                        }
+                        (Array.isArray(day.circuits) ? day.circuits : []).forEach(function(circuit) {
                             var circuitText = 'Circuit ' + circuit.circuit_number + (circuit.title ? ' – ' + circuit.title : '');
-                            var exerciseItems = (circuit.program_exercises || []).map(function(ex) {
+                            dayStack.push({ text: circuitText, style: 'circuitTitle', margin: [0, 4, 0, 2] });
+                            if (circuit.description) {
+                                dayStack.push({ text: circuit.description, margin: [0, 0, 0, 4] });
+                            }
+                            (Array.isArray(circuit.program_exercises) ? circuit.program_exercises : []).forEach(function(ex) {
                                 var title = ex.name || (ex.workout && (ex.workout.name || ex.workout.title)) || 'Exercise';
-                                var detailItems = [];
-                                if (ex.tempo) { detailItems.push('Tempo: ' + ex.tempo); }
-                                if (ex.rest_interval) { detailItems.push('Rest: ' + ex.rest_interval); }
-                                if (ex.exercise_sets && ex.exercise_sets.length) {
-                                    var setLines = ex.exercise_sets.map(function(s) {
-                                        var t = 'Set ' + s.set_number + ': ' + (s.reps != null ? s.reps : '-') + ' reps';
-                                        if (s.weight != null) { t += ' @ ' + s.weight; }
-                                        return t;
+                                var exStack = [{ text: title, style: 'exerciseTitle' }];
+                                var metaLine = [];
+                                if (ex.tempo) { metaLine.push('Tempo: ' + ex.tempo); }
+                                if (ex.rest_interval) { metaLine.push('Rest: ' + ex.rest_interval); }
+                                if (metaLine.length) {
+                                    exStack.push({ text: metaLine.join('  |  '), style: 'metaLine', margin: [0, 2, 0, 2] });
+                                }
+                                var sets = Array.isArray(ex.exercise_sets) ? ex.exercise_sets : [];
+                                if (sets.length) {
+                                    var body = [ ['Set', 'Reps', 'Weight'] ];
+                                    sets.forEach(function(s) {
+                                        body.push([
+                                            'Set ' + (s.set_number != null ? s.set_number : ''),
+                                            (s.reps != null ? String(s.reps) : ''),
+                                            (s.weight != null ? String(s.weight) : '')
+                                        ]);
                                     });
-                                    detailItems.push({ text: 'Sets', ul: setLines });
+                                    exStack.push({
+                                        table: { headerRows: 1, widths: ['auto','auto','*'], body: body },
+                                        layout: 'lightHorizontalLines',
+                                        margin: [0, 2, 0, 2]
+                                    });
                                 }
-                                if (ex.notes) { detailItems.push('Notes: ' + ex.notes); }
-                                if (detailItems.length) {
-                                    return { text: title, ul: detailItems };
+                                if (ex.notes) {
+                                    exStack.push({ text: 'Notes: ' + ex.notes, style: 'notes', margin: [0, 2, 0, 6] });
                                 } else {
-                                    return title;
+                                    exStack.push({ text: '', margin: [0, 0, 0, 6] });
                                 }
+                                dayStack.push({ stack: exStack });
                             });
-                            var circuitNode = { text: circuitText };
-                            if (circuit.description) { exerciseItems.unshift(circuit.description); }
-                            if (exerciseItems.length) { circuitNode.ul = exerciseItems; }
-                            return circuitNode;
                         });
-                        var dayNode = { text: dayText };
-                        var dayUl = [];
-                        if (day.description) { dayUl.push(day.description); }
-                        dayUl = dayUl.concat(circuitItems);
                         var customRows = Array.isArray(day.custom_rows) ? day.custom_rows : [];
-                        if (customRows.length) { dayUl.push({ text: 'Custom Rows', ul: customRows }); }
-                        if (day.cool_down) { dayUl.push({ text: 'Cool Down: ' + day.cool_down, style: 'coolDown' }); }
-                        if (dayUl.length) { dayNode.ul = dayUl; }
-                        return dayNode;
+                        if (customRows.length) {
+                            dayStack.push({ text: 'Custom Rows', style: 'customHeader', margin: [0, 4, 0, 2] });
+                            dayStack.push({ ul: customRows, margin: [0, 0, 0, 4] });
+                        }
+                        if (day.cool_down) {
+                            dayStack.push({ text: 'Cool Down: ' + day.cool_down, style: 'coolDown', margin: [0, 2, 0, 6] });
+                        }
+                        weekStack.push({ stack: dayStack });
                     });
-                    var weekNode = { text: weekText };
-                    var weekUl = [];
-                    if (week.description) { weekUl.push(week.description); }
-                    weekUl = weekUl.concat(dayItems);
-                    if (weekUl.length) { weekNode.ul = weekUl; }
-                    return weekNode;
+                    content.push({ stack: weekStack });
                 });
-                content.push({ ul: weekItems });
             }
             return {
                 content: content,
                 styles: {
                     title: { fontSize: 18, bold: true },
-                    coolDown: { italics: true, color: '#666666' }
+                    weekTitle: { fontSize: 13, bold: true },
+                    dayTitle: { fontSize: 12, bold: true },
+                    circuitTitle: { fontSize: 11, bold: true },
+                    exerciseTitle: { fontSize: 10, bold: true },
+                    metaLine: { fontSize: 9, color: '#444444' },
+                    notes: { fontSize: 9, italics: true },
+                    coolDown: { italics: true, color: '#666666' },
+                    customHeader: { bold: true }
                 },
                 defaultStyle: { fontSize: 10 }
             };

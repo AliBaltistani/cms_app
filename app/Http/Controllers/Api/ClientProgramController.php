@@ -16,7 +16,7 @@ class ClientProgramController extends ApiBaseController
             return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
         }
         $program->load([
-            'trainer:id,name,email',
+            'trainer:id,name,email,business_logo',
             'client:id,name,email',
             'weeks.days.circuits.programExercises.workout',
             'weeks.days.circuits.programExercises.exerciseSets'

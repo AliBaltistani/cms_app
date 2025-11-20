@@ -159,7 +159,7 @@ class ProgramController extends Controller
     {
         try {
             $program->load([
-                'trainer:id,name,email',
+                'trainer:id,name,email,business_logo',
                 'client:id,name,email',
                 'weeks.days.circuits.programExercises.workout',
                 'weeks.days.circuits.programExercises.exerciseSets'

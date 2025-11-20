@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class TrainerProgramController extends ApiBaseController
 {
@@ -383,18 +385,41 @@ class TrainerProgramController extends ApiBaseController
                 return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
             }
             $program->load([
-                'trainer:id,name,email',
+                'trainer:id,name,email,business_logo',
                 'client:id,name,email',
                 'weeks.days.circuits.programExercises.workout',
                 'weeks.days.circuits.programExercises.exerciseSets'
             ]);
-            return $this->sendResponse(['program' => $program], 'PDF data generated');
+
+            $logoBase64 = null;
+            if ($program->trainer && $program->trainer->business_logo) {
+                $abs = storage_path('app/public/' . $program->trainer->business_logo);
+                if (is_file($abs)) {
+                    $mime = function_exists('mime_content_type') ? mime_content_type($abs) : 'image/png';
+                    $logoBase64 = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($abs));
+                }
+            }
+
+            $html = view('pdf.program', [
+                'program' => $program,
+                'logoBase64' => $logoBase64,
+            ])->render();
+
+            $pdf = Pdf::loadHTML($html)->setPaper('a4');
+            $filename = 'program-pdfs/program-' . $program->id . '-' . time() . '.pdf';
+            Storage::disk('public')->put($filename, $pdf->output());
+            $url = Storage::url($filename);
+
+            return $this->sendResponse([
+                'pdf_view_url' => $url,
+                'pdf_download_url' => $url,
+            ], 'PDF generated');
         } catch (\Exception $e) {
-            \Log::error('TrainerProgramController@pdfData failed: ' . $e->getMessage(), [
+            Log::error('TrainerProgramController@pdfData failed: ' . $e->getMessage(), [
                 'trainer_id' => Auth::id(),
                 'program_id' => $program->id,
             ]);
-            return $this->sendError('Generation Failed', ['error' => 'Unable to generate PDF data'], 500);
+            return $this->sendError('Generation Failed', ['error' => 'Unable to generate PDF'], 500);
         }
     }
 }
