@@ -301,9 +301,11 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::get('/pdf-data', [\App\Http\Controllers\Api\TrainerProgramController::class, 'pdfData'])->name('pdf-data');
 
                 Route::prefix('builder')->name('builder.')->group(function () {
+                    // Column configuration
                     Route::get('/columns', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'getColumnConfig'])->name('columns.get');
                     Route::put('/columns', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'updateColumnConfig'])->name('columns.update');
 
+                    // Legacy routes (kept for backward compatibility)
                     Route::post('/weeks', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'addWeek'])->name('weeks.add');
                     Route::post('/weeks/reorder', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'reorderWeeks'])->name('weeks.reorder');
                     Route::put('/weeks/week', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'updateWeek'])->name('weeks.update');
@@ -326,6 +328,47 @@ Route::middleware('auth:sanctum')->group(function () {
                     Route::put('/circuits/circuit/exercises/exercise', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'updateExercise'])->name('exercises.update');
                     Route::get('/circuits/circuit/exercises/exercise/sets', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'getExerciseSets'])->name('exercises.sets.get');
                     Route::delete('/circuits/circuit/exercises/exercise', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'removeExercise'])->name('exercises.remove');
+
+                    // =========================================================================
+                    // NESTED RESTful CRUD ROUTES
+                    // Dynamic routes following pattern: /programs/{program}/builder/weeks/{week}/...
+                    // =========================================================================
+
+                    // Week CRUD
+                    Route::prefix('weeks')->name('weeks.')->group(function () {
+                        Route::post('/', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'storeWeek'])->name('store');
+                        Route::get('/{week}', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'showWeek'])->name('show');
+                        Route::put('/{week}', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'putWeek'])->name('update');
+                        Route::delete('/{week}', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'destroyWeek'])->name('destroy');
+
+                        // Day CRUD (nested under Week)
+                        Route::prefix('{week}/days')->name('days.')->group(function () {
+                            Route::post('/', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'storeDay'])->name('store');
+                            Route::get('/{day}', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'showDay'])->name('show');
+                            Route::put('/{day}', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'putDay'])->name('update');
+                            Route::delete('/{day}', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'destroyDay'])->name('destroy');
+                            
+                            // Day special fields (cool_down, custom_rows)
+                            Route::put('/{day}/cool-down', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'updateDayCoolDown'])->name('cool-down');
+                            Route::put('/{day}/custom-rows', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'updateDayCustomRows'])->name('custom-rows');
+
+                            // Circuit CRUD (nested under Day)
+                            Route::prefix('{day}/circuits')->name('circuits.')->group(function () {
+                                Route::post('/', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'storeCircuit'])->name('store');
+                                Route::get('/{circuit}', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'showCircuit'])->name('show');
+                                Route::put('/{circuit}', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'putCircuit'])->name('update');
+                                Route::delete('/{circuit}', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'destroyCircuit'])->name('destroy');
+
+                                // Exercise CRUD (nested under Circuit)
+                                Route::prefix('{circuit}/exercises')->name('exercises.')->group(function () {
+                                    Route::post('/', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'storeExercise'])->name('store');
+                                    Route::get('/{exercise}', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'showExercise'])->name('show');
+                                    Route::put('/{exercise}', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'putExercise'])->name('update');
+                                    Route::delete('/{exercise}', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'destroyExercise'])->name('destroy');
+                                });
+                            });
+                        });
+                    });
                 });
             });
         });

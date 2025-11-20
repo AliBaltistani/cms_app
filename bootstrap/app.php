@@ -4,7 +4,10 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -25,10 +28,50 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (AuthenticationException $e, Request $request) {
             if ($request->is('api/*')) {
                 return response()->json([
-                    'status_code' => 401,
                     'success' => false,
-                    'message' => 'Unauthenticated.'
+                    'message' => 'Unauthenticated.',
+                    'data' => ['error' => 'Authentication token is missing or invalid.']
                 ], 401);
+            }
+        });
+
+        // Handle Validation exceptions (422 errors)
+        $exceptions->render(function (ValidationException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation Error',
+                    'data' => $e->errors()
+                ], 422);
+            }
+        });
+
+        // Handle Model Not Found exceptions (404 errors from implicit model binding)
+        $exceptions->render(function (NotFoundHttpException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Resource not found.',
+                    'data' => ['error' => 'The requested resource does not exist.']
+                ], 404);
+            }
+        });
+
+        // Handle generic HTTP exceptions (403, 405, etc.)
+        $exceptions->render(function (HttpException $e, Request $request) {
+            if ($request->is('api/*')) {
+                $statusCode = $e->getStatusCode();
+                $message = match($statusCode) {
+                    403 => 'Access Denied',
+                    405 => 'Method Not Allowed',
+                    default => $e->getMessage() ?? 'An error occurred'
+                };
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => $message,
+                    'data' => ['error' => $e->getMessage() ?? 'An error occurred']
+                ], $statusCode);
             }
         });
     })->create();

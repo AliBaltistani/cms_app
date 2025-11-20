@@ -163,9 +163,23 @@ class TrainerProgramBuilderController extends ApiBaseController
             if (!$this->ownsWeek($week)) {
                 return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
             }
+            
+            DB::beginTransaction();
+            $deletedWeekNumber = $week->week_number;
+            $programId = $week->program_id;
+            
+            // Delete the week
             $week->delete();
+            
+            // Reorder remaining weeks - shift all weeks after the deleted one down by 1
+            Week::where('program_id', $programId)
+                ->where('week_number', '>', $deletedWeekNumber)
+                ->decrement('week_number');
+            
+            DB::commit();
             return $this->sendResponse(['deleted' => true], 'Week removed successfully');
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error('TrainerProgramBuilderController@removeWeek failed: ' . $e->getMessage());
             return $this->sendError('Deletion Failed', ['error' => 'Unable to remove week'], 500);
         }
@@ -339,9 +353,23 @@ class TrainerProgramBuilderController extends ApiBaseController
             if (!$this->ownsDay($day)) {
                 return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
             }
+            
+            DB::beginTransaction();
+            $deletedDayNumber = $day->day_number;
+            $weekId = $day->week_id;
+            
+            // Delete the day
             $day->delete();
+            
+            // Reorder remaining days - shift all days after the deleted one down by 1
+            Day::where('week_id', $weekId)
+                ->where('day_number', '>', $deletedDayNumber)
+                ->decrement('day_number');
+            
+            DB::commit();
             return $this->sendResponse(['deleted' => true], 'Day removed successfully');
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error('TrainerProgramBuilderController@removeDay failed: ' . $e->getMessage());
             return $this->sendError('Deletion Failed', ['error' => 'Unable to remove day'], 500);
         }
@@ -516,9 +544,23 @@ class TrainerProgramBuilderController extends ApiBaseController
             if (!$this->ownsCircuit($circuit)) {
                 return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
             }
+            
+            DB::beginTransaction();
+            $deletedCircuitNumber = $circuit->circuit_number;
+            $dayId = $circuit->day_id;
+            
+            // Delete the circuit
             $circuit->delete();
+            
+            // Reorder remaining circuits - shift all circuits after the deleted one down by 1
+            Circuit::where('day_id', $dayId)
+                ->where('circuit_number', '>', $deletedCircuitNumber)
+                ->decrement('circuit_number');
+            
+            DB::commit();
             return $this->sendResponse(['deleted' => true], 'Circuit removed successfully');
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error('TrainerProgramBuilderController@removeCircuit failed: ' . $e->getMessage());
             return $this->sendError('Deletion Failed', ['error' => 'Unable to remove circuit'], 500);
         }
@@ -775,9 +817,23 @@ class TrainerProgramBuilderController extends ApiBaseController
             if (!$this->ownsExercise($programExercise)) {
                 return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
             }
+            
+            DB::beginTransaction();
+            $deletedOrder = $programExercise->order;
+            $circuitId = $programExercise->circuit_id;
+            
+            // Delete the exercise
             $programExercise->delete();
+            
+            // Reorder remaining exercises - shift all exercises after the deleted one down by 1
+            ProgramExercise::where('circuit_id', $circuitId)
+                ->where('order', '>', $deletedOrder)
+                ->decrement('order');
+            
+            DB::commit();
             return $this->sendResponse(['deleted' => true], 'Exercise removed successfully');
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error('TrainerProgramBuilderController@removeExercise failed: ' . $e->getMessage());
             return $this->sendError('Deletion Failed', ['error' => 'Unable to remove exercise'], 500);
         }
@@ -822,6 +878,581 @@ class TrainerProgramBuilderController extends ApiBaseController
             DB::rollBack();
             Log::error('TrainerProgramBuilderController@reorderExercises failed: ' . $e->getMessage());
             return $this->sendError('Update Failed', ['error' => 'Unable to reorder exercises'], 500);
+        }
+    }
+
+    /**
+     * =========================================================================
+     * NESTED RESTful CRUD ROUTES
+     * Dynamic routes following pattern: /programs/{program}/builder/weeks/{week}/days/{day}/...
+     * =========================================================================
+     */
+
+    // =====================================================================
+    // WEEK CRUD - Nested under Program
+    // =====================================================================
+    public function storeWeek(Request $request, Program $program): JsonResponse
+    {
+        return $this->addWeek($request, $program);
+    }
+
+    public function showWeek(Program $program, Week $week): JsonResponse
+    {
+        try {
+            if (!$this->ownsProgram($program) || $week->program_id !== $program->id) {
+                return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
+            }
+            $week->load(['days.circuits.programExercises.exerciseSets', 'days.circuits.programExercises.workout']);
+            return $this->sendResponse(['week' => $week], 'Week retrieved successfully');
+        } catch (\Exception $e) {
+            Log::error('TrainerProgramBuilderController@showWeek failed: ' . $e->getMessage());
+            return $this->sendError('Retrieval Failed', ['error' => 'Unable to retrieve week'], 500);
+        }
+    }
+
+    public function putWeek(Request $request, Program $program, Week $week): JsonResponse
+    {
+        try {
+            if (!$this->ownsProgram($program) || $week->program_id !== $program->id) {
+                return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
+            }
+            $validator = Validator::make($request->all(), [
+                'week_number' => 'sometimes|integer|min:1',
+                'title' => 'sometimes|string|max:255',
+                'description' => 'nullable|string'
+            ]);
+            if ($validator->fails()) {
+                return $this->sendError('Validation Error', $validator->errors(), 422);
+            }
+            
+            $validated = $validator->validated();
+            if (isset($validated['week_number']) && $validated['week_number'] != $week->week_number) {
+                $exists = Week::where('program_id', $program->id)
+                    ->where('week_number', $validated['week_number'])
+                    ->where('id', '!=', $week->id)
+                    ->exists();
+                if ($exists) {
+                    return $this->sendError('Validation Error', [
+                        'week_number' => ['Week number already exists for this program']
+                    ], 422);
+                }
+            }
+            
+            DB::beginTransaction();
+            $week->update($validated);
+            DB::commit();
+            return $this->sendResponse(['week' => $week], 'Week updated successfully');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('TrainerProgramBuilderController@putWeek failed: ' . $e->getMessage());
+            return $this->sendError('Update Failed', ['error' => 'Unable to update week'], 500);
+        }
+    }
+
+    public function destroyWeek(Program $program, Week $week): JsonResponse
+    {
+        try {
+            if (!$this->ownsProgram($program) || $week->program_id !== $program->id) {
+                return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
+            }
+            
+            DB::beginTransaction();
+            $deletedWeekNumber = $week->week_number;
+            $programId = $week->program_id;
+            
+            // Delete the week
+            $week->delete();
+            
+            // Reorder remaining weeks - shift all weeks after the deleted one down by 1
+            Week::where('program_id', $programId)
+                ->where('week_number', '>', $deletedWeekNumber)
+                ->decrement('week_number');
+            
+            DB::commit();
+            return $this->sendResponse(['deleted' => true], 'Week deleted successfully');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('TrainerProgramBuilderController@destroyWeek failed: ' . $e->getMessage());
+            return $this->sendError('Deletion Failed', ['error' => 'Unable to delete week'], 500);
+        }
+    }
+
+    // =====================================================================
+    // DAY CRUD - Nested under Week
+    // =====================================================================
+    public function storeDay(Request $request, Program $program, Week $week): JsonResponse
+    {
+        try {
+            if (!$this->ownsProgram($program) || $week->program_id !== $program->id) {
+                return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
+            }
+            
+            $validator = Validator::make($request->all(), [
+                'day_number' => 'required|integer|min:1',
+                'title' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'cool_down' => 'nullable|string',
+                'custom_rows' => 'nullable|array',
+            ]);
+            if ($validator->fails()) {
+                return $this->sendError('Validation Error', $validator->errors(), 422);
+            }
+            
+            $validated = $validator->validated();
+            $exists = Day::where('week_id', $week->id)
+                ->where('day_number', $validated['day_number'])
+                ->exists();
+            if ($exists) {
+                return $this->sendError('Validation Error', [
+                    'day_number' => ['Day number already exists for this week']
+                ], 422);
+            }
+            
+            DB::beginTransaction();
+            $day = Day::create([
+                'week_id' => $week->id,
+                'day_number' => $validated['day_number'],
+                'title' => $validated['title'],
+                'description' => $validated['description'] ?? null,
+                'cool_down' => $validated['cool_down'] ?? null,
+                'custom_rows' => $validated['custom_rows'] ?? null,
+            ]);
+            DB::commit();
+            return $this->sendResponse(['day' => $day], 'Day created successfully', 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('TrainerProgramBuilderController@storeDay failed: ' . $e->getMessage());
+            return $this->sendError('Creation Failed', ['error' => 'Unable to create day'], 500);
+        }
+    }
+
+    public function showDay(Program $program, Week $week, Day $day): JsonResponse
+    {
+        try {
+            if (!$this->ownsProgram($program) || $week->program_id !== $program->id || $day->week_id !== $week->id) {
+                return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
+            }
+            $day->load(['circuits.programExercises.exerciseSets', 'circuits.programExercises.workout']);
+            return $this->sendResponse(['day' => $day], 'Day retrieved successfully');
+        } catch (\Exception $e) {
+            Log::error('TrainerProgramBuilderController@showDay failed: ' . $e->getMessage());
+            return $this->sendError('Retrieval Failed', ['error' => 'Unable to retrieve day'], 500);
+        }
+    }
+
+    public function putDay(Request $request, Program $program, Week $week, Day $day): JsonResponse
+    {
+        try {
+            if (!$this->ownsProgram($program) || $week->program_id !== $program->id || $day->week_id !== $week->id) {
+                return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
+            }
+            
+            $validator = Validator::make($request->all(), [
+                'day_number' => 'sometimes|integer|min:1',
+                'title' => 'sometimes|string|max:255',
+                'description' => 'nullable|string',
+                'cool_down' => 'nullable|string',
+                'custom_rows' => 'nullable|array',
+            ]);
+            if ($validator->fails()) {
+                return $this->sendError('Validation Error', $validator->errors(), 422);
+            }
+            
+            $validated = $validator->validated();
+            if (isset($validated['day_number']) && $validated['day_number'] != $day->day_number) {
+                $exists = Day::where('week_id', $week->id)
+                    ->where('day_number', $validated['day_number'])
+                    ->where('id', '!=', $day->id)
+                    ->exists();
+                if ($exists) {
+                    return $this->sendError('Validation Error', [
+                        'day_number' => ['Day number already exists for this week']
+                    ], 422);
+                }
+            }
+            
+            DB::beginTransaction();
+            $day->update($validated);
+            DB::commit();
+            return $this->sendResponse(['day' => $day], 'Day updated successfully');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('TrainerProgramBuilderController@putDay failed: ' . $e->getMessage());
+            return $this->sendError('Update Failed', ['error' => 'Unable to update day'], 500);
+        }
+    }
+
+    public function destroyDay(Program $program, Week $week, Day $day): JsonResponse
+    {
+        try {
+            if (!$this->ownsProgram($program) || $week->program_id !== $program->id || $day->week_id !== $week->id) {
+                return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
+            }
+            
+            DB::beginTransaction();
+            $deletedDayNumber = $day->day_number;
+            $weekId = $day->week_id;
+            
+            // Delete the day
+            $day->delete();
+            
+            // Reorder remaining days - shift all days after the deleted one down by 1
+            Day::where('week_id', $weekId)
+                ->where('day_number', '>', $deletedDayNumber)
+                ->decrement('day_number');
+            
+            DB::commit();
+            return $this->sendResponse(['deleted' => true], 'Day deleted successfully');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('TrainerProgramBuilderController@destroyDay failed: ' . $e->getMessage());
+            return $this->sendError('Deletion Failed', ['error' => 'Unable to delete day'], 500);
+        }
+    }
+
+    // =====================================================================
+    // CIRCUIT CRUD - Nested under Day
+    // =====================================================================
+    public function storeCircuit(Request $request, Program $program, Week $week, Day $day): JsonResponse
+    {
+        try {
+            if (!$this->ownsProgram($program) || $week->program_id !== $program->id || $day->week_id !== $week->id) {
+                return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
+            }
+            
+            $validator = Validator::make($request->all(), [
+                'circuit_number' => 'required|integer|min:1',
+                'title' => 'nullable|string|max:255',
+                'description' => 'nullable|string',
+            ]);
+            if ($validator->fails()) {
+                return $this->sendError('Validation Error', $validator->errors(), 422);
+            }
+            
+            $validated = $validator->validated();
+            $exists = Circuit::where('day_id', $day->id)
+                ->where('circuit_number', $validated['circuit_number'])
+                ->exists();
+            if ($exists) {
+                return $this->sendError('Validation Error', [
+                    'circuit_number' => ['Circuit number already exists for this day']
+                ], 422);
+            }
+            
+            DB::beginTransaction();
+            $circuit = Circuit::create([
+                'day_id' => $day->id,
+                'circuit_number' => $validated['circuit_number'],
+                'title' => $validated['title'] ?? null,
+                'description' => $validated['description'] ?? null,
+            ]);
+            DB::commit();
+            return $this->sendResponse(['circuit' => $circuit], 'Circuit created successfully', 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('TrainerProgramBuilderController@storeCircuit failed: ' . $e->getMessage());
+            return $this->sendError('Creation Failed', ['error' => 'Unable to create circuit'], 500);
+        }
+    }
+
+    public function showCircuit(Program $program, Week $week, Day $day, Circuit $circuit): JsonResponse
+    {
+        try {
+            if (!$this->ownsProgram($program) || $week->program_id !== $program->id || $day->week_id !== $week->id || $circuit->day_id !== $day->id) {
+                return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
+            }
+            $circuit->load(['programExercises.exerciseSets', 'programExercises.workout']);
+            return $this->sendResponse(['circuit' => $circuit], 'Circuit retrieved successfully');
+        } catch (\Exception $e) {
+            Log::error('TrainerProgramBuilderController@showCircuit failed: ' . $e->getMessage());
+            return $this->sendError('Retrieval Failed', ['error' => 'Unable to retrieve circuit'], 500);
+        }
+    }
+
+    public function putCircuit(Request $request, Program $program, Week $week, Day $day, Circuit $circuit): JsonResponse
+    {
+        try {
+            if (!$this->ownsProgram($program) || $week->program_id !== $program->id || $day->week_id !== $week->id || $circuit->day_id !== $day->id) {
+                return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
+            }
+            
+            $validator = Validator::make($request->all(), [
+                'circuit_number' => 'sometimes|integer|min:1',
+                'title' => 'sometimes|string|max:255',
+                'description' => 'nullable|string',
+            ]);
+            if ($validator->fails()) {
+                return $this->sendError('Validation Error', $validator->errors(), 422);
+            }
+            
+            $validated = $validator->validated();
+            if (isset($validated['circuit_number']) && $validated['circuit_number'] != $circuit->circuit_number) {
+                $exists = Circuit::where('day_id', $day->id)
+                    ->where('circuit_number', $validated['circuit_number'])
+                    ->where('id', '!=', $circuit->id)
+                    ->exists();
+                if ($exists) {
+                    return $this->sendError('Validation Error', [
+                        'circuit_number' => ['Circuit number already exists for this day']
+                    ], 422);
+                }
+            }
+            
+            DB::beginTransaction();
+            $circuit->update($validated);
+            DB::commit();
+            return $this->sendResponse(['circuit' => $circuit], 'Circuit updated successfully');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('TrainerProgramBuilderController@putCircuit failed: ' . $e->getMessage());
+            return $this->sendError('Update Failed', ['error' => 'Unable to update circuit'], 500);
+        }
+    }
+
+    public function destroyCircuit(Program $program, Week $week, Day $day, Circuit $circuit): JsonResponse
+    {
+        try {
+            if (!$this->ownsProgram($program) || $week->program_id !== $program->id || $day->week_id !== $week->id || $circuit->day_id !== $day->id) {
+                return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
+            }
+            
+            DB::beginTransaction();
+            $deletedCircuitNumber = $circuit->circuit_number;
+            $dayId = $circuit->day_id;
+            
+            // Delete the circuit
+            $circuit->delete();
+            
+            // Reorder remaining circuits - shift all circuits after the deleted one down by 1
+            Circuit::where('day_id', $dayId)
+                ->where('circuit_number', '>', $deletedCircuitNumber)
+                ->decrement('circuit_number');
+            
+            DB::commit();
+            return $this->sendResponse(['deleted' => true], 'Circuit deleted successfully');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('TrainerProgramBuilderController@destroyCircuit failed: ' . $e->getMessage());
+            return $this->sendError('Deletion Failed', ['error' => 'Unable to delete circuit'], 500);
+        }
+    }
+
+    // =====================================================================
+    // EXERCISE CRUD - Nested under Circuit
+    // =====================================================================
+    public function storeExercise(Request $request, Program $program, Week $week, Day $day, Circuit $circuit): JsonResponse
+    {
+        try {
+            if (!$this->ownsProgram($program) || $week->program_id !== $program->id || $day->week_id !== $week->id || $circuit->day_id !== $day->id) {
+                return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
+            }
+            
+            $validator = Validator::make($request->all(), [
+                'name' => 'required|string|max:255',
+                'workout_id' => 'nullable|integer|exists:workouts,id',
+                'order' => 'required|integer|min:0',
+                'tempo' => 'nullable|string|max:255',
+                'rest_interval' => 'nullable|string|max:255',
+                'notes' => 'nullable|string',
+                'sets' => 'required|array|min:1',
+                'sets.*.set_number' => 'required|integer|min:1',
+                'sets.*.reps' => 'nullable|integer|min:0',
+                'sets.*.weight' => 'nullable|numeric|min:0',
+            ]);
+            if ($validator->fails()) {
+                return $this->sendError('Validation Error', $validator->errors(), 422);
+            }
+            
+            $validated = $validator->validated();
+            $setNumbers = collect($validated['sets'])->pluck('set_number')->toArray();
+            if (count($setNumbers) !== count(array_unique($setNumbers))) {
+                return $this->sendError('Validation Error', ['sets' => ['Duplicate set numbers are not allowed']], 422);
+            }
+            
+            DB::beginTransaction();
+            $exercise = ProgramExercise::create([
+                'circuit_id' => $circuit->id,
+                'workout_id' => $validated['workout_id'] ?? null,
+                'name' => $validated['name'],
+                'order' => $validated['order'],
+                'tempo' => $validated['tempo'] ?? null,
+                'rest_interval' => $validated['rest_interval'] ?? null,
+                'notes' => $validated['notes'] ?? null,
+            ]);
+            
+            foreach ($validated['sets'] as $setData) {
+                $weightKg = isset($setData['weight']) && $setData['weight'] !== null ? \App\Support\UnitConverter::lbsToKg((float)$setData['weight']) : null;
+                ExerciseSet::create([
+                    'program_exercise_id' => $exercise->id,
+                    'set_number' => $setData['set_number'],
+                    'reps' => $setData['reps'] ?? null,
+                    'weight' => $weightKg,
+                ]);
+            }
+            DB::commit();
+            $exercise->load(['workout', 'exerciseSets']);
+            return $this->sendResponse(['exercise' => $exercise], 'Exercise created successfully', 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('TrainerProgramBuilderController@storeExercise failed: ' . $e->getMessage());
+            return $this->sendError('Creation Failed', ['error' => 'Unable to create exercise'], 500);
+        }
+    }
+
+    public function showExercise(Program $program, Week $week, Day $day, Circuit $circuit, ProgramExercise $exercise): JsonResponse
+    {
+        try {
+            if (!$this->ownsProgram($program) || $week->program_id !== $program->id || $day->week_id !== $week->id || $circuit->day_id !== $day->id || $exercise->circuit_id !== $circuit->id) {
+                return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
+            }
+            $exercise->load(['workout', 'exerciseSets']);
+            return $this->sendResponse(['exercise' => $exercise], 'Exercise retrieved successfully');
+        } catch (\Exception $e) {
+            Log::error('TrainerProgramBuilderController@showExercise failed: ' . $e->getMessage());
+            return $this->sendError('Retrieval Failed', ['error' => 'Unable to retrieve exercise'], 500);
+        }
+    }
+
+    public function putExercise(Request $request, Program $program, Week $week, Day $day, Circuit $circuit, ProgramExercise $exercise): JsonResponse
+    {
+        try {
+            if (!$this->ownsProgram($program) || $week->program_id !== $program->id || $day->week_id !== $week->id || $circuit->day_id !== $day->id || $exercise->circuit_id !== $circuit->id) {
+                return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
+            }
+            
+            $validator = Validator::make($request->all(), [
+                'name' => 'sometimes|string|max:255',
+                'workout_id' => 'sometimes|nullable|integer|exists:workouts,id',
+                'order' => 'sometimes|integer|min:0',
+                'tempo' => 'sometimes|nullable|string|max:255',
+                'rest_interval' => 'sometimes|nullable|string|max:255',
+                'notes' => 'sometimes|nullable|string',
+                'sets' => 'sometimes|array|min:1',
+                'sets.*.set_number' => 'required_with:sets|integer|min:1',
+                'sets.*.reps' => 'sometimes|nullable|integer|min:0',
+                'sets.*.weight' => 'sometimes|nullable|numeric|min:0',
+            ]);
+            if ($validator->fails()) {
+                return $this->sendError('Validation Error', $validator->errors(), 422);
+            }
+            
+            $validated = $validator->validated();
+            
+            if (isset($validated['sets'])) {
+                $setNumbers = collect($validated['sets'])->pluck('set_number')->toArray();
+                if (count($setNumbers) !== count(array_unique($setNumbers))) {
+                    return $this->sendError('Validation Error', ['sets' => ['Duplicate set numbers are not allowed']], 422);
+                }
+            }
+            
+            DB::beginTransaction();
+            $updateData = [];
+            if (isset($validated['name'])) $updateData['name'] = $validated['name'];
+            if (isset($validated['workout_id'])) $updateData['workout_id'] = $validated['workout_id'];
+            if (isset($validated['order'])) $updateData['order'] = $validated['order'];
+            if (isset($validated['tempo'])) $updateData['tempo'] = $validated['tempo'];
+            if (isset($validated['rest_interval'])) $updateData['rest_interval'] = $validated['rest_interval'];
+            if (isset($validated['notes'])) $updateData['notes'] = $validated['notes'];
+            
+            if (!empty($updateData)) {
+                $exercise->update($updateData);
+            }
+            
+            if (isset($validated['sets'])) {
+                $exercise->exerciseSets()->delete();
+                foreach ($validated['sets'] as $setData) {
+                    $weightKg = isset($setData['weight']) && $setData['weight'] !== null ? \App\Support\UnitConverter::lbsToKg((float)$setData['weight']) : null;
+                    ExerciseSet::create([
+                        'program_exercise_id' => $exercise->id,
+                        'set_number' => $setData['set_number'],
+                        'reps' => $setData['reps'] ?? null,
+                        'weight' => $weightKg,
+                    ]);
+                }
+            }
+            
+            DB::commit();
+            $exercise->load(['workout', 'exerciseSets']);
+            return $this->sendResponse(['exercise' => $exercise], 'Exercise updated successfully');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('TrainerProgramBuilderController@putExercise failed: ' . $e->getMessage());
+            return $this->sendError('Update Failed', ['error' => 'Unable to update exercise'], 500);
+        }
+    }
+
+    public function destroyExercise(Program $program, Week $week, Day $day, Circuit $circuit, ProgramExercise $exercise): JsonResponse
+    {
+        try {
+            if (!$this->ownsProgram($program) || $week->program_id !== $program->id || $day->week_id !== $week->id || $circuit->day_id !== $day->id || $exercise->circuit_id !== $circuit->id) {
+                return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
+            }
+            
+            DB::beginTransaction();
+            $deletedOrder = $exercise->order;
+            $circuitId = $exercise->circuit_id;
+            
+            // Delete the exercise
+            $exercise->delete();
+            
+            // Reorder remaining exercises - shift all exercises after the deleted one down by 1
+            ProgramExercise::where('circuit_id', $circuitId)
+                ->where('order', '>', $deletedOrder)
+                ->decrement('order');
+            
+            DB::commit();
+            return $this->sendResponse(['deleted' => true], 'Exercise deleted successfully');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('TrainerProgramBuilderController@destroyExercise failed: ' . $e->getMessage());
+            return $this->sendError('Deletion Failed', ['error' => 'Unable to delete exercise'], 500);
+        }
+    }
+
+    // =====================================================================
+    // DAY SPECIAL FIELDS - cool_down and custom_rows
+    // =====================================================================
+    public function updateDayCoolDown(Request $request, Program $program, Week $week, Day $day): JsonResponse
+    {
+        try {
+            if (!$this->ownsProgram($program) || $week->program_id !== $program->id || $day->week_id !== $week->id) {
+                return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
+            }
+            
+            $validator = Validator::make($request->all(), [
+                'cool_down' => 'nullable|string',
+            ]);
+            if ($validator->fails()) {
+                return $this->sendError('Validation Error', $validator->errors(), 422);
+            }
+            
+            $day->update(['cool_down' => $request->input('cool_down') ?? null]);
+            return $this->sendResponse(['day' => $day], 'Cool down updated successfully');
+        } catch (\Exception $e) {
+            Log::error('TrainerProgramBuilderController@updateDayCoolDown failed: ' . $e->getMessage());
+            return $this->sendError('Update Failed', ['error' => 'Unable to update cool down'], 500);
+        }
+    }
+
+    public function updateDayCustomRows(Request $request, Program $program, Week $week, Day $day): JsonResponse
+    {
+        try {
+            if (!$this->ownsProgram($program) || $week->program_id !== $program->id || $day->week_id !== $week->id) {
+                return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
+            }
+            
+            $validator = Validator::make($request->all(), [
+                'custom_rows' => 'nullable|array',
+            ]);
+            if ($validator->fails()) {
+                return $this->sendError('Validation Error', $validator->errors(), 422);
+            }
+            
+            $day->update(['custom_rows' => $request->input('custom_rows') ?? null]);
+            return $this->sendResponse(['day' => $day], 'Custom rows updated successfully');
+        } catch (\Exception $e) {
+            Log::error('TrainerProgramBuilderController@updateDayCustomRows failed: ' . $e->getMessage());
+            return $this->sendError('Update Failed', ['error' => 'Unable to update custom rows'], 500);
         }
     }
 }
