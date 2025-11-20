@@ -97,19 +97,19 @@ class NutritionMacroFactory extends Factory
         // Ensure fats percentage is within reasonable range
         $fatsPercent = max(15, min(70, $fatsPercent));
         
-        // Calculate grams (protein: 4 cal/g, carbs: 4 cal/g, fats: 9 cal/g)
-        $proteinGrams = round(($totalCalories * $proteinPercent / 100) / 4, 1);
-        $carbsGrams = round(($totalCalories * $carbsPercent / 100) / 4, 1);
-        $fatsGrams = round(($totalCalories * $fatsPercent / 100) / 9, 1);
+        // Calculate oz (protein: 4 cal/oz, carbs: 4 cal/oz, fats: 9 cal/oz)
+        $proteinOz = round(($totalCalories * $proteinPercent / 100) / 4, 1);
+        $carbsOz = round(($totalCalories * $carbsPercent / 100) / 4, 1);
+        $fatsOz = round(($totalCalories * $fatsPercent / 100) / 9, 1);
         
-        // Recalculate total calories based on actual grams
-        $actualCalories = ($proteinGrams * 4) + ($carbsGrams * 4) + ($fatsGrams * 9);
+        // Recalculate total calories based on actual oz
+        $actualCalories = ($proteinOz * 4) + ($carbsOz * 4) + ($fatsOz * 9);
 
         return [
             'plan_id' => NutritionPlan::factory(),
-            'protein' => $proteinGrams,
-            'carbs' => $carbsGrams,
-            'fats' => $fatsGrams,
+            'protein' => $proteinOz,
+            'carbs' => $carbsOz,
+            'fats' => $fatsOz,
             'total_calories' => round($actualCalories, 1),
             'fiber' => $this->faker->randomFloat(1, 25, 50), // Daily fiber recommendation
             'sugar' => $this->faker->randomFloat(1, 20, 60), // Natural sugars from fruits/dairy
@@ -139,19 +139,19 @@ class NutritionMacroFactory extends Factory
         // Ensure reasonable fat percentage
         $fatsPercent = max(10, min(60, $fatsPercent));
         
-        // Calculate grams
-        $proteinGrams = round(($mealCalories * $proteinPercent / 100) / 4, 1);
-        $carbsGrams = round(($mealCalories * $carbsPercent / 100) / 4, 1);
-        $fatsGrams = round(($mealCalories * $fatsPercent / 100) / 9, 1);
+        // Calculate oz
+        $proteinOz = round(($mealCalories * $proteinPercent / 100) / 4, 1);
+        $carbsOz = round(($mealCalories * $carbsPercent / 100) / 4, 1);
+        $fatsOz = round(($mealCalories * $fatsPercent / 100) / 9, 1);
         
         // Recalculate actual calories
-        $actualCalories = ($proteinGrams * 4) + ($carbsGrams * 4) + ($fatsGrams * 9);
+        $actualCalories = ($proteinOz * 4) + ($carbsOz * 4) + ($fatsOz * 9);
 
         return [
             'plan_id' => NutritionPlan::factory(),
-            'protein' => $proteinGrams,
-            'carbs' => $carbsGrams,
-            'fats' => $fatsGrams,
+            'protein' => $proteinOz,
+            'carbs' => $carbsOz,
+            'fats' => $fatsOz,
             'total_calories' => round($actualCalories, 1),
             'fiber' => $this->faker->randomFloat(1, 2, 15), // Per meal fiber
             'sugar' => $this->faker->randomFloat(1, 1, 20), // Per meal sugar

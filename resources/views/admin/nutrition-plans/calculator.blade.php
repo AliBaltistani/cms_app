@@ -203,19 +203,19 @@
                     </div>
                     <div class="col-6">
                         <div class="border rounded p-2 mb-2">
-                            <h6 class="mb-1 text-success">{{ $plan->recommendations->protein }}g</h6>
+                            <h6 class="mb-1 text-success">{{ $plan->recommendations->protein }}oz</h6>
                             <small class="text-muted">Protein</small>
                         </div>
                     </div>
                     <div class="col-6">
                         <div class="border rounded p-2 mb-2">
-                            <h6 class="mb-1 text-warning">{{ $plan->recommendations->carbs }}g</h6>
+                            <h6 class="mb-1 text-warning">{{ $plan->recommendations->carbs }}oz</h6>
                             <small class="text-muted">Carbs</small>
                         </div>
                     </div>
                     <div class="col-6">
                         <div class="border rounded p-2 mb-2">
-                            <h6 class="mb-1 text-danger">{{ $plan->recommendations->fats }}g</h6>
+                            <h6 class="mb-1 text-danger">{{ $plan->recommendations->fats }}oz</h6>
                             <small class="text-muted">Fats</small>
                         </div>
                     </div>
@@ -337,21 +337,21 @@ function displayResults(data) {
                 <div class="row">
                     <div class="col-md-4">
                         <div class="macro-card protein">
-                            <h5 class="text-success mb-1">${recommendations.protein}g</h5>
+                            <h5 class="text-success mb-1">${recommendations.protein}oz</h5>
                             <small class="text-muted">Protein</small>
                             <div class="small text-muted mt-1">${recommendations.macro_distribution.protein_percentage}%</div>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="macro-card carbs">
-                            <h5 class="text-warning mb-1">${recommendations.carbs}g</h5>
+                            <h5 class="text-warning mb-1">${recommendations.carbs}oz</h5>
                             <small class="text-muted">Carbs</small>
                             <div class="small text-muted mt-1">${recommendations.macro_distribution.carbs_percentage}%</div>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="macro-card fats">
-                            <h5 class="text-danger mb-1">${recommendations.fats}g</h5>
+                            <h5 class="text-danger mb-1">${recommendations.fats}oz</h5>
                             <small class="text-muted">Fats</small>
                             <div class="small text-muted mt-1">${recommendations.macro_distribution.fats_percentage}%</div>
                         </div>

@@ -191,19 +191,19 @@
                     </div>
                     <div class="col-6 mb-3">
                         <div class="macro-circle macro-protein text-white">
-                            <span class="fs-5 fw-bold">{{ $meal->protein_per_serving ?? 0 }}g</span>
+                            <span class="fs-5 fw-bold">{{ $meal->protein_per_serving ?? 0 }}oz</span>
                             <small>Protein</small>
                         </div>
                     </div>
                     <div class="col-6 mb-3">
                         <div class="macro-circle macro-carbs text-white">
-                            <span class="fs-5 fw-bold">{{ $meal->carbs_per_serving ?? 0 }}g</span>
+                            <span class="fs-5 fw-bold">{{ $meal->carbs_per_serving ?? 0 }}oz</span>
                             <small>Carbs</small>
                         </div>
                     </div>
                     <div class="col-6 mb-3">
                         <div class="macro-circle macro-fats text-white">
-                            <span class="fs-5 fw-bold">{{ $meal->fats_per_serving ?? 0 }}g</span>
+                            <span class="fs-5 fw-bold">{{ $meal->fats_per_serving ?? 0 }}oz</span>
                             <small>Fats</small>
                         </div>
                     </div>
@@ -218,15 +218,15 @@
                             <small>Calories</small>
                         </div>
                         <div class="col-3">
-                            <strong>{{ $meal->total_macros['protein'] }}g</strong><br>
+                            <strong>{{ $meal->total_macros['protein'] }}oz</strong><br>
                             <small>Protein</small>
                         </div>
                         <div class="col-3">
-                            <strong>{{ $meal->total_macros['carbs'] }}g</strong><br>
+                            <strong>{{ $meal->total_macros['carbs'] }}oz</strong><br>
                             <small>Carbs</small>
                         </div>
                         <div class="col-3">
-                            <strong>{{ $meal->total_macros['fats'] }}g</strong><br>
+                            <strong>{{ $meal->total_macros['fats'] }}oz</strong><br>
                             <small>Fats</small>
                         </div>
                     </div>

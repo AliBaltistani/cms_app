@@ -538,7 +538,7 @@
                     <div class="mb-3">
                         <div class="d-flex justify-content-between mb-1">
                             <span class="small">Protein</span>
-                            <span class="small fw-semibold">{{ $plan->dailyMacros->protein }}g</span>
+                            <span class="small fw-semibold">{{ $plan->dailyMacros->protein }}oz</span>
                         </div>
                         <div class="progress" style="height: 6px;">
                             <div class="progress-bar bg-success" style="width: 33%"></div>
@@ -547,7 +547,7 @@
                     <div class="mb-3">
                         <div class="d-flex justify-content-between mb-1">
                             <span class="small">Carbs</span>
-                            <span class="small fw-semibold">{{ $plan->dailyMacros->carbs }}g</span>
+                            <span class="small fw-semibold">{{ $plan->dailyMacros->carbs }}oz</span>
                         </div>
                         <div class="progress" style="height: 6px;">
                             <div class="progress-bar bg-warning" style="width: 45%"></div>
@@ -556,7 +556,7 @@
                     <div class="mb-3">
                         <div class="d-flex justify-content-between mb-1">
                             <span class="small">Fats</span>
-                            <span class="small fw-semibold">{{ $plan->dailyMacros->fats }}g</span>
+                            <span class="small fw-semibold">{{ $plan->dailyMacros->fats }}oz</span>
                         </div>
                         <div class="progress" style="height: 6px;">
                             <div class="progress-bar bg-info" style="width: 22%"></div>
@@ -656,9 +656,9 @@ function showCalculationDetails() {
                 <div class="col-md-6">
                     <h6>Macro Distribution:</h6>
                     <ul class="list-unstyled">
-                        <li><strong>Protein:</strong> {{ $plan->recommendations->protein }}g</li>
-                        <li><strong>Carbs:</strong> {{ $plan->recommendations->carbs }}g</li>
-                        <li><strong>Fats:</strong> {{ $plan->recommendations->fats }}g</li>
+                        <li><strong>Protein:</strong> {{ $plan->recommendations->protein }}oz</li>
+                        <li><strong>Carbs:</strong> {{ $plan->recommendations->carbs }}oz</li>
+                        <li><strong>Fats:</strong> {{ $plan->recommendations->fats }}oz</li>
                     </ul>
                 </div>
             </div>

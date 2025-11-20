@@ -145,18 +145,18 @@
                             <div class="invalid-feedback"></div>
                         </div>
                         <div class="col-xl-6 mb-3">
-                            <label for="protein_per_serving" class="form-label">Protein (g)</label>
-                            <input type="number" class="form-control" id="protein_per_serving" name="protein_per_serving" placeholder="Protein in grams" min="0" max="200" step="0.1">
+                            <label for="protein_per_serving" class="form-label">Protein (oz)</label>
+                            <input type="number" class="form-control" id="protein_per_serving" name="protein_per_serving" placeholder="Protein in oz" min="0" max="200" step="0.1">
                             <div class="invalid-feedback"></div>
                         </div>
                         <div class="col-xl-6 mb-3">
-                            <label for="carbs_per_serving" class="form-label">Carbohydrates (g)</label>
-                            <input type="number" class="form-control" id="carbs_per_serving" name="carbs_per_serving" placeholder="Carbs in grams" min="0" max="300" step="0.1">
+                            <label for="carbs_per_serving" class="form-label">Carbohydrates (oz)</label>
+                            <input type="number" class="form-control" id="carbs_per_serving" name="carbs_per_serving" placeholder="Carbs in oz" min="0" max="300" step="0.1">
                             <div class="invalid-feedback"></div>
                         </div>
                         <div class="col-xl-6 mb-3">
-                            <label for="fats_per_serving" class="form-label">Fats (g)</label>
-                            <input type="number" class="form-control" id="fats_per_serving" name="fats_per_serving" placeholder="Fats in grams" min="0" max="100" step="0.1">
+                            <label for="fats_per_serving" class="form-label">Fats (oz)</label>
+                            <input type="number" class="form-control" id="fats_per_serving" name="fats_per_serving" placeholder="Fats in oz" min="0" max="100" step="0.1">
                             <div class="invalid-feedback"></div>
                         </div>
                     </div>

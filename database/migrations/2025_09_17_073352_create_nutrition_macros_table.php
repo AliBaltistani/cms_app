@@ -14,12 +14,12 @@ return new class extends Migration
         Schema::create('nutrition_macros', function (Blueprint $table) {
             $table->id();
             $table->foreignId('plan_id')->constrained('nutrition_plans')->onDelete('cascade');
-            $table->decimal('protein', 8, 2); // in grams
-            $table->decimal('carbs', 8, 2); // in grams
-            $table->decimal('fats', 8, 2); // in grams
+            $table->decimal('protein', 8, 2); // in oz
+            $table->decimal('carbs', 8, 2); // in oz
+            $table->decimal('fats', 8, 2); // in oz
             $table->decimal('total_calories', 8, 2);
-            $table->decimal('fiber', 8, 2)->nullable(); // in grams
-            $table->decimal('sugar', 8, 2)->nullable(); // in grams
+            $table->decimal('fiber', 8, 2)->nullable(); // in oz
+            $table->decimal('sugar', 8, 2)->nullable(); // in oz
             $table->decimal('sodium', 8, 2)->nullable(); // in mg
             $table->decimal('water', 8, 2)->nullable(); // in liters
             $table->enum('macro_type', ['daily_target', 'meal_specific'])->default('daily_target');

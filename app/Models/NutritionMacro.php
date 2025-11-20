@@ -93,7 +93,7 @@ class NutritionMacro extends Model
 
     /**
      * Calculate calories from macronutrients
-     * Protein: 4 cal/g, Carbs: 4 cal/g, Fats: 9 cal/g
+     * Protein: 4 cal/oz, Carbs: 4 cal/oz, Fats: 9 cal/oz
      */
     public function getCalculatedCaloriesAttribute()
     {
@@ -143,17 +143,17 @@ class NutritionMacro extends Model
     {
         return [
             'protein' => [
-                'grams' => $this->protein,
+                'oz' => $this->protein,
                 'calories' => $this->protein * 4,
                 'percentage' => $this->protein_percentage
             ],
             'carbs' => [
-                'grams' => $this->carbs,
+                'oz' => $this->carbs,
                 'calories' => $this->carbs * 4,
                 'percentage' => $this->carbs_percentage
             ],
             'fats' => [
-                'grams' => $this->fats,
+                'oz' => $this->fats,
                 'calories' => $this->fats * 9,
                 'percentage' => $this->fats_percentage
             ]

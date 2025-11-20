@@ -138,15 +138,15 @@
                                                 <small class="text-muted">Cal</small>
                                             </div>
                                             <div class="col-3">
-                                                <small class="d-block fw-semibold">{{ $meal->protein_per_serving ?? 0 }}g</small>
+                                                <small class="d-block fw-semibold">{{ $meal->protein_per_serving ?? 0 }}oz</small>
                                                 <small class="text-muted">Protein</small>
                                             </div>
                                             <div class="col-3">
-                                                <small class="d-block fw-semibold">{{ $meal->carbs_per_serving ?? 0 }}g</small>
+                                                <small class="d-block fw-semibold">{{ $meal->carbs_per_serving ?? 0 }}oz</small>
                                                 <small class="text-muted">Carbs</small>
                                             </div>
                                             <div class="col-3">
-                                                <small class="d-block fw-semibold">{{ $meal->fats_per_serving ?? 0 }}g</small>
+                                                <small class="d-block fw-semibold">{{ $meal->fats_per_serving ?? 0 }}oz</small>
                                                 <small class="text-muted">Fats</small>
                                             </div>
                                         </div>
@@ -214,7 +214,7 @@
                     </div>
                     <div class="col-md-3">
                         <div class="border rounded p-3">
-                            <h4 class="mb-1 text-warning">{{ number_format($plan->meals->sum('protein_per_serving')) }}g</h4>
+                            <h4 class="mb-1 text-warning">{{ number_format($plan->meals->sum('protein_per_serving')) }}oz</h4>
                             <small class="text-muted">Total Protein</small>
                         </div>
                     </div>
