@@ -173,6 +173,9 @@
                         <a href="{{ route('program-builder.show', $program->id) }}" class="btn btn-success">
                             <i class="fas fa-hammer me-2"></i>Open Program Builder
                         </a>
+                        <a href="{{ route('program-videos.index', $program->id) }}" class="btn btn-info">
+                            <i class="fas fa-video me-2"></i>Manage Videos
+                        </a>
                         <!-- @if(!$program->client_id)
                             <button class="btn btn-info" onclick="assignToClient()">
                                 <i class="fas fa-user-plus me-2"></i>Assign to Client

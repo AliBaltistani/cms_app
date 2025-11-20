@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\TrainerBookingController;
 use App\Http\Controllers\Api\ClientBookingController;
 use App\Http\Controllers\Api\SessionBookingController;
+use App\Http\Controllers\Api\ApiProgramVideoController;
 
 
 
@@ -299,6 +300,12 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::post('/duplicate', [\App\Http\Controllers\Api\TrainerProgramController::class, 'duplicate'])->name('duplicate');
                 Route::post('/assign', [\App\Http\Controllers\Api\TrainerProgramController::class, 'assign'])->name('assign');
                 Route::get('/pdf-data', [\App\Http\Controllers\Api\TrainerProgramController::class, 'pdfData'])->name('pdf-data');
+
+                // Program Videos Routes
+                Route::get('/plan', [\App\Http\Controllers\Api\ApiProgramVideoController::class, 'getProgramPlan'])->name('plan');
+                Route::prefix('videos')->name('videos.')->group(function () {
+                    Route::get('/', [\App\Http\Controllers\Api\ApiProgramVideoController::class, 'getVideos'])->name('index');
+                });
 
                 Route::prefix('builder')->name('builder.')->group(function () {
                     // Column configuration

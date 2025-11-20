@@ -168,7 +168,10 @@
                         <a href="{{ route('program-builder.show', $program->id) }}" class="btn btn-success">
                             <i class="fas fa-hammer me-2"></i>Program Builder
                         </a>
-                        <a href="{{ route('programs.show', $program->id) }}" class="btn btn-info">
+                        <a href="{{ route('program-videos.index', $program->id) }}" class="btn btn-info">
+                            <i class="fas fa-video me-2"></i>Manage Videos
+                        </a>
+                        <a href="{{ route('programs.show', $program->id) }}" class="btn btn-outline-info">
                             <i class="fas fa-eye me-2"></i>View Program
                         </a>
                         @if($program->client_id)

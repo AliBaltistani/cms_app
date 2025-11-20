@@ -72,6 +72,14 @@ class Program extends Model
     }
 
     /**
+     * Get the videos for the program.
+     */
+    public function videos(): HasMany
+    {
+        return $this->hasMany(ProgramVideo::class)->orderBy('order');
+    }
+
+    /**
      * Scope a query to only include active programs.
      */
     public function scopeActive($query)

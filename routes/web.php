@@ -13,6 +13,7 @@ use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\Admin\GoalsController;
 use App\Http\Controllers\Admin\WorkoutController;
 use App\Http\Controllers\Admin\WorkoutVideoController;
+use App\Http\Controllers\Admin\ProgramVideoController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Client\ClientDashboardController;
 use App\Http\Controllers\Trainer\TrainerDashboardController;
@@ -297,6 +298,18 @@ Route::middleware('auth')->group(function () {
         
         // Resource routes for programs
         Route::resource('programs', \App\Http\Controllers\Admin\ProgramController::class);
+        
+        // Program Videos Management
+        Route::prefix('programs/{program}')->group(function () {
+            Route::get('/videos', [\App\Http\Controllers\Admin\ProgramVideoController::class, 'index'])->name('program-videos.index');
+            Route::get('/videos/create', [\App\Http\Controllers\Admin\ProgramVideoController::class, 'create'])->name('program-videos.create');
+            Route::post('/videos', [\App\Http\Controllers\Admin\ProgramVideoController::class, 'store'])->name('program-videos.store');
+            Route::get('/videos/{video}/edit', [\App\Http\Controllers\Admin\ProgramVideoController::class, 'edit'])->name('program-videos.edit');
+            Route::put('/videos/{video}', [\App\Http\Controllers\Admin\ProgramVideoController::class, 'update'])->name('program-videos.update');
+            Route::delete('/videos/{video}', [\App\Http\Controllers\Admin\ProgramVideoController::class, 'destroy'])->name('program-videos.destroy');
+            Route::get('/videos/reorder', [\App\Http\Controllers\Admin\ProgramVideoController::class, 'reorderForm'])->name('program-videos.reorder-form');
+            Route::post('/videos/reorder', [\App\Http\Controllers\Admin\ProgramVideoController::class, 'updateOrder'])->name('program-videos.update-order');
+        });
         
         // Program Builder Routes
         Route::prefix('program-builder')->group(function () {
