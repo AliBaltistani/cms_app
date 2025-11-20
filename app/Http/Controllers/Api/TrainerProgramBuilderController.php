@@ -467,9 +467,10 @@ class TrainerProgramBuilderController extends ApiBaseController
         }
     }
 
-    public function addCircuit(Request $request, Day $day): JsonResponse
+    public function addCircuit(Request $request): JsonResponse
     {
         try {
+            $day = Day::findOrFail($request->input('day_id'));
             if (!$this->ownsDay($day)) {
                 return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
             }
@@ -508,9 +509,10 @@ class TrainerProgramBuilderController extends ApiBaseController
         }
     }
 
-    public function removeCircuit(Circuit $circuit): JsonResponse
+    public function removeCircuit(Request $request): JsonResponse
     {
         try {
+            $circuit = Circuit::findOrFail($request->input('circuit_id'));
             if (!$this->ownsCircuit($circuit)) {
                 return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
             }
@@ -522,9 +524,10 @@ class TrainerProgramBuilderController extends ApiBaseController
         }
     }
 
-    public function updateCircuit(Request $request, Circuit $circuit): JsonResponse
+    public function updateCircuit(Request $request): JsonResponse
     {
         try {
+              $circuit = Circuit::findOrFail($request->input('circuit_id'));
             if (!$this->ownsCircuit($circuit)) {
                 return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
             }
@@ -624,9 +627,10 @@ class TrainerProgramBuilderController extends ApiBaseController
         }
     }
 
-    public function reorderCircuits(Request $request, Day $day): JsonResponse
+    public function reorderCircuits(Request $request): JsonResponse
     {
         try {
+            $day = Day::findOrFail($request->input('day_id'));
             if (!$this->ownsDay($day)) {
                 return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
             }
@@ -651,15 +655,16 @@ class TrainerProgramBuilderController extends ApiBaseController
         }
     }
 
-    public function addExercise(Request $request, Circuit $circuit): JsonResponse
+    public function addExercise(Request $request): JsonResponse
     {
         try {
+            $circuit = Circuit::findOrFail($request->input('circuit_id'));
             if (!$this->ownsCircuit($circuit)) {
                 return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
             }
             $validator = Validator::make($request->all(), [
-                'workout_id' => 'nullable|integer|exists:workouts,id',
-                'name' => 'nullable|string|max:255',
+                'program_id' => 'nullable|integer|exists:programs,id',
+                'name' => 'required|string|max:255',
                 'order' => 'required|integer|min:0',
                 'tempo' => 'nullable|string|max:255',
                 'rest_interval' => 'nullable|string|max:255',
@@ -673,10 +678,16 @@ class TrainerProgramBuilderController extends ApiBaseController
                 return $this->sendError('Validation Error', $validator->errors(), 422);
             }
             $validated = $validator->validated();
+            
+            // Validate that set_numbers are unique
+            $setNumbers = collect($validated['sets'])->pluck('set_number')->toArray();
+            if (count($setNumbers) !== count(array_unique($setNumbers))) {
+                return $this->sendError('Validation Error', ['sets' => ['Duplicate set numbers are not allowed'. implode(', ', $setNumbers)]], 422);
+            }
             DB::beginTransaction();
             $exercise = ProgramExercise::create([
                 'circuit_id' => $circuit->id,
-                'workout_id' => $validated['workout_id'] ?? null,
+                'workout_id' => $validated['program_id'] ?? null,
                 'name' => $validated['name'] ?? null,
                 'order' => $validated['order'],
                 'tempo' => $validated['tempo'] ?? null,
@@ -698,35 +709,15 @@ class TrainerProgramBuilderController extends ApiBaseController
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('TrainerProgramBuilderController@addExercise failed: ' . $e->getMessage());
-            return $this->sendError('Creation Failed', ['error' => 'Unable to add exercise'], 500);
+            return $this->sendError('Creation Failed', ['error' => 'Unable to add exercise'.$e->getMessage()], 500);
         }
     }
 
-    public function updateExerciseWorkout(Request $request, ProgramExercise $programExercise): JsonResponse
-    {
-        try {
-            if (!$this->ownsExercise($programExercise)) {
-                return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
-            }
-            $validator = Validator::make($request->all(), [
-                'workout_id' => 'required|integer|exists:workouts,id'
-            ]);
-            if ($validator->fails()) {
-                return $this->sendError('Validation Error', $validator->errors(), 422);
-            }
-            $validated = $validator->validated();
-            $programExercise->update(['workout_id' => $validated['workout_id']]);
-            $programExercise->load(['workout', 'exerciseSets']);
-            return $this->sendResponse(['program_exercise' => $programExercise], 'Exercise workout updated successfully');
-        } catch (\Exception $e) {
-            Log::error('TrainerProgramBuilderController@updateExerciseWorkout failed: ' . $e->getMessage());
-            return $this->sendError('Update Failed', ['error' => 'Unable to update exercise workout'], 500);
-        }
-    }
 
-    public function updateExercise(Request $request, ProgramExercise $programExercise): JsonResponse
+    public function updateExercise(Request $request): JsonResponse
     {
         try {
+            $programExercise = ProgramExercise::findOrFail($request->input('program_exercise_id'));
             if (!$this->ownsExercise($programExercise)) {
                 return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
             }
@@ -744,6 +735,12 @@ class TrainerProgramBuilderController extends ApiBaseController
                 return $this->sendError('Validation Error', $validator->errors(), 422);
             }
             $validated = $validator->validated();
+            
+            // Validate that set_numbers are unique
+            $setNumbers = collect($validated['sets'])->pluck('set_number')->toArray();
+            if (count($setNumbers) !== count(array_unique($setNumbers))) {
+                return $this->sendError('Validation Error', ['sets' => ['Duplicate set numbers are not allowed']], 422);
+            }
             DB::beginTransaction();
             $programExercise->update([
                 'name' => $validated['name'] ?? $programExercise->name,
@@ -771,9 +768,10 @@ class TrainerProgramBuilderController extends ApiBaseController
         }
     }
 
-    public function removeExercise(ProgramExercise $programExercise): JsonResponse
+    public function removeExercise(Request $request): JsonResponse
     {
         try {
+            $programExercise = ProgramExercise::findOrFail($request->input('program_exercise_id'));
             if (!$this->ownsExercise($programExercise)) {
                 return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
             }
@@ -785,9 +783,10 @@ class TrainerProgramBuilderController extends ApiBaseController
         }
     }
 
-    public function getExerciseSets(ProgramExercise $exercise): JsonResponse
+    public function getExerciseSets(Request $request): JsonResponse
     {
         try {
+            $exercise = ProgramExercise::findOrFail($request->input('program_exercise_id'));
             if (!$this->ownsExercise($exercise)) {
                 return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
             }
@@ -796,41 +795,6 @@ class TrainerProgramBuilderController extends ApiBaseController
         } catch (\Exception $e) {
             Log::error('TrainerProgramBuilderController@getExerciseSets failed: ' . $e->getMessage());
             return $this->sendError('Retrieval Failed', ['error' => 'Unable to load exercise sets'], 500);
-        }
-    }
-
-    public function updateExerciseSets(Request $request, ProgramExercise $exercise): JsonResponse
-    {
-        try {
-            if (!$this->ownsExercise($exercise)) {
-                return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
-            }
-            $validator = Validator::make($request->all(), [
-                'sets' => 'required|array|min:1',
-                'sets.*.set_number' => 'required|integer|min:1',
-                'sets.*.reps' => 'nullable|integer|min:0',
-                'sets.*.weight' => 'nullable|numeric|min:0',
-            ]);
-            if ($validator->fails()) {
-                return $this->sendError('Validation Error', $validator->errors(), 422);
-            }
-            DB::beginTransaction();
-            $exercise->exerciseSets()->delete();
-            foreach ($request->sets as $setData) {
-                $weightKg = isset($setData['weight']) && $setData['weight'] !== null ? \App\Support\UnitConverter::lbsToKg((float)$setData['weight']) : null;
-                ExerciseSet::create([
-                    'program_exercise_id' => $exercise->id,
-                    'set_number' => $setData['set_number'],
-                    'reps' => $setData['reps'] ?? null,
-                    'weight' => $weightKg,
-                ]);
-            }
-            DB::commit();
-            return $this->sendResponse(['success' => true], 'Exercise sets updated successfully');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('TrainerProgramBuilderController@updateExerciseSets failed: ' . $e->getMessage());
-            return $this->sendError('Update Failed', ['error' => 'Unable to update exercise sets'], 500);
         }
     }
 

@@ -316,18 +316,16 @@ Route::middleware('auth:sanctum')->group(function () {
                     Route::delete('/weeks/week/days/day', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'removeDay'])->name('days.remove');
                     Route::post('/weeks/week/days/day/duplicate', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'duplicateDay'])->name('days.duplicate');
 
-                    Route::post('/days/{day}/circuits', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'addCircuit'])->name('circuits.add');
-                    Route::post('/days/{day}/circuits/reorder', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'reorderCircuits'])->name('circuits.reorder');
-                    Route::put('/circuits/{circuit}', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'updateCircuit'])->name('circuits.update');
-                    Route::delete('/circuits/{circuit}', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'removeCircuit'])->name('circuits.remove');
+                    Route::post('/days/day/circuits', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'addCircuit'])->name('circuits.add');
+                    Route::post('/days/day/circuits/reorder', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'reorderCircuits'])->name('circuits.reorder');
+                    Route::put('/days/day/circuits/circuit', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'updateCircuit'])->name('circuits.update');
+                    Route::delete('/days/day/circuits/circuit', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'removeCircuit'])->name('circuits.remove');
 
-                    Route::post('/circuits/{circuit}/exercises', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'addExercise'])->name('exercises.add');
-                    Route::post('/circuits/{circuit}/exercises/reorder', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'reorderExercises'])->name('exercises.reorder');
-                    Route::put('/program-exercises/{programExercise}', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'updateExercise'])->name('exercises.update');
-                    Route::put('/program-exercises/{programExercise}/workout', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'updateExerciseWorkout'])->name('exercises.workout.update');
-                    Route::get('/program-exercises/{exercise}/sets', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'getExerciseSets'])->name('exercises.sets.get');
-                    Route::put('/program-exercises/{exercise}/sets', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'updateExerciseSets'])->name('exercises.sets.update');
-                    Route::delete('/program-exercises/{programExercise}', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'removeExercise'])->name('exercises.remove');
+                    Route::post('/circuits/circuit/exercises', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'addExercise'])->name('exercises.add');
+                    Route::post('/circuits/circuit/exercises/reorder', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'reorderExercises'])->name('exercises.reorder');
+                    Route::put('/circuits/circuit/exercises/exercise', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'updateExercise'])->name('exercises.update');
+                    Route::get('/circuits/circuit/exercises/exercise/sets', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'getExerciseSets'])->name('exercises.sets.get');
+                    Route::delete('/circuits/circuit/exercises/exercise', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'removeExercise'])->name('exercises.remove');
                 });
             });
         });
