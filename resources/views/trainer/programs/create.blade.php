@@ -14,7 +14,7 @@
             <h1 class="h3 mb-0 text-gray-800">Create New Program</h1>
             <p class="mb-0 text-muted">Create a new workout program template</p>
         </div>
-        <a href="{{ route('programs.index') }}" class="btn btn-secondary">
+        <a href="{{ route('trainer.programs.index') }}" class="btn btn-secondary">
             <i class="fas fa-arrow-left me-2"></i>Back to Programs
         </a>
     </div>
@@ -27,7 +27,7 @@
                     <h6 class="m-0 font-weight-bold text-primary">Program Information</h6>
                 </div>
                 <div class="card-body">
-                    <form action="{{ route('programs.store') }}" method="POST" id="programForm">
+                    <form action="{{ route('trainer.programs.store') }}" method="POST" id="programForm">
                         @csrf
                         
                         <div class="row">
@@ -55,25 +55,15 @@
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-6 d-none">
                                 <div class="mb-3">
-                                    <label for="trainer_id" class="form-label">Trainer <span class="text-danger">*</span></label>
-                                    <select class="form-control @error('trainer_id') is-invalid @enderror" 
-                                            id="trainer_id" name="trainer_id" required>
-                                        <option value="">Select Trainer</option>
-                                        @foreach($trainers as $trainer)
-                                            <option value="{{ $trainer->id }}" {{ old('trainer_id') == $trainer->id ? 'selected' : '' }}>
-                                                {{ $trainer->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('trainer_id')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
+                                    <label class="form-label">Trainer</label>
+                                    <input type="text" class="form-control" value="{{ Auth::user()->name }}" disabled>
+                                    <input type="hidden" id="trainer_id" name="trainer_id" value="{{ Auth::id() }}">
                                 </div>
                             </div>
                             
-                            <div class="col-md-6">
+                            <div class="col-md-12">
                                 <div class="mb-3">
                                     <label for="client_id" class="form-label">Client (Optional)</label>
                                     <select class="form-control @error('client_id') is-invalid @enderror" 
@@ -253,12 +243,7 @@
                     $('#duration').removeClass('is-invalid');
                 }
                 
-                if (!$('#trainer_id').val()) {
-                    $('#trainer_id').addClass('is-invalid');
-                    isValid = false;
-                } else {
-                    $('#trainer_id').removeClass('is-invalid');
-                }
+                
                 
                 if (!isValid) {
                     e.preventDefault();
@@ -267,7 +252,7 @@
             });
 
             // Real-time validation
-            $('#name, #duration, #trainer_id').on('input change', function() {
+            $('#name, #duration').on('input change', function() {
                 $(this).removeClass('is-invalid');
             });
         });
