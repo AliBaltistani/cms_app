@@ -14,7 +14,7 @@
             <h1 class="h3 mb-0 text-gray-800">Workout Programs</h1>
             <p class="mb-0 text-muted">Manage workout programs and assign them to clients</p>
         </div>
-        <a href="{{ route('programs.create') }}" class="btn btn-primary">
+        <a href="{{ route('trainer.programs.create') }}" class="btn btn-primary">
             <i class="fas fa-plus me-2"></i>Create New Program
         </a>
     </div>
@@ -153,7 +153,7 @@
                 serverSide: true,
                 responsive: true,
                 ajax: {
-                    url: "{{ route('programs.index') }}",
+                    url: "{{ route('trainer.programs.index') }}",
                     type: "GET"
                 },
                 columns: [
@@ -167,6 +167,9 @@
                     { data: 'created_at', name: 'created_at' },
                     { data: 'actions', name: 'actions', orderable: false, searchable: false }
                 ],
+                columnDefs: [
+                    { targets: 2, visible: false }
+                ],
                 order: [[0, 'desc']],
                 pageLength: 25,
                 language: {
@@ -179,7 +182,7 @@
 
             $(document).on('click', '.program-pdf-show', function() {
                 var id = $(this).data('program-id');
-                window.open('/admin/programs/' + id + '/pdf-view', '_blank');
+                window.open('/trainer/programs/' + id + '/pdf-view', '_blank');
             });
 
             $(document).on('click', '.program-pdf-download', function() {
@@ -199,7 +202,7 @@
 
         function loadStatistics() {
             $.ajax({
-                url: "{{ route('programs.stats') }}",
+                url: "{{ route('trainer.programs.stats') }}",
                 type: 'GET',
                 success: function(data) {
                     $('#total-programs').text(data.total_programs);
@@ -225,7 +228,7 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     $.ajax({
-                        url: `/admin/programs/${id}`,
+                        url: `/trainer/programs/${id}`,
                         type: 'DELETE',
                         headers: {
                             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -262,7 +265,7 @@
         function fetchProgramPdfUrl(id) {
             return new Promise(function(resolve, reject) {
                 $.ajax({
-                    url: '/admin/programs/' + id + '/pdf-data',
+                    url: '/trainer/programs/' + id + '/pdf-data',
                     type: 'GET',
                     success: function(resp) {
                         if (resp && resp.success && resp.data && resp.data.pdf_view_url) {

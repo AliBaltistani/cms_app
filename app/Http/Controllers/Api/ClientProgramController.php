@@ -15,15 +15,14 @@ class ClientProgramController extends ApiBaseController
         if ($program->client_id !== Auth::id()) {
             return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
         }
-        $program->load([
-            'trainer:id,name,email,business_logo',
-            'client:id,name,email',
-            'weeks.days.circuits.programExercises.workout',
-            'weeks.days.circuits.programExercises.exerciseSets'
-        ]);
-        return $this->sendResponse(['program' => $program], 'PDF data generated');
+        $service = app(\App\Services\ProgramPdfService::class);
+        $result = $service->generate($program);
+        return $this->sendResponse([
+            'pdf_view_url' => $result['url'],
+            'pdf_download_url' => $result['url'],
+        ], 'PDF generated');
       } catch (\Exception $e) {
-        return $this->sendError('Generation Failed', ['error' => 'Unable to generate PDF data'], 500);
+        return $this->sendError('Generation Failed', ['error' => 'Unable to generate PDF'], 500);
       }
     }
 }

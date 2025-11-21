@@ -72,6 +72,14 @@ class ProgramExercise extends Model
     }
 
     /**
+     * Alias for exerciseSets() for convenience
+     */
+    public function sets(): HasMany
+    {
+        return $this->exerciseSets();
+    }
+
+    /**
      * Get the client progress for the program exercise.
      */
     public function clientProgress(): HasMany

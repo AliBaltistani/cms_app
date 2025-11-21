@@ -384,35 +384,13 @@ class TrainerProgramController extends ApiBaseController
             if ($program->trainer_id !== Auth::id()) {
                 return $this->sendError('Unauthorized', ['error' => 'Access denied'], 403);
             }
-            $program->load([
-                'trainer:id,name,email,business_logo',
-                'client:id,name,email',
-                'weeks.days.circuits.programExercises.workout',
-                'weeks.days.circuits.programExercises.exerciseSets'
-            ]);
 
-            $logoBase64 = null;
-            if ($program->trainer && $program->trainer->business_logo) {
-                $abs = storage_path('app/public/' . $program->trainer->business_logo);
-                if (is_file($abs)) {
-                    $mime = function_exists('mime_content_type') ? mime_content_type($abs) : 'image/png';
-                    $logoBase64 = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($abs));
-                }
-            }
-
-            $html = view('pdf.program', [
-                'program' => $program,
-                'logoBase64' => $logoBase64,
-            ])->render();
-
-            $pdf = Pdf::loadHTML($html)->setPaper('a4');
-            $filename = 'program-pdfs/program-' . $program->id . '-' . time() . '.pdf';
-            Storage::disk('public')->put($filename, $pdf->output());
-            $url = Storage::url($filename);
+            $service = app(\App\Services\ProgramPdfService::class);
+            $result = $service->generate($program);
 
             return $this->sendResponse([
-                'pdf_view_url' => $url,
-                'pdf_download_url' => $url,
+                'pdf_view_url' => $result['url'],
+                'pdf_download_url' => $result['url'],
             ], 'PDF generated');
         } catch (\Exception $e) {
             Log::error('TrainerProgramController@pdfData failed: ' . $e->getMessage(), [

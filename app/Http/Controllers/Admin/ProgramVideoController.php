@@ -7,6 +7,7 @@ use App\Models\ProgramVideo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * Program Video Controller
@@ -16,15 +17,25 @@ use App\Http\Controllers\Controller;
  */
 class ProgramVideoController extends Controller
 {
+    private function ensureProgramAccess(Program $program): void
+    {
+        $user = Auth::user();
+        if (!request()->is('trainer/*')) { return; }
+        if (!$user || (int)$program->trainer_id !== (int)$user->id) {
+            abort(403);
+        }
+    }
+
     /**
      * Display a listing of program videos.
      */
     public function index($programId)
     {
         $program = Program::findOrFail($programId);
+        $this->ensureProgramAccess($program);
         $videos = $program->videos()->orderBy('order')->get();
-        
-        return view('admin.programs.videos.index', [
+        $isTrainer = Auth::check() && Auth::user()->role === 'trainer';
+        return view($isTrainer ? 'trainer.programs.videos.index' : 'admin.programs.videos.index', [
             'program' => $program,
             'videos' => $videos
         ]);
@@ -36,9 +47,10 @@ class ProgramVideoController extends Controller
     public function create($programId)
     {
         $program = Program::findOrFail($programId);
+        $this->ensureProgramAccess($program);
         $nextOrder = $program->videos()->max('order') + 1;
-        
-        return view('admin.programs.videos.create', [
+        $isTrainer = Auth::check() && Auth::user()->role === 'trainer';
+        return view($isTrainer ? 'trainer.programs.videos.create' : 'admin.programs.videos.create', [
             'program' => $program,
             'nextOrder' => $nextOrder
         ]);
@@ -50,6 +62,7 @@ class ProgramVideoController extends Controller
     public function store(Request $request, $programId)
     {
         $program = Program::findOrFail($programId);
+        $this->ensureProgramAccess($program);
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -85,8 +98,8 @@ class ProgramVideoController extends Controller
         $validated['program_id'] = $program->id;
 
         $video = ProgramVideo::create($validated);
-
-        return redirect()->route('program-videos.index', $program->id)
+        $routeName = (Auth::check() && Auth::user()->role === 'trainer') ? 'trainer.program-videos.index' : 'program-videos.index';
+        return redirect()->route($routeName, $program->id)
             ->with('success', 'Video added successfully!');
     }
 
@@ -96,9 +109,10 @@ class ProgramVideoController extends Controller
     public function edit($programId, $videoId)
     {
         $program = Program::findOrFail($programId);
+        $this->ensureProgramAccess($program);
         $video = $program->videos()->findOrFail($videoId);
-        
-        return view('admin.programs.videos.edit', [
+        $isTrainer = Auth::check() && Auth::user()->role === 'trainer';
+        return view($isTrainer ? 'trainer.programs.videos.edit' : 'admin.programs.videos.edit', [
             'program' => $program,
             'video' => $video
         ]);
@@ -110,6 +124,7 @@ class ProgramVideoController extends Controller
     public function update(Request $request, $programId, $videoId)
     {
         $program = Program::findOrFail($programId);
+        $this->ensureProgramAccess($program);
         $video = $program->videos()->findOrFail($videoId);
 
         $validated = $request->validate([
@@ -126,9 +141,8 @@ class ProgramVideoController extends Controller
 
         // Handle file upload
         if ($request->hasFile('video_file')) {
-            // Delete old file if exists
-            if ($video->video_file && Storage::disk('public')->exists($video->video_file)) {
-                Storage::disk('public')->delete($video->video_file);
+            if ($video->video_type === 'file' && $video->video_url && Storage::disk('public')->exists($video->video_url)) {
+                Storage::disk('public')->delete($video->video_url);
             }
             
             $file = $request->file('video_file');
@@ -149,8 +163,8 @@ class ProgramVideoController extends Controller
         }
 
         $video->update($validated);
-
-        return redirect()->route('program-videos.index', $program->id)
+        $routeName = (Auth::check() && Auth::user()->role === 'trainer') ? 'trainer.program-videos.index' : 'program-videos.index';
+        return redirect()->route($routeName, $program->id)
             ->with('success', 'Video updated successfully!');
     }
 
@@ -160,11 +174,11 @@ class ProgramVideoController extends Controller
     public function destroy($programId, $videoId)
     {
         $program = Program::findOrFail($programId);
+        $this->ensureProgramAccess($program);
         $video = $program->videos()->findOrFail($videoId);
 
-        // Delete video file
-        if ($video->video_file && Storage::disk('public')->exists($video->video_file)) {
-            Storage::disk('public')->delete($video->video_file);
+        if ($video->video_type === 'file' && $video->video_url && Storage::disk('public')->exists($video->video_url)) {
+            Storage::disk('public')->delete($video->video_url);
         }
 
         // Delete thumbnail
@@ -173,8 +187,8 @@ class ProgramVideoController extends Controller
         }
 
         $video->delete();
-
-        return redirect()->route('program-videos.index', $program->id)
+        $routeName = (Auth::check() && Auth::user()->role === 'trainer') ? 'trainer.program-videos.index' : 'program-videos.index';
+        return redirect()->route($routeName, $program->id)
             ->with('success', 'Video deleted successfully!');
     }
 
@@ -184,9 +198,10 @@ class ProgramVideoController extends Controller
     public function reorderForm($programId)
     {
         $program = Program::findOrFail($programId);
+        $this->ensureProgramAccess($program);
         $videos = $program->videos()->orderBy('order')->get();
-
-        return view('admin.programs.videos.reorder', [
+        $isTrainer = Auth::check() && Auth::user()->role === 'trainer';
+        return view($isTrainer ? 'trainer.programs.videos.reorder' : 'admin.programs.videos.reorder', [
             'program' => $program,
             'videos' => $videos
         ]);
@@ -198,6 +213,7 @@ class ProgramVideoController extends Controller
     public function updateOrder(Request $request, $programId)
     {
         $program = Program::findOrFail($programId);
+        $this->ensureProgramAccess($program);
         $videoIds = $request->input('video_ids', []);
 
         foreach ($videoIds as $index => $videoId) {

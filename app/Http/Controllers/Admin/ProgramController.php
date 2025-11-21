@@ -158,26 +158,35 @@ class ProgramController extends Controller
     public function pdfData(Program $program): JsonResponse
     {
         try {
-            $program->load([
-                'trainer:id,name,email,business_logo',
-                'client:id,name,email',
-                'weeks.days.circuits.programExercises.workout',
-                'weeks.days.circuits.programExercises.exerciseSets'
-            ]);
+            $service = app(\App\Services\ProgramPdfService::class);
+            $result = $service->generate($program);
 
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'program' => $program
+                    'pdf_view_url' => $result['url'],
+                    'pdf_download_url' => $result['url'],
                 ]
             ]);
         } catch (\Exception $e) {
-            Log::error('Error generating program PDF data: ' . $e->getMessage());
+            Log::error('Error generating program PDF: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to generate PDF data'
+                'message' => 'Failed to generate PDF'
             ], 500);
         }
+    }
+
+    public function pdfInline(Program $program)
+    {
+        $service = app(\App\Services\ProgramPdfService::class);
+        return $service->stream($program);
+    }
+
+    public function pdfView(Program $program)
+    {
+        $service = app(\App\Services\ProgramPdfService::class);
+        return $service->stream($program);
     }
 
     /**

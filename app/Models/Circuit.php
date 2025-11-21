@@ -61,6 +61,14 @@ class Circuit extends Model
     }
 
     /**
+     * Alias for programExercises() for convenience
+     */
+    public function exercises(): HasMany
+    {
+        return $this->programExercises();
+    }
+
+    /**
      * Get the formatted circuit title.
      */
     public function getFormattedTitleAttribute(): string

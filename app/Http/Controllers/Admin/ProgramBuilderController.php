@@ -24,6 +24,7 @@ use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * Program Builder Controller
@@ -40,6 +41,34 @@ use Illuminate\Support\Facades\Validator;
  */
 class ProgramBuilderController extends Controller
 {
+    private function programIdFrom($model): ?int
+    {
+        if ($model instanceof Program) { return (int) $model->id; }
+        if ($model instanceof Week) { return (int) $model->program_id; }
+        if ($model instanceof Day) { return (int) (Week::where('id', $model->week_id)->value('program_id')); }
+        if ($model instanceof Circuit) {
+            $dayId = $model->day_id;
+            $weekId = Day::where('id', $dayId)->value('week_id');
+            return (int) (Week::where('id', $weekId)->value('program_id'));
+        }
+        if ($model instanceof ProgramExercise) {
+            $circuitId = $model->circuit_id;
+            $dayId = Circuit::where('id', $circuitId)->value('day_id');
+            $weekId = Day::where('id', $dayId)->value('week_id');
+            return (int) (Week::where('id', $weekId)->value('program_id'));
+        }
+        return null;
+    }
+
+    private function ensureTrainerOwnsModel($model): void
+    {
+        $user = Auth::user();
+        if (!request()->is('trainer/*')) { return; }
+        $programId = $this->programIdFrom($model);
+        if (!$programId) { abort(403); }
+        $trainerId = Program::where('id', $programId)->value('trainer_id');
+        if (!$user || (int) $trainerId !== (int) $user->id) { abort(403); }
+    }
     /**
      * Return default column configuration structure.
      * Mirrors the client default to ensure consistency when initializing.
@@ -66,6 +95,7 @@ class ProgramBuilderController extends Controller
      */
     public function getColumnConfig(Program $program): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($program);
         try {
             $config = ProgramColumnConfig::where('program_id', $program->id)->first();
 
@@ -100,6 +130,7 @@ class ProgramBuilderController extends Controller
      */
     public function updateColumnConfig(Request $request, Program $program): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($program);
         try {
             $validator = Validator::make($request->all(), [
                 'columns' => 'required|array|min:1',
@@ -144,6 +175,7 @@ class ProgramBuilderController extends Controller
      */
     public function show(Program $program): View
     {
+        $this->ensureTrainerOwnsModel($program);
         $program->load([
             'weeks.days.circuits.programExercises.workout',
             'weeks.days.circuits.programExercises.exerciseSets'
@@ -163,6 +195,7 @@ class ProgramBuilderController extends Controller
      */
     public function addWeek(StoreWeekRequest $request, Program $program): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($program);
         try {
             $validated = $request->validated();
 
@@ -196,6 +229,7 @@ class ProgramBuilderController extends Controller
      */
     public function addDay(StoreDayRequest $request, Week $week): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($week);
         try {
             $validated = $request->validated();
 
@@ -230,6 +264,7 @@ class ProgramBuilderController extends Controller
      */
     public function addCircuit(StoreCircuitRequest $request, Day $day): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($day);
         try {
             $validated = $request->validated();
 
@@ -263,6 +298,7 @@ class ProgramBuilderController extends Controller
      */
     public function addExercise(StoreExerciseRequest $request, Circuit $circuit): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($circuit);
         try {
             $validated = $request->validated();
 
@@ -317,6 +353,7 @@ class ProgramBuilderController extends Controller
      */
     public function updateExerciseWorkout(UpdateExerciseWorkoutRequest $request, ProgramExercise $programExercise): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($programExercise);
         try {
             $validated = $request->validated();
 
@@ -349,6 +386,7 @@ class ProgramBuilderController extends Controller
      */
     public function updateExercise(UpdateExerciseRequest $request, ProgramExercise $programExercise): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($programExercise);
         try {
             // Debug: Log the program exercise ID to ensure it's not null
             Log::info('UpdateExercise called with ProgramExercise ID: ' . $programExercise->id);
@@ -416,6 +454,7 @@ class ProgramBuilderController extends Controller
      */
     public function removeExercise(ProgramExercise $programExercise): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($programExercise);
         try {
             $programExercise->delete();
 
@@ -440,6 +479,7 @@ class ProgramBuilderController extends Controller
      */
     public function removeCircuit(Circuit $circuit): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($circuit);
         try {
             $circuit->delete();
 
@@ -464,6 +504,7 @@ class ProgramBuilderController extends Controller
      */
     public function removeDay(Day $day): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($day);
         try {
             $day->delete();
 
@@ -488,6 +529,7 @@ class ProgramBuilderController extends Controller
      */
     public function removeWeek(Week $week): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($week);
         try {
             $week->delete();
 
@@ -512,6 +554,7 @@ class ProgramBuilderController extends Controller
      */
     public function editWeek(Week $week): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($week);
         try {
             return response()->json([
                 'success' => true,
@@ -535,6 +578,7 @@ class ProgramBuilderController extends Controller
      */
     public function updateWeek(Request $request, Week $week): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($week);
         $request->validate([
             'week_number' => 'required|integer|min:1',
             'title' => 'nullable|string|max:255',
@@ -576,6 +620,7 @@ class ProgramBuilderController extends Controller
      */
     public function duplicateWeek(Request $request, Week $week): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($week);
         try {
             $validator = Validator::make($request->all(), [
                 'week_number' => 'required|integer|min:1',
@@ -703,6 +748,7 @@ class ProgramBuilderController extends Controller
      */
     public function duplicateDay(Request $request, Day $day): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($day);
         try {
             $validator = Validator::make($request->all(), [
                 'day_number' => 'required|integer|min:1',
@@ -806,6 +852,7 @@ class ProgramBuilderController extends Controller
      */
     public function editDay(Day $day): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($day);
         try {
             return response()->json([
                 'success' => true,
@@ -829,6 +876,7 @@ class ProgramBuilderController extends Controller
      */
     public function updateDay(Request $request, Day $day): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($day);
         // Allow partial updates during autosave. Only validate fields that are present.
         $request->validate([
             'day_number' => 'sometimes|integer|min:1',
@@ -889,6 +937,7 @@ class ProgramBuilderController extends Controller
      */
     public function editCircuit(Circuit $circuit): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($circuit);
         try {
             return response()->json([
                 'success' => true,
@@ -912,6 +961,7 @@ class ProgramBuilderController extends Controller
      */
     public function updateCircuit(Request $request, Circuit $circuit): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($circuit);
         $request->validate([
             'circuit_number' => 'required|integer|min:1',
             'title' => 'nullable|string|max:255',
@@ -952,6 +1002,7 @@ class ProgramBuilderController extends Controller
      */
     public function editExercise(ProgramExercise $exercise): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($exercise);
         try {
             $exercise->load(['workout', 'exerciseSets']);
             
@@ -976,6 +1027,7 @@ class ProgramBuilderController extends Controller
      */
     public function getExerciseSets(ProgramExercise $exercise): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($exercise);
         try {
             $exercise->load(['workout', 'exerciseSets']);
             
@@ -1002,6 +1054,7 @@ class ProgramBuilderController extends Controller
      */
     public function manageSets(ProgramExercise $programExercise): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($programExercise);
         try {
             // Load the exercise with its workout and exercise sets
             $programExercise->load(['workout', 'exerciseSets' => function($query) {
@@ -1030,6 +1083,7 @@ class ProgramBuilderController extends Controller
      */
     public function updateExerciseSets(Request $request, ProgramExercise $exercise): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($exercise);
         $request->validate([
             'sets' => 'required|array|min:1',
             'sets.*.set_number' => 'required|integer|min:1',
@@ -1079,6 +1133,7 @@ class ProgramBuilderController extends Controller
      */
     public function reorderWeeks(Request $request, Program $program): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($program);
         $request->validate([
             'weeks' => 'required|array',
             'weeks.*.id' => 'required|exists:weeks,id',
@@ -1119,6 +1174,7 @@ class ProgramBuilderController extends Controller
      */
     public function reorderDays(Request $request, Week $week): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($week);
         $request->validate([
             'days' => 'required|array',
             'days.*.id' => 'required|exists:days,id',
@@ -1159,6 +1215,7 @@ class ProgramBuilderController extends Controller
      */
     public function reorderCircuits(Request $request, Day $day): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($day);
         $request->validate([
             'circuits' => 'required|array',
             'circuits.*.id' => 'required|exists:circuits,id',
@@ -1199,6 +1256,7 @@ class ProgramBuilderController extends Controller
      */
     public function reorderExercises(Request $request, Circuit $circuit): JsonResponse
     {
+        $this->ensureTrainerOwnsModel($circuit);
         $request->validate([
             'exercises' => 'required|array',
             'exercises.*.id' => 'required|exists:program_exercises,id',

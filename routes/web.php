@@ -295,6 +295,8 @@ Route::middleware('auth')->group(function () {
         Route::post('programs/{program}/duplicate', [\App\Http\Controllers\Admin\ProgramController::class, 'duplicate'])->name('programs.duplicate');
         Route::patch('programs/{program}/toggle-status', [\App\Http\Controllers\Admin\ProgramController::class, 'toggleStatus'])->name('programs.toggle-status');
         Route::get('programs/{program}/pdf-data', [\App\Http\Controllers\Admin\ProgramController::class, 'pdfData'])->name('programs.pdf-data');
+        Route::get('programs/{program}/pdf-inline', [\App\Http\Controllers\Admin\ProgramController::class, 'pdfInline'])->name('programs.pdf-inline');
+        Route::get('programs/{program}/pdf-view', [\App\Http\Controllers\Admin\ProgramController::class, 'pdfView'])->name('programs.pdf-view');
         
         // Resource routes for programs
         Route::resource('programs', \App\Http\Controllers\Admin\ProgramController::class);
@@ -564,6 +566,66 @@ Route::middleware('auth')->group(function () {
         Route::prefix('testimonials')->group(function () {
             Route::post('/{id}/like', [TrainerDashboardController::class, 'likeTestimonial'])->name('trainer.testimonials.like');
             Route::post('/{id}/dislike', [TrainerDashboardController::class, 'dislikeTestimonial'])->name('trainer.testimonials.dislike');
+        });
+
+        // Program Management Routes for Trainers
+        Route::prefix('programs')->name('trainer.programs.')->group(function () {
+            Route::get('/stats', [\App\Http\Controllers\Trainer\ProgramController::class, 'getStats'])->name('stats');
+            Route::post('/{program}/duplicate', [\App\Http\Controllers\Trainer\ProgramController::class, 'duplicate'])->name('duplicate');
+            Route::get('/{program}/pdf-data', [\App\Http\Controllers\Trainer\ProgramController::class, 'pdfData'])->name('pdf-data');
+            Route::get('/{program}/pdf-inline', [\App\Http\Controllers\Trainer\ProgramController::class, 'pdfInline'])->name('pdf-inline');
+            Route::get('/{program}/pdf-view', [\App\Http\Controllers\Trainer\ProgramController::class, 'pdfView'])->name('pdf-view');
+        });
+        Route::resource('programs', \App\Http\Controllers\Trainer\ProgramController::class, ['names' => [
+            'index' => 'trainer.programs.index',
+            'create' => 'trainer.programs.create',
+            'store' => 'trainer.programs.store',
+            'show' => 'trainer.programs.show',
+            'edit' => 'trainer.programs.edit',
+            'update' => 'trainer.programs.update',
+            'destroy' => 'trainer.programs.destroy'
+        ]]);
+
+        Route::prefix('program-builder')->name('trainer.program-builder.')->group(function () {
+            Route::get('/{program}', [\App\Http\Controllers\Trainer\ProgramController::class, 'builder'])->name('show');
+            Route::get('/{program}/columns', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'getColumnConfig'])->name('columns.show');
+            Route::put('/{program}/columns', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'updateColumnConfig'])->name('columns.update');
+            Route::post('/{program}/weeks', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'addWeek'])->name('weeks.store');
+            Route::get('/weeks/{week}/edit', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'editWeek'])->name('weeks.edit');
+            Route::put('/weeks/{week}', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'updateWeek'])->name('weeks.update');
+            Route::post('/weeks/{week}/duplicate', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'duplicateWeek'])->name('weeks.duplicate');
+            Route::delete('/weeks/{week}', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'removeWeek'])->name('weeks.destroy');
+            Route::put('/{program}/weeks/reorder', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'reorderWeeks'])->name('weeks.reorder');
+            Route::post('/weeks/{week}/days', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'addDay'])->name('days.store');
+            Route::get('/days/{day}/edit', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'editDay'])->name('days.edit');
+            Route::post('/days/{day}/duplicate', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'duplicateDay'])->name('days.duplicate');
+            Route::put('/days/{day}', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'updateDay'])->name('days.update');
+            Route::delete('/days/{day}', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'removeDay'])->name('days.destroy');
+            Route::put('/weeks/{week}/days/reorder', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'reorderDays'])->name('days.reorder');
+            Route::post('/days/{day}/circuits', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'addCircuit'])->name('circuits.store');
+            Route::get('/circuits/{circuit}/edit', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'editCircuit'])->name('circuits.edit');
+            Route::put('/circuits/{circuit}', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'updateCircuit'])->name('circuits.update');
+            Route::delete('/circuits/{circuit}', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'removeCircuit'])->name('circuits.destroy');
+            Route::put('/days/{day}/circuits/reorder', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'reorderCircuits'])->name('circuits.reorder');
+            Route::post('/circuits/{circuit}/exercises', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'addExercise'])->name('exercises.add');
+            Route::get('/exercises/{exercise}/edit', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'editExercise'])->name('exercises.edit');
+            Route::put('/exercises/{programExercise}', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'updateExercise'])->name('exercises.update');
+            Route::put('/exercises/{programExercise}/workout', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'updateExerciseWorkout'])->name('exercises.update-workout');
+            Route::delete('/exercises/{programExercise}', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'removeExercise'])->name('exercises.remove');
+            Route::post('/circuits/{circuit}/exercises/reorder', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'reorderExercises'])->name('exercises.reorder');
+            Route::get('/exercises/{programExercise}/sets', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'manageSets'])->name('sets.manage');
+            Route::put('/exercises/{exercise}/sets', [\App\Http\Controllers\Admin\ProgramBuilderController::class, 'updateExerciseSets'])->name('sets.update');
+        });
+
+        Route::prefix('programs/{program}/videos')->name('trainer.program-videos.')->group(function () {
+            Route::get('/', [ProgramVideoController::class, 'index'])->name('index');
+            Route::get('/create', [ProgramVideoController::class, 'create'])->name('create');
+            Route::post('/', [ProgramVideoController::class, 'store'])->name('store');
+            Route::get('/{video}/edit', [ProgramVideoController::class, 'edit'])->name('edit');
+            Route::put('/{video}', [ProgramVideoController::class, 'update'])->name('update');
+            Route::delete('/{video}', [ProgramVideoController::class, 'destroy'])->name('destroy');
+            Route::get('/reorder', [ProgramVideoController::class, 'reorderForm'])->name('reorder-form');
+            Route::post('/reorder', [ProgramVideoController::class, 'updateOrder'])->name('reorder');
         });
         
         // Google Calendar Management Routes for Trainers

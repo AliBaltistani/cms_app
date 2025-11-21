@@ -63,6 +63,40 @@
 				</li>
 				<!-- End::slide -->
 
+                <!-- Start::slide Workouts Management -->
+                <li class="slide has-sub {{ request()->is('trainer/programs*') || request()->is('trainer/program-builder*') ? 'open' : '' }}">
+                    <a href="javascript:void(0);" class="side-menu__item">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="side-menu__icon" width="23" height="23" viewBox="0 0 37 37" fill="none">
+                            <g clip-path="url(#clip0_trainer_fitness)">
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M35.6235 17.1493H34.4811V12.58C34.4811 11.3183 33.4583 10.2954 32.1965 10.2954H29.9119V9.15311C29.9119 7.89135 28.8891 6.86849 27.6273 6.86849H24.2004C22.9386 6.86849 21.9158 7.89135 21.9158 9.15311V17.1493H15.0619V9.15311C15.0619 7.89135 14.0391 6.86849 12.7773 6.86849H9.35038C8.08862 6.86849 7.06576 7.89135 7.06576 9.15311V10.2954H4.78114C3.51939 10.2954 2.49653 11.3183 2.49653 12.58V17.1493H1.35422C0.723343 17.1493 0.211914 17.6607 0.211914 18.2916C0.211914 18.9225 0.723343 19.4339 1.35422 19.4339H2.49653V24.0031C2.49653 25.2649 3.51939 26.2877 4.78114 26.2877H7.06576V27.43C7.06576 28.6918 8.08862 29.7146 9.35038 29.7146H12.7773C14.0391 29.7146 15.0619 28.6918 15.0619 27.43V19.4339H21.9158V27.43C21.9158 28.6918 22.9386 29.7146 24.2004 29.7146H27.6273C28.8891 29.7146 29.9119 28.6918 29.9119 27.43V26.2877H32.1965C33.4583 26.2877 34.4811 25.2649 34.4811 24.0031V19.4339H35.6235C36.2543 19.4339 36.7658 18.9225 36.7658 18.2916C36.7658 17.6607 36.2543 17.1493 35.6235 17.1493ZM4.78114 24.0031V12.58H7.06576V24.0031H4.78114ZM12.7773 27.43H9.35038V9.15311H12.7773V27.43ZM27.6273 27.43H24.2004V9.15311H27.6273V25.1197C27.6273 25.1283 27.6273 25.1369 27.6273 25.1454C27.6273 25.154 27.6273 25.1625 27.6273 25.1711V27.43ZM32.1965 24.0031H29.9119V12.58H32.1965V24.0031Z" />
+                            </g>
+                            <defs>
+                            <clipPath id="clip0_trainer_fitness">
+                            <rect width="36.5538" height="36.5538" fill="white" transform="translate(0.211914 0.0146484)"/>
+                            </clipPath>
+                            </defs>
+                        </svg>
+                        <span class="side-menu__label">Workout Management</span>
+                        <i class="ri-arrow-right-s-line side-menu__angle"></i>
+                    </a>
+                    <ul class="slide-menu child1">
+                        <li class="slide side-menu__label1">
+                            <a href="javascript:void(0)">Workout Management</a>
+                        </li>
+                        <li class="slide {{ (request()->is('trainer/programs') || request()->is('trainer/programs/*/edit') || request()->is('trainer/programs/*/show') || request()->is('trainer/programs/*')) && !request()->is('trainer/programs/create') ? 'active' : '' }}">
+                            <a href="{{route('trainer.programs.index')}}" class="side-menu__item">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32Z" opacity="0.2"/><rect x="32" y="48" width="192" height="160" rx="16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="64" y1="80" x2="192" y2="80" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="64" y1="112" x2="192" y2="112" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="64" y1="144" x2="192" y2="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="64" y1="176" x2="192" y2="176" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+                                All Workouts</a>
+                        </li>
+                        <li class="slide {{ request()->is('trainer/programs/create') ? 'active' : '' }}">
+                            <a href="{{route('trainer.programs.create')}}" class="side-menu__item">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="side-menu-doublemenu__icon" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><line x1="40" y1="128" x2="216" y2="128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="128" y1="40" x2="128" y2="216" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>
+                                Add New Workout</a>
+                        </li>
+                    </ul>
+                </li>
+                <!-- End::slide Workouts Management -->
+
 				<!-- Start::slide -->
 				<li class="slide has-sub">
 					<a href="javascript:void(0);" class="side-menu__item">

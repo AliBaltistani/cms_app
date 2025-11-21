@@ -312,30 +312,6 @@ Route::middleware('auth:sanctum')->group(function () {
                     Route::get('/columns', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'getColumnConfig'])->name('columns.get');
                     Route::put('/columns', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'updateColumnConfig'])->name('columns.update');
 
-                    // Legacy routes (kept for backward compatibility)
-                    Route::post('/weeks', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'addWeek'])->name('weeks.add');
-                    Route::post('/weeks/reorder', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'reorderWeeks'])->name('weeks.reorder');
-                    Route::put('/weeks/week', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'updateWeek'])->name('weeks.update');
-                    Route::delete('/weeks/week', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'removeWeek'])->name('weeks.remove');
-                    Route::post('/weeks/week/duplicate', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'duplicateWeek'])->name('weeks.duplicate');
-
-                    Route::post('/weeks/week/days', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'addDay'])->name('days.add');
-                    Route::post('/weeks/week/days/reorder', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'reorderDays'])->name('days.reorder');
-                    Route::put('/weeks/week/days/day', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'updateDay'])->name('days.update');
-                    Route::delete('/weeks/week/days/day', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'removeDay'])->name('days.remove');
-                    Route::post('/weeks/week/days/day/duplicate', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'duplicateDay'])->name('days.duplicate');
-
-                    Route::post('/days/day/circuits', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'addCircuit'])->name('circuits.add');
-                    Route::post('/days/day/circuits/reorder', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'reorderCircuits'])->name('circuits.reorder');
-                    Route::put('/days/day/circuits/circuit', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'updateCircuit'])->name('circuits.update');
-                    Route::delete('/days/day/circuits/circuit', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'removeCircuit'])->name('circuits.remove');
-
-                    Route::post('/circuits/circuit/exercises', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'addExercise'])->name('exercises.add');
-                    Route::post('/circuits/circuit/exercises/reorder', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'reorderExercises'])->name('exercises.reorder');
-                    Route::put('/circuits/circuit/exercises/exercise', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'updateExercise'])->name('exercises.update');
-                    Route::get('/circuits/circuit/exercises/exercise/sets', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'getExerciseSets'])->name('exercises.sets.get');
-                    Route::delete('/circuits/circuit/exercises/exercise', [\App\Http\Controllers\Api\TrainerProgramBuilderController::class, 'removeExercise'])->name('exercises.remove');
-
                     // =========================================================================
                     // NESTED RESTful CRUD ROUTES
                     // Dynamic routes following pattern: /programs/{program}/builder/weeks/{week}/...
