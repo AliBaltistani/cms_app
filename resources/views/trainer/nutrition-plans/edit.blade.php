@@ -18,16 +18,16 @@
         <div class="">
             <nav>
                 <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="{{route('admin.dashboard')}}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.index')}}">Nutrition Plans</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.show', $plan->id)}}">{{ $plan->plan_name }}</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.dashboard')}}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.index')}}">Nutrition Plans</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.show', $plan->id)}}">{{ $plan->plan_name }}</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Edit</li>
                 </ol>
             </nav>
         </div>
     </div>
     <div class="ms-auto pageheader-btn">
-        <a href="{{route('admin.nutrition-plans.show', $plan->id)}}" class="btn btn-secondary btn-wave waves-effect waves-light me-2">
+        <a href="{{route('trainer.nutrition-plans.show', $plan->id)}}" class="btn btn-secondary btn-wave waves-effect waves-light me-2">
             <i class="ri-arrow-left-line me-1"></i> Back to Plan
         </a>
     </div>
@@ -63,7 +63,7 @@
     </div>
 @endif
 
-<form id="nutritionPlanForm" action="{{ route('admin.nutrition-plans.update', $plan->id) }}" method="POST" enctype="multipart/form-data">
+<form id="nutritionPlanForm" action="{{ route('trainer.nutrition-plans.update', $plan->id) }}" method="POST" enctype="multipart/form-data">
     @csrf
     @method('PUT')
     <div class="row">
@@ -348,13 +348,13 @@
                         <button type="submit" class="btn btn-primary btn-wave waves-effect waves-light">
                             <i class="ri-save-line me-1"></i> Update Plan
                         </button>
-                        <a href="{{ route('admin.nutrition-plans.meals.index', $plan->id) }}" class="btn btn-success btn-wave waves-effect waves-light">
+                        <a href="{{ route('trainer.nutrition-plans.meals.index', $plan->id) }}" class="btn btn-success btn-wave waves-effect waves-light">
                             <i class="ri-restaurant-line me-1"></i> Manage Meals
                         </a>
                         <button type="button" class="btn btn-warning btn-wave waves-effect waves-light" onclick="duplicatePlan('{{ $plan->id }}')">
                             <i class="ri-file-copy-line me-1"></i> Duplicate Plan
                         </button>
-                        <a href="{{ route('admin.nutrition-plans.show', $plan->id) }}" class="btn btn-light btn-wave waves-effect waves-light">
+                        <a href="{{ route('trainer.nutrition-plans.show', $plan->id) }}" class="btn btn-light btn-wave waves-effect waves-light">
                             <i class="ri-eye-line me-1"></i> View Plan
                         </a>
                     </div>
@@ -477,7 +477,7 @@ function deleteMedia(planId) {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: '/admin/nutrition-plans/' + planId + '/delete-media',
+                url: '/trainer/nutrition-plans/' + planId + '/delete-media',
                 type: 'DELETE',
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -511,7 +511,7 @@ function duplicatePlan(planId) {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: '/admin/nutrition-plans/' + planId + '/duplicate',
+                url: '/trainer/nutrition-plans/' + planId + '/duplicate',
                 type: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -519,7 +519,7 @@ function duplicatePlan(planId) {
                 success: function(response) {
                     if (response.success) {
                         Swal.fire('Success!', response.message, 'success');
-                        window.location.href = '/admin/nutrition-plans/' + response.duplicate_plan.id;
+                        window.location.href = '/trainer/nutrition-plans/' + response.duplicate_plan.id;
                     } else {
                         Swal.fire('Error!', response.message, 'error');
                     }

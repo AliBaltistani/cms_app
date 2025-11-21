@@ -14,20 +14,20 @@
         <div class="">
             <nav>
                 <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="{{route('admin.dashboard')}}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.index')}}">Nutrition Plans</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.show', $plan->id)}}">{{ $plan->plan_name }}</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.recipes.index', $plan->id)}}">Recipes</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.dashboard')}}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.index')}}">Nutrition Plans</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.show', $plan->id)}}">{{ $plan->plan_name }}</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.recipes.index', $plan->id)}}">Recipes</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Edit Recipe</li>
                 </ol>
             </nav>
         </div>
     </div>
     <div class="ms-auto pageheader-btn">
-        <a href="{{route('admin.nutrition-plans.recipes.show', [$plan->id, $recipe->id])}}" class="btn btn-info btn-wave waves-effect waves-light me-2">
+        <a href="{{route('trainer.nutrition-plans.recipes.show', [$plan->id, $recipe->id])}}" class="btn btn-info btn-wave waves-effect waves-light me-2">
             <i class="ri-eye-line me-1"></i> View Recipe
         </a>
-        <a href="{{route('admin.nutrition-plans.recipes.index', $plan->id)}}" class="btn btn-secondary btn-wave waves-effect waves-light">
+        <a href="{{route('trainer.nutrition-plans.recipes.index', $plan->id)}}" class="btn btn-secondary btn-wave waves-effect waves-light">
             <i class="ri-arrow-left-line me-1"></i> Back to Recipes
         </a>
     </div>
@@ -51,7 +51,7 @@
     </div>
 </div>
 
-<form id="recipeForm" action="{{ route('admin.nutrition-plans.recipes.update', [$plan->id, $recipe->id]) }}" method="POST" enctype="multipart/form-data">
+<form id="recipeForm" action="{{ route('trainer.nutrition-plans.recipes.update', [$plan->id, $recipe->id]) }}" method="POST" enctype="multipart/form-data">
     @csrf
     @method('PUT')
     <div class="row">
@@ -143,10 +143,10 @@
                         <button type="button" class="btn btn-warning btn-wave" onclick="duplicateRecipe()">
                             <i class="ri-file-copy-line me-1"></i> Duplicate Recipe
                         </button>
-                        <a href="{{ route('admin.nutrition-plans.recipes.show', [$plan->id, $recipe->id]) }}" class="btn btn-info btn-wave">
+                        <a href="{{ route('trainer.nutrition-plans.recipes.show', [$plan->id, $recipe->id]) }}" class="btn btn-info btn-wave">
                             <i class="ri-eye-line me-1"></i> View Recipe
                         </a>
-                        <a href="{{ route('admin.nutrition-plans.recipes.index', $plan->id) }}" class="btn btn-secondary btn-wave">
+                        <a href="{{ route('trainer.nutrition-plans.recipes.index', $plan->id) }}" class="btn btn-secondary btn-wave">
                             <i class="ri-close-line me-1"></i> Cancel
                         </a>
                     </div>
@@ -238,7 +238,7 @@ function deleteImage() {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: '/admin/nutrition-plans/{{ $plan->id }}/recipes/{{ $recipe->id }}/delete-image',
+                url: '/trainer/nutrition-plans/{{ $plan->id }}/recipes/{{ $recipe->id }}/delete-image',
                 type: 'DELETE',
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -272,7 +272,7 @@ function duplicateRecipe() {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: '/admin/nutrition-plans/{{ $plan->id }}/recipes/{{ $recipe->id }}/duplicate',
+                url: '/trainer/nutrition-plans/{{ $plan->id }}/recipes/{{ $recipe->id }}/duplicate',
                 type: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -280,7 +280,7 @@ function duplicateRecipe() {
                 success: function(response) {
                     if (response.success) {
                         Swal.fire('Duplicated!', response.message, 'success');
-                        window.location.href = '/admin/nutrition-plans/{{ $plan->id }}/recipes/' + response.recipe.id + '/edit';
+                        window.location.href = '/trainer/nutrition-plans/{{ $plan->id }}/recipes/' + response.recipe.id + '/edit';
                     } else {
                         Swal.fire('Error!', response.message, 'error');
                     }

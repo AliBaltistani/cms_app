@@ -14,17 +14,17 @@
         <div class="">
             <nav>
                 <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="{{route('admin.dashboard')}}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.index')}}">Nutrition Plans</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.show', $plan->id)}}">{{ $plan->plan_name }}</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.recipes.index', $plan->id)}}">Recipes</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.dashboard')}}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.index')}}">Nutrition Plans</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.show', $plan->id)}}">{{ $plan->plan_name }}</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.recipes.index', $plan->id)}}">Recipes</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Add Recipe</li>
                 </ol>
             </nav>
         </div>
     </div>
     <div class="ms-auto pageheader-btn">
-        <a href="{{route('admin.nutrition-plans.recipes.index', $plan->id)}}" class="btn btn-secondary btn-wave waves-effect waves-light me-2">
+        <a href="{{route('trainer.nutrition-plans.recipes.index', $plan->id)}}" class="btn btn-secondary btn-wave waves-effect waves-light me-2">
             <i class="ri-arrow-left-line me-1"></i> Back to Recipes
         </a>
     </div>
@@ -48,7 +48,7 @@
     </div>
 </div>
 
-<form id="recipeForm" action="{{ route('admin.nutrition-plans.recipes.store', $plan->id) }}" method="POST" enctype="multipart/form-data">
+<form id="recipeForm" action="{{ route('trainer.nutrition-plans.recipes.store', $plan->id) }}" method="POST" enctype="multipart/form-data">
     @csrf
     <div class="row">
         <!-- Main Recipe Information -->
@@ -125,7 +125,7 @@
                         <button type="submit" name="add_another" value="1" class="btn btn-success btn-wave">
                             <i class="ri-add-line me-1"></i> Save & Add Another
                         </button>
-                        <a href="{{ route('admin.nutrition-plans.recipes.index', $plan->id) }}" class="btn btn-secondary btn-wave">
+                        <a href="{{ route('trainer.nutrition-plans.recipes.index', $plan->id) }}" class="btn btn-secondary btn-wave">
                             <i class="ri-close-line me-1"></i> Cancel
                         </a>
                     </div>

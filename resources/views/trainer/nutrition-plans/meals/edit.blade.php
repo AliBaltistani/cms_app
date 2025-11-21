@@ -16,18 +16,18 @@
         <div class="">
             <nav>
                 <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="{{route('admin.dashboard')}}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.index')}}">Nutrition Plans</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.show', $plan->id)}}">{{ $plan->plan_name }}</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.meals.index', $plan->id)}}">Meals</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.meals.show', [$plan->id, $meal->id])}}">{{ $meal->title }}</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.dashboard')}}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.index')}}">Nutrition Plans</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.show', $plan->id)}}">{{ $plan->plan_name }}</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.meals.index', $plan->id)}}">Meals</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.meals.show', [$plan->id, $meal->id])}}">{{ $meal->title }}</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Edit</li>
                 </ol>
             </nav>
         </div>
     </div>
     <div class="ms-auto pageheader-btn">
-        <a href="{{route('admin.nutrition-plans.meals.show', [$plan->id, $meal->id])}}" class="btn btn-secondary btn-wave waves-effect waves-light me-2">
+        <a href="{{route('trainer.nutrition-plans.meals.show', [$plan->id, $meal->id])}}" class="btn btn-secondary btn-wave waves-effect waves-light me-2">
             <i class="ri-arrow-left-line me-1"></i> Back to Meal
         </a>
     </div>
@@ -51,7 +51,7 @@
     </div>
 </div>
 
-<form id="mealForm" action="{{ route('admin.nutrition-plans.meals.update', [$plan->id, $meal->id]) }}" method="POST" enctype="multipart/form-data">
+<form id="mealForm" action="{{ route('trainer.nutrition-plans.meals.update', [$plan->id, $meal->id]) }}" method="POST" enctype="multipart/form-data">
     @csrf
     @method('PUT')
     <div class="row">
@@ -228,13 +228,13 @@
                         <button type="submit" class="btn btn-primary btn-wave waves-effect waves-light">
                             <i class="ri-save-line me-1"></i> Update Meal
                         </button>
-                        <a href="{{ route('admin.nutrition-plans.meals.show', [$plan->id, $meal->id]) }}" class="btn btn-success btn-wave waves-effect waves-light">
+                        <a href="{{ route('trainer.nutrition-plans.meals.show', [$plan->id, $meal->id]) }}" class="btn btn-success btn-wave waves-effect waves-light">
                             <i class="ri-eye-line me-1"></i> View Meal
                         </a>
                         <button type="button" class="btn btn-warning btn-wave waves-effect waves-light" onclick="duplicateMeal()">
                             <i class="ri-file-copy-line me-1"></i> Duplicate Meal
                         </button>
-                        <a href="{{ route('admin.nutrition-plans.meals.index', $plan->id) }}" class="btn btn-light btn-wave waves-effect waves-light">
+                        <a href="{{ route('trainer.nutrition-plans.meals.index', $plan->id) }}" class="btn btn-light btn-wave waves-effect waves-light">
                             <i class="ri-close-line me-1"></i> Cancel
                         </a>
                     </div>
@@ -394,7 +394,7 @@ function deleteImage() {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: '/admin/nutrition-plans/{{ $plan->id }}/meals/{{ $meal->id }}/delete-image',
+                url: '/trainer/nutrition-plans/{{ $plan->id }}/meals/{{ $meal->id }}/delete-image',
                 type: 'DELETE',
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -429,7 +429,7 @@ function duplicateMeal() {
         if (result.isConfirmed) {
             // For now, redirect to create page with meal data
             // In a full implementation, you'd create a duplicate endpoint
-            window.location.href = '/admin/nutrition-plans/{{ $plan->id }}/meals/create?duplicate={{ $meal->id }}';
+            window.location.href = '/trainer/nutrition-plans/{{ $plan->id }}/meals/create?duplicate={{ $meal->id }}';
         }
     });
 }

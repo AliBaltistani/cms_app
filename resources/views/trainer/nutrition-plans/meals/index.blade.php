@@ -38,19 +38,19 @@
         <div class="">
             <nav>
                 <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="{{route('admin.dashboard')}}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.index')}}">Nutrition Plans</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.show', $plan->id)}}">{{ $plan->plan_name }}</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.dashboard')}}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.index')}}">Nutrition Plans</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.show', $plan->id)}}">{{ $plan->plan_name }}</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Meals</li>
                 </ol>
             </nav>
         </div>
     </div>
     <div class="ms-auto pageheader-btn">
-        <a href="{{route('admin.nutrition-plans.meals.create', $plan->id)}}" class="btn btn-primary btn-wave waves-effect waves-light me-2">
+        <a href="{{route('trainer.nutrition-plans.meals.create', $plan->id)}}" class="btn btn-primary btn-wave waves-effect waves-light me-2">
             <i class="ri-add-line me-1"></i> Add New Meal
         </a>
-        <a href="{{route('admin.nutrition-plans.show', $plan->id)}}" class="btn btn-secondary btn-wave waves-effect waves-light">
+        <a href="{{route('trainer.nutrition-plans.show', $plan->id)}}" class="btn btn-secondary btn-wave waves-effect waves-light">
             <i class="ri-arrow-left-line me-1"></i> Back to Plan
         </a>
     </div>
@@ -158,10 +158,10 @@
                                             <span class="ms-2"><i class="ri-restaurant-line me-1"></i> {{ $meal->servings }} serving{{ $meal->servings > 1 ? 's' : '' }}</span>
                                         </div>
                                         <div class="btn-group" role="group">
-                                            <a href="{{ route('admin.nutrition-plans.meals.show', [$plan->id, $meal->id]) }}" class="btn btn-sm btn-info btn-wave" title="View Details">
+                                            <a href="{{ route('trainer.nutrition-plans.meals.show', [$plan->id, $meal->id]) }}" class="btn btn-sm btn-info btn-wave" title="View Details">
                                                 <i class="ri-eye-line"></i>
                                             </a>
-                                            <a href="{{ route('admin.nutrition-plans.meals.edit', [$plan->id, $meal->id]) }}" class="btn btn-sm btn-success btn-wave" title="Edit Meal">
+                                            <a href="{{ route('trainer.nutrition-plans.meals.edit', [$plan->id, $meal->id]) }}" class="btn btn-sm btn-success btn-wave" title="Edit Meal">
                                                 <i class="ri-edit-2-line"></i>
                                             </a>
                                             <button type="button" class="btn btn-sm btn-danger btn-wave" onclick="deleteMeal('{{ $meal->id }}')" title="Delete Meal">
@@ -178,7 +178,7 @@
                         <i class="ri-restaurant-line fs-48 text-muted mb-3"></i>
                         <h5 class="text-muted">No meals added yet</h5>
                         <p class="text-muted">Start building this nutrition plan by adding meals.</p>
-                        <a href="{{ route('admin.nutrition-plans.meals.create', $plan->id) }}" class="btn btn-primary btn-wave">
+                        <a href="{{ route('trainer.nutrition-plans.meals.create', $plan->id) }}" class="btn btn-primary btn-wave">
                             <i class="ri-add-line me-1"></i> Add First Meal
                         </a>
                     </div>
@@ -269,7 +269,7 @@ function deleteMeal(mealId) {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: '/admin/nutrition-plans/{{ $plan->id }}/meals/' + mealId,
+                url: '/trainer/nutrition-plans/{{ $plan->id }}/meals/' + mealId,
                 type: 'DELETE',
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')

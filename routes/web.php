@@ -645,6 +645,64 @@ Route::middleware('auth')->group(function () {
             Route::delete('/{id}', [\App\Http\Controllers\Trainer\GoalsController::class, 'delete'])->name('destroy');
             Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Trainer\GoalsController::class, 'toggleStatus'])->name('toggle-status');
         });
+
+        // Nutrition Plans Management (Trainer)
+        Route::prefix('nutrition-plans')->name('trainer.nutrition-plans.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Trainer\NutritionPlansController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\Trainer\NutritionPlansController::class, 'create'])->name('create');
+            Route::post('/store', [\App\Http\Controllers\Trainer\NutritionPlansController::class, 'store'])->name('store');
+            Route::get('/{id}', [\App\Http\Controllers\Trainer\NutritionPlansController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [\App\Http\Controllers\Trainer\NutritionPlansController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [\App\Http\Controllers\Trainer\NutritionPlansController::class, 'update'])->name('update');
+            Route::delete('/{id}', [\App\Http\Controllers\Trainer\NutritionPlansController::class, 'destroy'])->name('destroy');
+            Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Trainer\NutritionPlansController::class, 'toggleStatus'])->name('toggle-status');
+            Route::post('/{id}/duplicate', [\App\Http\Controllers\Trainer\NutritionPlansController::class, 'duplicate'])->name('duplicate');
+            Route::delete('/{id}/delete-media', [\App\Http\Controllers\Trainer\NutritionPlansController::class, 'deleteMedia'])->name('delete-media');
+
+            // Categories and Calculator
+            Route::get('/categories', [\App\Http\Controllers\Trainer\NutritionPlansController::class, 'getCategories'])->name('categories');
+            Route::get('/{id}/calculator', [\App\Http\Controllers\Trainer\NutritionPlansController::class, 'calculator'])->name('calculator');
+            Route::post('/calculate-nutrition', [\App\Http\Controllers\Trainer\NutritionPlansController::class, 'calculateNutrition'])->name('calculate-nutrition');
+            Route::post('/{id}/save-calculated-nutrition', [\App\Http\Controllers\Trainer\NutritionPlansController::class, 'saveCalculatedNutrition'])->name('save-calculated-nutrition');
+            Route::get('/{id}/calculator-data', [\App\Http\Controllers\Trainer\NutritionPlansController::class, 'getCalculatorData'])->name('calculator-data');
+
+            // Nutrition Meals Management (Trainer)
+            Route::prefix('{planId}/meals')->name('meals.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Trainer\NutritionMealsController::class, 'index'])->name('index');
+                Route::get('/create', [\App\Http\Controllers\Trainer\NutritionMealsController::class, 'create'])->name('create');
+                Route::post('/store', [\App\Http\Controllers\Trainer\NutritionMealsController::class, 'store'])->name('store');
+                Route::get('/{id}', [\App\Http\Controllers\Trainer\NutritionMealsController::class, 'show'])->name('show');
+                Route::get('/{id}/edit', [\App\Http\Controllers\Trainer\NutritionMealsController::class, 'edit'])->name('edit');
+                Route::put('/{id}', [\App\Http\Controllers\Trainer\NutritionMealsController::class, 'update'])->name('update');
+                Route::delete('/{id}', [\App\Http\Controllers\Trainer\NutritionMealsController::class, 'destroy'])->name('destroy');
+                Route::patch('/reorder', [\App\Http\Controllers\Trainer\NutritionMealsController::class, 'reorder'])->name('reorder');
+                Route::delete('/{id}/delete-image', [\App\Http\Controllers\Trainer\NutritionMealsController::class, 'deleteImage'])->name('delete-image');
+
+                // Enhanced meal management routes
+                Route::post('/{id}/duplicate', [\App\Http\Controllers\Trainer\NutritionMealsController::class, 'duplicate'])->name('duplicate');
+                Route::post('/copy-from-global', [\App\Http\Controllers\Trainer\NutritionMealsController::class, 'copyFromGlobal'])->name('copy-from-global');
+                Route::get('/global-meals', [\App\Http\Controllers\Trainer\NutritionMealsController::class, 'getGlobalMeals'])->name('global-meals');
+                Route::delete('/bulk-delete', [\App\Http\Controllers\Trainer\NutritionMealsController::class, 'bulkDelete'])->name('bulk-delete');
+                Route::put('/{id}/macros', [\App\Http\Controllers\Trainer\NutritionMealsController::class, 'updateMacros'])->name('update-macros');
+            });
+
+            // Nutrition Recipes Management (Trainer)
+            Route::prefix('{planId}/recipes')->name('recipes.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Trainer\NutritionRecipesController::class, 'index'])->name('index');
+                Route::get('/create', [\App\Http\Controllers\Trainer\NutritionRecipesController::class, 'create'])->name('create');
+                Route::post('/store', [\App\Http\Controllers\Trainer\NutritionRecipesController::class, 'store'])->name('store');
+                Route::get('/{id}', [\App\Http\Controllers\Trainer\NutritionRecipesController::class, 'show'])->name('show');
+                Route::get('/{id}/edit', [\App\Http\Controllers\Trainer\NutritionRecipesController::class, 'edit'])->name('edit');
+                Route::put('/{id}', [\App\Http\Controllers\Trainer\NutritionRecipesController::class, 'update'])->name('update');
+                Route::delete('/{id}', [\App\Http\Controllers\Trainer\NutritionRecipesController::class, 'destroy'])->name('destroy');
+                Route::patch('/reorder', [\App\Http\Controllers\Trainer\NutritionRecipesController::class, 'reorder'])->name('reorder');
+                Route::delete('/{id}/delete-image', [\App\Http\Controllers\Trainer\NutritionRecipesController::class, 'deleteImage'])->name('delete-image');
+
+                // Enhanced recipe management routes
+                Route::post('/{id}/duplicate', [\App\Http\Controllers\Trainer\NutritionRecipesController::class, 'duplicate'])->name('duplicate');
+                Route::delete('/bulk-delete', [\App\Http\Controllers\Trainer\NutritionRecipesController::class, 'bulkDelete'])->name('bulk-delete');
+            });
+        });
     });
 
     /**

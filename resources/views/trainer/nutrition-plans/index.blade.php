@@ -15,14 +15,14 @@
         <div class="">
             <nav>
                 <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="{{route('admin.dashboard')}}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.dashboard')}}">Dashboard</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Nutrition Plans</li>
                 </ol>
             </nav>
         </div>
     </div>
     <div class="ms-auto pageheader-btn">
-        <a href="{{route('admin.nutrition-plans.create')}}" class="btn btn-primary btn-wave waves-effect waves-light me-2">
+        <a href="{{route('trainer.nutrition-plans.create')}}" class="btn btn-primary btn-wave waves-effect waves-light me-2">
             <i class="ri-add-line me-1"></i> Create New Plan
         </a>
     </div>
@@ -202,7 +202,7 @@ $(document).ready(function() {
         processing: true,
         serverSide: true,
         ajax: {
-            url: '{{ route("admin.nutrition-plans.index") }}',
+            url: '{{ route("trainer.nutrition-plans.index") }}',
             type: 'GET',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
@@ -368,7 +368,7 @@ $(document).ready(function() {
 function toggleStatus(planId) {
     if (confirm('Are you sure you want to change the status of this nutrition plan?')) {
         $.ajax({
-            url: '/admin/nutrition-plans/' + planId + '/toggle-status',
+            url: '/trainer/nutrition-plans/' + planId + '/toggle-status',
             type: 'PATCH',
             headers: {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -391,7 +391,7 @@ function toggleStatus(planId) {
 function duplicatePlan(planId) {
     if (confirm('This will create a copy of the nutrition plan. Continue?')) {
         $.ajax({
-            url: '/admin/nutrition-plans/' + planId + '/duplicate',
+            url: '/trainer/nutrition-plans/' + planId + '/duplicate',
             type: 'POST',
             headers: {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -414,7 +414,7 @@ function duplicatePlan(planId) {
 function deletePlan(planId) {
     if (confirm('Are you sure you want to delete this nutrition plan? This action cannot be undone!')) {
         $.ajax({
-            url: '/admin/nutrition-plans/' + planId,
+            url: '/trainer/nutrition-plans/' + planId,
             type: 'DELETE',
             headers: {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')

@@ -18,15 +18,15 @@
         <div class="">
             <nav>
                 <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="{{route('admin.dashboard')}}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.index')}}">Nutrition Plans</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.dashboard')}}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.index')}}">Nutrition Plans</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Create Plan</li>
                 </ol>
             </nav>
         </div>
     </div>
     <div class="ms-auto pageheader-btn">
-        <a href="{{route('admin.nutrition-plans.index')}}" class="btn btn-secondary btn-wave waves-effect waves-light me-2">
+        <a href="{{route('trainer.nutrition-plans.index')}}" class="btn btn-secondary btn-wave waves-effect waves-light me-2">
             <i class="ri-arrow-left-line me-1"></i> Back to Plans
         </a>
     </div>
@@ -62,7 +62,7 @@
 </div>
 @endif
 
-<form id="nutritionPlanForm" action="{{ route('admin.nutrition-plans.store') }}" method="POST" enctype="multipart/form-data">
+<form id="nutritionPlanForm" action="{{ route('trainer.nutrition-plans.store') }}" method="POST" enctype="multipart/form-data">
     @csrf
     <div class="row">
         <!-- Main Plan Information -->
@@ -130,15 +130,10 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-xl-6 mb-3">
-                            <label for="trainer_id" class="form-label">Trainer</label>
-                            <select class="form-select select2" id="trainer_id" name="trainer_id">
-                                <option value="">Select Trainer (Optional)</option>
-                                @foreach($trainers as $trainer)
-                                    <option value="{{$trainer->id}}">{{$trainer->name}} ({{$trainer->email}})</option>
-                                @endforeach
-                            </select>
+                            <label class="form-label">Trainer</label>
+                            <input type="text" class="form-control" value="{{ Auth::user()->name }} ({{ Auth::user()->email }})" disabled>
+                            <input type="hidden" name="trainer_id" value="{{ Auth::id() }}">
                             <div class="invalid-feedback"></div>
-                            <small class="text-muted">Leave empty for admin-created global plans</small>
                         </div>
                         <div class="col-xl-6 mb-3">
                             <label for="client_id" class="form-label">Client</label>
@@ -329,7 +324,7 @@
                         <button type="button" class="btn btn-success btn-wave waves-effect waves-light" id="saveAndAddMeals">
                             <i class="ri-restaurant-line me-1"></i> Create & Add Meals
                         </button>
-                        <a href="{{route('admin.nutrition-plans.index')}}" class="btn btn-light btn-wave waves-effect waves-light">
+                        <a href="{{route('trainer.nutrition-plans.index')}}" class="btn btn-light btn-wave waves-effect waves-light">
                             <i class="ri-close-line me-1"></i> Cancel
                         </a>
                     </div>
@@ -482,7 +477,7 @@ $(document).ready(function() {
 
         // Submit form
         $.ajax({
-            url: '{{ route("admin.nutrition-plans.store") }}',
+            url: '{{ route("trainer.nutrition-plans.store") }}',
             type: 'POST',
             data: formData,
             processData: false,
@@ -496,9 +491,9 @@ $(document).ready(function() {
                         confirmButtonText: 'OK'
                     }).then(() => {
                         if (redirectToMeals) {
-                            window.location.href = '/admin/nutrition-plans/' + response.plan.id + '/meals';
+                            window.location.href = '/trainer/nutrition-plans/' + response.plan.id + '/meals';
                         } else {
-                            window.location.href = '/admin/nutrition-plans/' + response.plan.id;
+                            window.location.href = '/trainer/nutrition-plans/' + response.plan.id;
                         }
                     });
                 } else {

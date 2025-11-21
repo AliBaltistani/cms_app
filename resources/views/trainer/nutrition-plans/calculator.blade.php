@@ -75,16 +75,16 @@
         <div class="">
             <nav>
                 <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="{{route('admin.dashboard')}}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.index')}}">Nutrition Plans</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.show', $plan->id)}}">{{ $plan->plan_name }}</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.dashboard')}}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.index')}}">Nutrition Plans</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.show', $plan->id)}}">{{ $plan->plan_name }}</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Calculator</li>
                 </ol>
             </nav>
         </div>
     </div>
     <div class="ms-auto pageheader-btn">
-        <a href="{{route('admin.nutrition-plans.show', $plan->id)}}" class="btn btn-secondary btn-wave waves-effect waves-light">
+        <a href="{{route('trainer.nutrition-plans.show', $plan->id)}}" class="btn btn-secondary btn-wave waves-effect waves-light">
             <i class="ri-arrow-left-line me-1"></i> Back to Plan
         </a>
     </div>
@@ -280,7 +280,7 @@ function calculateNutrition() {
     $('#calculatorLoading').show();
 
     $.ajax({
-        url: '{{ route("admin.nutrition-plans.calculate-nutrition") }}',
+        url: '{{ route("trainer.nutrition-plans.calculate-nutrition") }}',
         type: 'POST',
         data: formData,
         headers: {
@@ -413,7 +413,7 @@ function saveRecommendations() {
     };
 
     $.ajax({
-        url: '{{ route("admin.nutrition-plans.save-calculated-nutrition", $plan->id) }}',
+        url: '{{ route("trainer.nutrition-plans.save-calculated-nutrition", $plan->id) }}',
         type: 'POST',
         data: saveData,
         headers: {

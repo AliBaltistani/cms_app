@@ -53,20 +53,20 @@
         <div class="">
             <nav>
                 <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="{{route('admin.dashboard')}}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.index')}}">Nutrition Plans</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.show', $plan->id)}}">{{ $plan->plan_name }}</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.meals.index', $plan->id)}}">Meals</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.dashboard')}}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.index')}}">Nutrition Plans</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.show', $plan->id)}}">{{ $plan->plan_name }}</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.meals.index', $plan->id)}}">Meals</a></li>
                     <li class="breadcrumb-item active" aria-current="page">{{ $meal->title }}</li>
                 </ol>
             </nav>
         </div>
     </div>
     <div class="ms-auto pageheader-btn">
-        <a href="{{route('admin.nutrition-plans.meals.edit', [$plan->id, $meal->id])}}" class="btn btn-success btn-wave waves-effect waves-light me-2">
+        <a href="{{route('trainer.nutrition-plans.meals.edit', [$plan->id, $meal->id])}}" class="btn btn-success btn-wave waves-effect waves-light me-2">
             <i class="ri-edit-2-line me-1"></i> Edit Meal
         </a>
-        <a href="{{route('admin.nutrition-plans.meals.index', $plan->id)}}" class="btn btn-secondary btn-wave waves-effect waves-light">
+        <a href="{{route('trainer.nutrition-plans.meals.index', $plan->id)}}" class="btn btn-secondary btn-wave waves-effect waves-light">
             <i class="ri-arrow-left-line me-1"></i> Back to Meals
         </a>
     </div>
@@ -245,7 +245,7 @@
             <div class="card-body">
                 <div class="mb-3">
                     <h6 class="fw-semibold mb-1">Nutrition Plan</h6>
-                    <a href="{{ route('admin.nutrition-plans.show', $plan->id) }}" class="text-decoration-none">
+                    <a href="{{ route('trainer.nutrition-plans.show', $plan->id) }}" class="text-decoration-none">
                         {{ $plan->plan_name }}
                     </a>
                 </div>
@@ -287,7 +287,7 @@
             </div>
             <div class="card-body">
                 <div class="d-grid gap-2">
-                    <a href="{{ route('admin.nutrition-plans.meals.edit', [$plan->id, $meal->id]) }}" class="btn btn-success btn-wave waves-effect waves-light">
+                    <a href="{{ route('trainer.nutrition-plans.meals.edit', [$plan->id, $meal->id]) }}" class="btn btn-success btn-wave waves-effect waves-light">
                         <i class="ri-edit-2-line me-1"></i> Edit Meal
                     </a>
                     <button type="button" class="btn btn-warning btn-wave waves-effect waves-light" onclick="duplicateMeal()">
@@ -351,7 +351,7 @@ function deleteMeal() {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: '/admin/nutrition-plans/{{ $plan->id }}/meals/{{ $meal->id }}',
+                url: '/trainer/nutrition-plans/{{ $plan->id }}/meals/{{ $meal->id }}',
                 type: 'DELETE',
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -359,7 +359,7 @@ function deleteMeal() {
                 success: function(response) {
                     if (response.success) {
                         Swal.fire('Deleted!', response.message, 'success');
-                        window.location.href = '/admin/nutrition-plans/{{ $plan->id }}/meals';
+                        window.location.href = '/trainer/nutrition-plans/{{ $plan->id }}/meals';
                     } else {
                         Swal.fire('Error!', response.message, 'error');
                     }
@@ -385,7 +385,7 @@ function deleteImage() {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: '/admin/nutrition-plans/{{ $plan->id }}/meals/{{ $meal->id }}/delete-image',
+                url: '/trainer/nutrition-plans/{{ $plan->id }}/meals/{{ $meal->id }}/delete-image',
                 type: 'DELETE',
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -420,7 +420,7 @@ function duplicateMeal() {
         if (result.isConfirmed) {
             // For now, redirect to create page with meal data
             // In a full implementation, you'd create a duplicate endpoint
-            window.location.href = '/admin/nutrition-plans/{{ $plan->id }}/meals/create?duplicate={{ $meal->id }}';
+            window.location.href = '/trainer/nutrition-plans/{{ $plan->id }}/meals/create?duplicate={{ $meal->id }}';
         }
     });
 }

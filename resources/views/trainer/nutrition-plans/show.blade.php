@@ -71,21 +71,21 @@
         <div class="">
             <nav>
                 <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="{{route('admin.dashboard')}}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.index')}}">Nutrition Plans</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.dashboard')}}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.index')}}">Nutrition Plans</a></li>
                     <li class="breadcrumb-item active" aria-current="page">{{ $plan->plan_name }}</li>
                 </ol>
             </nav>
         </div>
     </div>
     <div class="ms-auto pageheader-btn">
-        <a href="{{route('admin.nutrition-plans.calculator', $plan->id)}}" class="btn btn-info btn-wave waves-effect waves-light me-2">
+        <a href="{{route('trainer.nutrition-plans.calculator', $plan->id)}}" class="btn btn-info btn-wave waves-effect waves-light me-2">
             <i class="ri-calculator-line me-1"></i> Calculator
         </a>
-        <a href="{{route('admin.nutrition-plans.edit', $plan->id)}}" class="btn btn-success btn-wave waves-effect waves-light me-2">
+        <a href="{{route('trainer.nutrition-plans.edit', $plan->id)}}" class="btn btn-success btn-wave waves-effect waves-light me-2">
             <i class="ri-edit-2-line me-1"></i> Edit Plan
         </a>
-        <a href="{{route('admin.nutrition-plans.index')}}" class="btn btn-secondary btn-wave waves-effect waves-light">
+        <a href="{{route('trainer.nutrition-plans.index')}}" class="btn btn-secondary btn-wave waves-effect waves-light">
             <i class="ri-arrow-left-line me-1"></i> Back to Plans
         </a>
     </div>
@@ -191,7 +191,7 @@
                     Meals ({{ $plan->meals->count() }})
                 </div>
                 <div class="ms-auto">
-                    <a href="{{ route('admin.nutrition-plans.meals.create', $plan->id) }}" class="btn btn-sm btn-primary btn-wave">
+                    <a href="{{ route('trainer.nutrition-plans.meals.create', $plan->id) }}" class="btn btn-sm btn-primary btn-wave">
                         <i class="ri-add-line me-1"></i> Add Meal
                     </a>
                 </div>
@@ -213,7 +213,7 @@
                                             <span class="ms-2"><i class="ri-fire-line me-1"></i> {{ $meal->calories_per_serving }} cal</span>
                                         </div>
                                         <div>
-                                            <a href="{{ route('admin.nutrition-plans.meals.show', [$plan->id, $meal->id]) }}" class="btn btn-sm btn-light">
+                                            <a href="{{ route('trainer.nutrition-plans.meals.show', [$plan->id, $meal->id]) }}" class="btn btn-sm btn-light">
                                                 <i class="ri-eye-line"></i>
                                             </a>
                                         </div>
@@ -227,7 +227,7 @@
                         <i class="ri-restaurant-line fs-48 text-muted mb-3"></i>
                         <h5 class="text-muted">No meals added yet</h5>
                         <p class="text-muted">Start building this nutrition plan by adding meals.</p>
-                        <a href="{{ route('admin.nutrition-plans.meals.create', $plan->id) }}" class="btn btn-primary btn-wave">
+                        <a href="{{ route('trainer.nutrition-plans.meals.create', $plan->id) }}" class="btn btn-primary btn-wave">
                             <i class="ri-add-line me-1"></i> Add First Meal
                         </a>
                     </div>
@@ -242,10 +242,10 @@
                     Recipes ({{ $plan->recipes->count() }})
                 </div>
                 <div class="ms-auto">
-                    <a href="{{ route('admin.nutrition-plans.recipes.index', $plan->id) }}" class="btn btn-sm btn-outline-primary btn-wave me-2">
+                    <a href="{{ route('trainer.nutrition-plans.recipes.index', $plan->id) }}" class="btn btn-sm btn-outline-primary btn-wave me-2">
                         <i class="ri-list-check me-1"></i> Manage Recipes
                     </a>
-                    <a href="{{ route('admin.nutrition-plans.recipes.create', $plan->id) }}" class="btn btn-sm btn-primary btn-wave">
+                    <a href="{{ route('trainer.nutrition-plans.recipes.create', $plan->id) }}" class="btn btn-sm btn-primary btn-wave">
                         <i class="ri-add-line me-1"></i> Add Recipe
                     </a>
                 </div>
@@ -274,10 +274,10 @@
                                             <span class="ms-2"><i class="ri-sort-asc me-1"></i> Order: {{ $recipe->sort_order }}</span>
                                         </div>
                                         <div>
-                                            <a href="{{ route('admin.nutrition-plans.recipes.show', [$plan->id, $recipe->id]) }}" class="btn btn-sm btn-light">
+                                            <a href="{{ route('trainer.nutrition-plans.recipes.show', [$plan->id, $recipe->id]) }}" class="btn btn-sm btn-light">
                                                 <i class="ri-eye-line"></i>
                                             </a>
-                                            <a href="{{ route('admin.nutrition-plans.recipes.edit', [$plan->id, $recipe->id]) }}" class="btn btn-sm btn-success">
+                                            <a href="{{ route('trainer.nutrition-plans.recipes.edit', [$plan->id, $recipe->id]) }}" class="btn btn-sm btn-success">
                                                 <i class="ri-edit-2-line"></i>
                                             </a>
                                         </div>
@@ -288,7 +288,7 @@
                     </div>
                     @if($plan->recipes->count() > 4)
                         <div class="text-center mt-3">
-                            <a href="{{ route('admin.nutrition-plans.recipes.index', $plan->id) }}" class="btn btn-outline-primary btn-wave">
+                            <a href="{{ route('trainer.nutrition-plans.recipes.index', $plan->id) }}" class="btn btn-outline-primary btn-wave">
                                 <i class="ri-arrow-right-line me-1"></i> View All Recipes ({{ $plan->recipes->count() }})
                             </a>
                         </div>
@@ -298,7 +298,7 @@
                         <i class="ri-book-open-line fs-48 text-muted mb-3"></i>
                         <h5 class="text-muted">No recipes added yet</h5>
                         <p class="text-muted">Start building this nutrition plan by adding recipes.</p>
-                        <a href="{{ route('admin.nutrition-plans.recipes.create', $plan->id) }}" class="btn btn-primary btn-wave">
+                        <a href="{{ route('trainer.nutrition-plans.recipes.create', $plan->id) }}" class="btn btn-primary btn-wave">
                             <i class="ri-add-line me-1"></i> Add First Recipe
                         </a>
                     </div>
@@ -313,7 +313,7 @@
                     <i class="ri-calculator-line me-2"></i> Nutrition Calculator
                 </div>
                 <div class="ms-auto">
-                    <a href="{{ route('admin.nutrition-plans.calculator', $plan->id) }}" class="btn btn-sm btn-primary btn-wave">
+                    <a href="{{ route('trainer.nutrition-plans.calculator', $plan->id) }}" class="btn btn-sm btn-primary btn-wave">
                         <i class="ri-calculator-line me-1"></i> Open Calculator
                     </a>
                 </div>
@@ -446,7 +446,7 @@
                     <!-- Action Buttons -->
                     <div class="row mt-3">
                         <div class="col-md-12 text-center">
-                            <a href="{{ route('admin.nutrition-plans.calculator', $plan->id) }}" class="btn btn-primary btn-wave me-2">
+                            <a href="{{ route('trainer.nutrition-plans.calculator', $plan->id) }}" class="btn btn-primary btn-wave me-2">
                                 <i class="ri-calculator-line me-1"></i> Recalculate
                             </a>
                             <button type="button" class="btn btn-outline-info btn-wave" onclick="showCalculationDetails()">
@@ -460,7 +460,7 @@
                         <i class="ri-calculator-line fs-48 text-muted mb-3"></i>
                         <h5 class="text-muted">No calculations available</h5>
                         <p class="text-muted">Use the nutrition calculator to generate personalized recommendations based on client data.</p>
-                        <a href="{{ route('admin.nutrition-plans.calculator', $plan->id) }}" class="btn btn-primary btn-wave">
+                        <a href="{{ route('trainer.nutrition-plans.calculator', $plan->id) }}" class="btn btn-primary btn-wave">
                             <i class="ri-calculator-line me-1"></i> Calculate Nutrition
                         </a>
                     </div>

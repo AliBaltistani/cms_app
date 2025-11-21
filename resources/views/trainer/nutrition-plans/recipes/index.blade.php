@@ -35,19 +35,19 @@
         <div class="">
             <nav>
                 <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="{{route('admin.dashboard')}}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.index')}}">Nutrition Plans</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.show', $plan->id)}}">{{ $plan->plan_name }}</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.dashboard')}}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.index')}}">Nutrition Plans</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.show', $plan->id)}}">{{ $plan->plan_name }}</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Recipes</li>
                 </ol>
             </nav>
         </div>
     </div>
     <div class="ms-auto pageheader-btn">
-        <a href="{{route('admin.nutrition-plans.recipes.create', $plan->id)}}" class="btn btn-primary btn-wave waves-effect waves-light me-2">
+        <a href="{{route('trainer.nutrition-plans.recipes.create', $plan->id)}}" class="btn btn-primary btn-wave waves-effect waves-light me-2">
             <i class="ri-add-line me-1"></i> Add New Recipe
         </a>
-        <a href="{{route('admin.nutrition-plans.show', $plan->id)}}" class="btn btn-secondary btn-wave waves-effect waves-light">
+        <a href="{{route('trainer.nutrition-plans.show', $plan->id)}}" class="btn btn-secondary btn-wave waves-effect waves-light">
             <i class="ri-arrow-left-line me-1"></i> Back to Plan
         </a>
     </div>
@@ -103,10 +103,10 @@
                                     <div class="d-flex justify-content-between align-items-start mb-2">
                                         <h6 class="fw-semibold mb-0">{{ $recipe->title }}</h6>
                                         <div class="btn-group" role="group">
-                                            <a href="{{ route('admin.nutrition-plans.recipes.show', [$plan->id, $recipe->id]) }}" class="btn btn-sm btn-info btn-wave" title="View Details">
+                                            <a href="{{ route('trainer.nutrition-plans.recipes.show', [$plan->id, $recipe->id]) }}" class="btn btn-sm btn-info btn-wave" title="View Details">
                                                 <i class="ri-eye-line"></i>
                                             </a>
-                                            <a href="{{ route('admin.nutrition-plans.recipes.edit', [$plan->id, $recipe->id]) }}" class="btn btn-sm btn-success btn-wave" title="Edit Recipe">
+                                            <a href="{{ route('trainer.nutrition-plans.recipes.edit', [$plan->id, $recipe->id]) }}" class="btn btn-sm btn-success btn-wave" title="Edit Recipe">
                                                 <i class="ri-edit-2-line"></i>
                                             </a>
                                             <button type="button" class="btn btn-sm btn-danger btn-wave" onclick="deleteRecipe('{{ $recipe->id }}')" title="Delete Recipe">
@@ -142,7 +142,7 @@
                         <i class="ri-book-open-line fs-48 text-muted mb-3"></i>
                         <h5 class="text-muted">No recipes added yet</h5>
                         <p class="text-muted">Start building this nutrition plan by adding recipes.</p>
-                        <a href="{{ route('admin.nutrition-plans.recipes.create', $plan->id) }}" class="btn btn-primary btn-wave">
+                        <a href="{{ route('trainer.nutrition-plans.recipes.create', $plan->id) }}" class="btn btn-primary btn-wave">
                             <i class="ri-add-line me-1"></i> Add First Recipe
                         </a>
                     </div>
@@ -239,7 +239,7 @@ function deleteRecipe(recipeId) {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: '/admin/nutrition-plans/{{ $plan->id }}/recipes/' + recipeId,
+                url: '/trainer/nutrition-plans/{{ $plan->id }}/recipes/' + recipeId,
                 type: 'DELETE',
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')

@@ -32,20 +32,20 @@
         <div class="">
             <nav>
                 <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="{{route('admin.dashboard')}}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.index')}}">Nutrition Plans</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.show', $plan->id)}}">{{ $plan->plan_name }}</a></li>
-                    <li class="breadcrumb-item"><a href="{{route('admin.nutrition-plans.recipes.index', $plan->id)}}">Recipes</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.dashboard')}}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.index')}}">Nutrition Plans</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.show', $plan->id)}}">{{ $plan->plan_name }}</a></li>
+                    <li class="breadcrumb-item"><a href="{{route('trainer.nutrition-plans.recipes.index', $plan->id)}}">Recipes</a></li>
                     <li class="breadcrumb-item active" aria-current="page">{{ $recipe->title }}</li>
                 </ol>
             </nav>
         </div>
     </div>
     <div class="ms-auto pageheader-btn">
-        <a href="{{route('admin.nutrition-plans.recipes.edit', [$plan->id, $recipe->id])}}" class="btn btn-success btn-wave waves-effect waves-light me-2">
+        <a href="{{route('trainer.nutrition-plans.recipes.edit', [$plan->id, $recipe->id])}}" class="btn btn-success btn-wave waves-effect waves-light me-2">
             <i class="ri-edit-2-line me-1"></i> Edit Recipe
         </a>
-        <a href="{{route('admin.nutrition-plans.recipes.index', $plan->id)}}" class="btn btn-secondary btn-wave waves-effect waves-light">
+        <a href="{{route('trainer.nutrition-plans.recipes.index', $plan->id)}}" class="btn btn-secondary btn-wave waves-effect waves-light">
             <i class="ri-arrow-left-line me-1"></i> Back to Recipes
         </a>
     </div>
@@ -97,7 +97,7 @@
                             <i class="ri-more-2-line"></i> Actions
                         </button>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ route('admin.nutrition-plans.recipes.edit', [$plan->id, $recipe->id]) }}">
+                            <li><a class="dropdown-item" href="{{ route('trainer.nutrition-plans.recipes.edit', [$plan->id, $recipe->id]) }}">
                                 <i class="ri-edit-2-line me-2"></i> Edit Recipe
                             </a></li>
                             <li><button class="dropdown-item" onclick="duplicateRecipe()">
@@ -176,7 +176,7 @@
                     <div class="col-md-6">
                         <h6 class="text-muted mb-2">Nutrition Plan</h6>
                         <p class="mb-3">
-                            <a href="{{ route('admin.nutrition-plans.show', $plan->id) }}" class="text-decoration-none">
+                            <a href="{{ route('trainer.nutrition-plans.show', $plan->id) }}" class="text-decoration-none">
                                 {{ $plan->plan_name }}
                             </a>
                         </p>
@@ -241,7 +241,7 @@
                                         @endif
                                         <div class="flex-grow-1">
                                             <h6 class="mb-1">
-                                                <a href="{{ route('admin.nutrition-plans.recipes.show', [$plan->id, $relatedRecipe->id]) }}" class="text-decoration-none">
+                                                <a href="{{ route('trainer.nutrition-plans.recipes.show', [$plan->id, $relatedRecipe->id]) }}" class="text-decoration-none">
                                                     {{ $relatedRecipe->title }}
                                                 </a>
                                             </h6>
@@ -255,7 +255,7 @@
                 </div>
                 @if($plan->recipes->where('id', '!=', $recipe->id)->count() > 6)
                     <div class="text-center">
-                        <a href="{{ route('admin.nutrition-plans.recipes.index', $plan->id) }}" class="btn btn-light btn-sm">
+                        <a href="{{ route('trainer.nutrition-plans.recipes.index', $plan->id) }}" class="btn btn-light btn-sm">
                             View All Recipes ({{ $plan->recipes->count() - 1 }} more)
                         </a>
                     </div>
@@ -285,7 +285,7 @@ function duplicateRecipe() {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: '/admin/nutrition-plans/{{ $plan->id }}/recipes/{{ $recipe->id }}/duplicate',
+                url: '/trainer/nutrition-plans/{{ $plan->id }}/recipes/{{ $recipe->id }}/duplicate',
                 type: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -293,7 +293,7 @@ function duplicateRecipe() {
                 success: function(response) {
                     if (response.success) {
                         Swal.fire('Duplicated!', response.message, 'success');
-                        window.location.href = '/admin/nutrition-plans/{{ $plan->id }}/recipes/' + response.recipe.id + '/edit';
+                        window.location.href = '/trainer/nutrition-plans/{{ $plan->id }}/recipes/' + response.recipe.id + '/edit';
                     } else {
                         Swal.fire('Error!', response.message, 'error');
                     }
@@ -319,7 +319,7 @@ function deleteRecipe() {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: '/admin/nutrition-plans/{{ $plan->id }}/recipes/{{ $recipe->id }}',
+                url: '/trainer/nutrition-plans/{{ $plan->id }}/recipes/{{ $recipe->id }}',
                 type: 'DELETE',
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -327,7 +327,7 @@ function deleteRecipe() {
                 success: function(response) {
                     if (response.success) {
                         Swal.fire('Deleted!', response.message, 'success');
-                        window.location.href = '/admin/nutrition-plans/{{ $plan->id }}/recipes';
+                        window.location.href = '/trainer/nutrition-plans/{{ $plan->id }}/recipes';
                     } else {
                         Swal.fire('Error!', response.message, 'error');
                     }
