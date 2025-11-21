@@ -635,6 +635,16 @@ Route::middleware('auth')->group(function () {
             Route::get('/status', [\App\Http\Controllers\GoogleController::class, 'getConnectionStatus'])->name('status');
             Route::delete('/disconnect', [\App\Http\Controllers\GoogleController::class, 'disconnectGoogle'])->name('disconnect');
         });
+
+        Route::prefix('goals')->name('trainer.goals.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Trainer\GoalsController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\Trainer\GoalsController::class, 'create'])->name('create');
+            Route::post('/store', [\App\Http\Controllers\Trainer\GoalsController::class, 'store'])->name('store');
+            Route::get('/edit/{id}', [\App\Http\Controllers\Trainer\GoalsController::class, 'edit'])->name('edit');
+            Route::post('/update/{id}', [\App\Http\Controllers\Trainer\GoalsController::class, 'update'])->name('update');
+            Route::delete('/{id}', [\App\Http\Controllers\Trainer\GoalsController::class, 'delete'])->name('destroy');
+            Route::patch('/{id}/toggle-status', [\App\Http\Controllers\Trainer\GoalsController::class, 'toggleStatus'])->name('toggle-status');
+        });
     });
 
     /**
